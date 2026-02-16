@@ -1,0 +1,81 @@
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 0 20px;
+}
+
+.filterItem {
+    min-width: 0;
+}
+
+.dateFilter {
+    grid-column: 1 / -1; /* Reset to full width on mobile if needed, or adjust based on layout */
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.datePresets {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.presetBtn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--secondary-text);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.presetBtn:hover {
+    background: var(--bg-secondary);
+    color: var(--foreground);
+}
+
+.dateInputs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dateInput {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 4px;
+    font-size: 12px;
+    color: var(--foreground);
+    width: 110px;
+    font-family: inherit;
+}
+
+.dateSeparator {
+    color: var(--secondary-text);
+}
+
+/* Response adjustments */
+@media (min-width: 768px) {
+    .container {
+        grid-template-columns: repeat(4, 1fr); /* 4 columns for filters */
+    }
+    
+    .dateFilter {
+        grid-column: span 4; /* Date takes full row below or next to it? */
+        /* Actually with 5 items: User, Account, Type, Category, Date */
+        /* If User is hidden, 4 items. */
+        /* Let's make Date span full width to accommodate presets + inputs comfortably. */
+    }
+}

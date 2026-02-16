@@ -1,0 +1,61 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.description {
+  color: var(--secondary-text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.stats {
+  background: var(--background);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--secondary-text);
+  margin-bottom: 8px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 24px; /* Large input for amount */
+  font-weight: 600;
+  text-align: center;
+}
+
+.difference {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--secondary-text);
+}
+
+.submitBtn {
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: var(--card-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}

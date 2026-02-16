@@ -1,0 +1,114 @@
+.container {
+  position: fixed;
+  bottom: 90px;
+  right: 20px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  pointer-events: none; /* Let clicks pass through container when closed */
+}
+
+.open {
+  pointer-events: auto;
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 90;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.fab {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s;
+  z-index: 101;
+  pointer-events: auto; /* Always clickable */
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+.fabOpen {
+  background-color: var(--secondary-text);
+  transform: rotate(90deg);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  color: white;
+  box-shadow: var(--shadow-md);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(20px) scale(0.8);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  pointer-events: auto;
+}
+
+.bgExpense { background-color: var(--danger); transition-delay: 0.05s; }
+.bgIncome { background-color: var(--success); transition-delay: 0.1s; }
+.bgTransfer { background-color: var(--primary); transition-delay: 0.15s; }
+
+.open .actionBtn {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.actionLabel {
+  position: absolute;
+  right: 60px;
+  background: var(--card-bg);
+  color: var(--foreground);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(10px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.open .actionLabel {
+  opacity: 1;
+  transform: translateX(0);
+}

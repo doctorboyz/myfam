@@ -1,0 +1,244 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end; /* Mobile bottom sheet */
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background-color: var(--card-bg); /* Fallback */
+  background-color: var(--card-bg); /* Ensure this is white in light mode */
+  width: 100%;
+  max-width: 500px;
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  padding: 24px;
+  animation: slideUp 0.3s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.cancelledBadge {
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 0;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  color: var(--secondary-text);
+  margin-bottom: 8px;
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--primary);
+    font-weight: 500;
+    margin-left: 4px;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: border-color 0.2s;
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.input:disabled, .select:disabled {
+    opacity: 0.6;
+    background-color: var(--bg-secondary);
+    cursor: not-allowed;
+}
+
+.actualSection {
+    background-color: var(--bg-secondary);
+    padding: 16px;
+    border-radius: var(--radius-md);
+    margin-bottom: 24px;
+    border: 1px solid var(--border);
+}
+
+.accountSelection {
+    margin-top: 16px;
+    animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+  gap: 12px;
+}
+
+.rightActions {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.cancelBtn {
+  padding: 14px 20px;
+  border: none;
+  background-color: var(--background);
+  color: var(--secondary-text);
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.submitBtn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  background-color: var(--primary);
+  color: var(--card-bg);
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  min-width: 100px;
+  transition: all 0.2s;
+}
+
+.submitBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.cancelItemBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 16px;
+    background-color: var(--danger-bg);
+    color: var(--danger);
+    font-size: 14px;
+    font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancelItemBtn:hover {
+  background-color: var(--danger-bg-hover, #fee2e2);
+  color: var(--danger-dark, #b91c1c);
+}
+
+.reactivateBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 16px;
+    background-color: var(--success-bg);
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reactivateBtn:hover {
+    background-color: var(--success-bg-hover, #dcfce7);
+    color: var(--success-dark, #15803d);
+}
+
+.restrictedNotice {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--secondary-text);
+}
+
+.deleteContainer {
+    margin-top: 24px;
+    display: flex;
+    justify-content: center;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+}
+
+.deleteTextBtn {
+    background: none;
+    border: none;
+    color: var(--secondary-text);
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+}
+
+.deleteTextBtn:hover {
+    color: var(--danger);
+}
+
+@media (min-width: 768px) {
+  .overlay {
+    align-items: center;
+  }
+  
+  .modal {
+    border-radius: var(--radius-lg);
+  }
+}

@@ -1,0 +1,97 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.typeSelector {
+  display: flex;
+  background: var(--background);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.typeBtn {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.selectedType {
+  background: var(--card-bg);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+}
+
+.selectedType.income { color: var(--income); }
+.selectedType.expense { color: var(--expense); }
+.selectedType.transfer { color: var(--transfer); }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input, .select {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 16px;
+  background: var(--card-bg);
+  color: var(--foreground);
+}
+
+.input:focus, .select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.cancelBtn, .saveBtn {
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.cancelBtn {
+  background: transparent;
+  color: var(--secondary-text);
+}
+
+.saveBtn {
+  background: var(--primary);
+  color: white;
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

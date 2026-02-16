@@ -1,0 +1,192 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  parent
+  child
+}
+
+enum AccountType {
+  bank
+  cash
+  credit
+  wallet
+  loan
+  invest
+}
+
+enum TransactionType {
+  income
+  expense
+  transfer
+}
+
+enum BudgetPeriod {
+  monthly
+  one_time
+}
+
+enum BudgetStatus {
+  active
+  archived
+}
+
+enum TransactionStatus {
+  pending
+  completed
+  planned
+  void
+}
+
+// Models
+
+model Family {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members User[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  password  String?
+  role      UserRole @default(child)
+  isAdmin   Boolean  @default(false) @map("is_admin")
+  avatar    String?
+  color     String   @default("#000000")
+  familyId  String   @map("family_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  family       Family        @relation(fields: [familyId], references: [id])
+  accounts     Account[]
+  transactions Transaction[]
+  categories   Category[] // User defined categories
+  budgets      Budget[]
+}
+
+model Account {
+  id        String      @id @default(uuid())
+  name      String
+  type      AccountType
+  balance   Decimal     @default(0)
+  color     String      @default("#000000")
+  accountNo String?     @map("account_no")
+  ownerId   String      @map("owner_id")
+  status    String      @default("active")
+
+  owner                User             @relation(fields: [ownerId], references: [id])
+  incomingTransactions Transaction[]    @relation("Incoming")
+  outgoingTransactions Transaction[]    @relation("Outgoing")
+  reconciliations      Reconciliation[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Reconciliation {
+  id              String  @id @default(uuid())
+  accountId       String  @map("account_id")
+  account         Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  previousBalance Decimal @map("previous_balance")
+  newBalance      Decimal @map("new_balance")
+  difference      Decimal
+  note            String?
+  performedById   String  @map("performed_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+}
+
+model CategoryGroup {
+  id         String     @id @default(uuid())
+  name       String
+  type       String
+  isCustom   Boolean    @default(false)
+  categories Category[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Category {
+  id      String        @id @default(uuid())
+  name    String
+  groupId String        @map("group_id")
+  group   CategoryGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  userId String? @map("user_id")
+  user   User?   @relation(fields: [userId], references: [id])
+
+  transactions Transaction[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  amount      Decimal           @default(0)
+  planAmount  Decimal?          @map("plan_amount")
+  date        DateTime
+  type        TransactionType
+  description String?
+  status      TransactionStatus @default(completed)
+
+  accountId String?  @map("account_id")
+  account   Account? @relation("Outgoing", fields: [accountId], references: [id], onDelete: Cascade)
+
+  toAccountId String?  @map("to_account_id")
+  toAccount   Account? @relation("Incoming", fields: [toAccountId], references: [id])
+
+  categoryId String?   @map("category_id")
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  // Budget Relation
+  budgetId String? @map("budget_id")
+  budget   Budget? @relation(fields: [budgetId], references: [id])
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  // Extra fields
+  fee       Decimal? @default(0)
+  slipImage String?  @map("slip_image")
+  tags      String[] @default([])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model Budget {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  period      BudgetPeriod
+  limit       Decimal
+  startDate   DateTime?    @map("start_date")
+  endDate     DateTime?    @map("end_date")
+  status      BudgetStatus @default(active)
+  icon        String?
+  color       String?
+
+  transactions Transaction[]
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}

@@ -1,0 +1,93 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--secondary-text);
+  margin-bottom: 6px;
+}
+
+.input, .select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: 16px;
+}
+
+.row {
+  display: flex;
+  gap: 12px;
+}
+.row .field {
+  flex: 1;
+}
+
+.colors {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.colorSwatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.selectedColor {
+  border-color: var(--foreground);
+  transform: scale(1.1);
+}
+
+.submitBtn {
+  margin-top: 10px;
+  width: 100%;
+  padding: 14px;
+  background: var(--primary);
+  color: var(--card-bg);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submitBtn:hover {
+  opacity: 0.9;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: 14px;
+  background: transparent;
+  color: var(--secondary-text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submitBtn {
+  margin-top: 0;
+  flex: 1;
+  width: auto;
+  opacity: 1;
+}

@@ -1,141 +1,108 @@
-.page {
-  --background: #fafafa;
-  --foreground: #fff;
 
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
-  display: flex;
+.container {
+  padding-top: 20px;
+  padding-bottom: 100px;
   min-height: 100vh;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
 }
 
-.main {
+.header {
+  padding: 0 20px 20px;
   display: flex;
-  min-height: 100vh;
-  width: 100%;
-  max-width: 800px;
-  flex-direction: column;
-  align-items: flex-start;
   justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  align-items: center;
 }
 
-.intro {
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+}
+
+.addBtn {
+  background: var(--primary); /* Or use rgba for glassy look */
+  color: white;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.addBtn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.2);
+}
+
+.grid {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
+  gap: 12px;
+  padding: 0 20px;
 }
 
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
-}
-
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
-}
-
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.ctas {
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 16px;
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.ctas a {
-  display: flex;
-  justify-content: center;
+  flex-direction: row; /* Horizontal layout for list view */
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
-  cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+  text-decoration: none;
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm); /* Subtle shadow */
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 80px; /* Reduced height for list */
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent; 
+  /* border-left set inline via style */
+  border-left-width: 6px;
+  border-left-style: solid;
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.iconBox {
+  width: 48px;
+  height: 48px;
+  min-width: 48px; /* Prevent shrink */
+  border-radius: var(--radius-md); /* Squircle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px; /* Space between icon and text */
+  margin-bottom: 0; /* Override previous vertical layout margin */
+  box-shadow: var(--shadow-md);
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
-  }
-
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
-  }
+.info {
+  display: flex;
+  flex-direction: column; /* Stack name and balance */
+  flex: 1; /* Take remaining space */
+  gap: 2px;
 }
 
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
-
-  .intro {
-    gap: 16px;
-  }
-
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
-  }
+.name {
+  font-size: 15px;
+  font-weight: 600;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
-  }
-
-  .page {
-    --background: #000;
-    --foreground: #000;
-
-    --text-primary: #ededed;
-    --text-secondary: #999;
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
-  }
+.balance {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--foreground); 
 }

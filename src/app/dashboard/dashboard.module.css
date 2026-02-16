@@ -1,0 +1,93 @@
+
+.container {
+  padding-top: 20px;
+  padding-bottom: 80px;
+}
+
+.header {
+  padding: 0 20px 20px;
+}
+
+.greeting {
+  font-size: 14px;
+  color: var(--secondary-text);
+  margin-bottom: 4px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date {
+  font-size: 14px;
+  color: var(--secondary-text);
+  margin-top: 4px;
+}
+
+.balanceCard {
+  background: linear-gradient(135deg, var(--primary) 0%, #5856D6 100%);
+  margin: 0 20px 20px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  color: white;
+  border: none;
+}
+
+.label {
+  font-size: 14px;
+  opacity: 0.9;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.amount {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.section {
+  padding: 0 20px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--foreground);
+}
+
+.tabs {
+    display: flex;
+    background: var(--card-bg);
+    padding: 4px;
+    border-radius: var(--radius-md);
+    margin: 0 20px 20px;
+    border: 1px solid var(--border);
+    position: relative;
+    z-index: 10;
+}
+
+.tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.activeTab {
+    background: var(--primary);
+    color: white;
+    font-weight: 600;
+}

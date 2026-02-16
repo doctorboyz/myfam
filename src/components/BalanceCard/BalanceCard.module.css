@@ -1,0 +1,65 @@
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin: 16px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.label {
+  font-size: 14px;
+  color: var(--secondary-text);
+  font-weight: 500;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  color: var(--secondary-text);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  transition: color 0.2s, background 0.2s;
+}
+
+.editBtn:hover {
+  color: var(--foreground);
+  background: var(--bg-secondary);
+}
+
+.amount {
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--foreground);
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.reconcileBtn {
+  background: var(--bg-secondary);
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--foreground);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.reconcileBtn:hover {
+  background: var(--bg-secondary);
+}
