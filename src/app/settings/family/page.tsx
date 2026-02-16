@@ -51,14 +51,15 @@ export default function FamilyManagement() {
       if (!formData.name) return;
 
       if (isAdding) {
-          const newUser: User = {
+          const newUser: Omit<User, 'familyId'> & { familyId?: string } = {
               id: Date.now().toString(),
               name: formData.name,
               role: formData.role as UserRole || 'child',
               color: '#' + Math.floor(Math.random()*16777215).toString(16), // Random color
-              avatar: formData.avatar
+              avatar: formData.avatar,
+              familyId: currentUser?.familyId || ''
           };
-          addUser(newUser);
+          addUser(newUser as User);
       } else if (editingId) {
           updateUser(editingId, formData);
       }
