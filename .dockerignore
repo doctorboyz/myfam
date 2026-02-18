@@ -10,4 +10,3 @@ docker-compose.yml
 Dockerfile
 .dockerignore
 favicon.png
-prisma/seed.ts
