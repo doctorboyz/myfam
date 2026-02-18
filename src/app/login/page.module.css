@@ -22,9 +22,10 @@
 }
 
 .logoIcon {
-  font-size: 48px;
   display: block;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
+  width: 80px;
+  height: 80px;
 }
 
 .title {

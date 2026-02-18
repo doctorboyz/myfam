@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import styles from "./page.module.css";
 
 export default function LoginPage() {
@@ -41,7 +42,7 @@ export default function LoginPage() {
     <div className={styles.container}>
       <div className={styles.card}>
         <div className={styles.logo}>
-          <span className={styles.logoIcon}>👨‍👩‍👧‍👦</span>
+          <Image src="/favicon.png" alt="My Fam" width={80} height={80} className={styles.logoIcon} />
           <h1 className={styles.title}>My Fam</h1>
           <p className={styles.subtitle}>Family Finance Tracker</p>
         </div>
