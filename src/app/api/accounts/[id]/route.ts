@@ -8,7 +8,7 @@ export async function PATCH(
   try {
     const id = await parseId(props);
     const body = await request.json();
-    const data = pickFields(body, ['name', 'type', 'balance', 'color', 'accountNo', 'status']);
+    const data = pickFields(body, ['name', 'type', 'balance', 'color', 'icon', 'accountNo', 'alias', 'status']);
 
     const account = await prisma.account.update({
       where: { id },

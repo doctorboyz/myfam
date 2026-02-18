@@ -91,3 +91,50 @@
   width: auto;
   opacity: 1;
 }
+
+.selectedIconDisplay {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  color: var(--primary);
+}
+
+.selectedIconDisplay span {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.iconGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.iconButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--secondary-text);
+}
+
+.iconButton:hover {
+  border-color: var(--primary);
+  background: var(--background);
+}
+
+.selectedIcon {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}

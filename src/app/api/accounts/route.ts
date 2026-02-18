@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { name, type, balance, color, ownerId } = await request.json();
+    const { name, type, balance, color, ownerId, icon } = await request.json();
 
     const account = await prisma.account.create({
       data: {
@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         type: type || 'wallet',
         balance: balance || 0,
         color: color || '#000000',
+        icon,
         ownerId,
       },
     });

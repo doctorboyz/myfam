@@ -19,6 +19,14 @@
   margin-bottom: 8px;
 }
 
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+  color: var(--foreground);
+}
+
 .label {
   font-size: 14px;
   color: var(--secondary-text);

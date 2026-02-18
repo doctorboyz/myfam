@@ -7,12 +7,14 @@ interface BalanceCardProps {
   balance: number;
   onReconcile?: () => void;
   onEdit?: () => void;
+  icon?: React.ReactNode;
 }
 
-export default function BalanceCard({ title = "Total Balance", balance, onReconcile, onEdit }: BalanceCardProps) {
+export default function BalanceCard({ title = "Total Balance", balance, onReconcile, onEdit, icon }: BalanceCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
+        {icon && <div className={styles.icon}>{icon}</div>}
         <span className={styles.label}>{title}</span>
         {onEdit && (
           <button onClick={onEdit} className={styles.editBtn} aria-label="Edit Account">

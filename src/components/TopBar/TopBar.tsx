@@ -8,7 +8,7 @@ export default function TopBar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  if (pathname === '/login' || pathname === '/') return null;
+  if (pathname === '/login') return null;
 
   const mainPaths = ['/dashboard', '/categories', '/budget', '/profile', '/'];
   const showBackButton = !mainPaths.includes(pathname);

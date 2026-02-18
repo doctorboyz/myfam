@@ -18,6 +18,7 @@ export interface Account {
   type: AccountType;
   balance: number;
   color: string;
+  icon?: string; // Icon name from lucide-react
   owner: string; // User.name
   accountNo?: string;
   alias?: string;

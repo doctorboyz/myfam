@@ -83,7 +83,9 @@ model Account {
   type      AccountType
   balance   Decimal     @default(0)
   color     String      @default("#000000")
+  icon      String?
   accountNo String?     @map("account_no")
+  alias     String?
   ownerId   String      @map("owner_id")
   status    String      @default("active")
 

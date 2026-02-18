@@ -3,7 +3,7 @@
 import { useFinance } from "@/context/FinanceContext";
 import styles from "./page.module.css";
 import Link from "next/link";
-import { Plus, Wallet, CreditCard, Building2, Utensils } from 'lucide-react';
+import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
 import { useState } from "react";
 import AccountFormModal from "@/components/AccountFormModal/AccountFormModal";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
@@ -11,18 +11,44 @@ import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import Money from "@/components/Money/Money";
 
+// Icon mapping
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  'Wallet': Wallet,
+  'CreditCard': CreditCard,
+  'PiggyBank': PiggyBank,
+  'TrendingUp': TrendingUp,
+  'UtensilsCrossed': Utensils,
+  'Dumbbell': Building2,
+  'ShoppingCart': ShoppingCart,
+  'Gamepad2': Gamepad2,
+  'Gift': Gift,
+  'Home': HomeIcon,
+  'Car': Car,
+  'Zap': Zap,
+  'Droplet': Droplet,
+  'Heart': Heart,
+  'Music': Music,
+  'Book': Book,
+  'Map': Map,
+  'DollarSign': DollarSign,
+};
 
 export default function Home() {
   const { accounts, addAccount, addTransaction, deleteTransaction, currentUser } = useFinance();
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
-  
+
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
 
   // Filter accounts for the current user
   const myAccounts = accounts.filter(a => a.owner === currentUser?.name);
 
-  const getIcon = (type: string) => {
+  const getIcon = (iconName?: string, type?: string) => {
+    // Use account's icon if available
+    if (iconName && ICON_MAP[iconName]) {
+      return ICON_MAP[iconName];
+    }
+    // Fall back to type-based icon
     switch (type) {
       case 'bank': return Building2;
       case 'cash': return Wallet;
@@ -38,19 +64,10 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-         <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{currentUser?.name}</h1>
-         </div>
-         <button className={styles.addBtn} onClick={() => setIsAddAccountOpen(true)}>
-            <Plus size={20} />
-            <span>New</span>
-         </button>
-      </header>
       
       <div className={styles.grid}>
         {myAccounts.map((account) => {
-          const Icon = getIcon(account.type);
+          const Icon = getIcon(account.icon, account.type);
           return (
             <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={{ borderLeftColor: account.color }}>
               <div className={styles.iconBox} style={{ backgroundColor: account.color }}>

@@ -11,6 +11,43 @@ import TransactionDetailModal from "@/components/TransactionDetailModal/Transact
 import { Transaction } from "@/types";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
+import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
+
+// Icon mapping
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  'Wallet': Wallet,
+  'CreditCard': CreditCard,
+  'PiggyBank': PiggyBank,
+  'TrendingUp': TrendingUp,
+  'UtensilsCrossed': Utensils,
+  'Dumbbell': Building2,
+  'ShoppingCart': ShoppingCart,
+  'Gamepad2': Gamepad2,
+  'Gift': Gift,
+  'Home': HomeIcon,
+  'Car': Car,
+  'Zap': Zap,
+  'Droplet': Droplet,
+  'Heart': Heart,
+  'Music': Music,
+  'Book': Book,
+  'Map': Map,
+  'DollarSign': DollarSign,
+};
+
+const getIcon = (iconName?: string, type?: string) => {
+  // Use account's icon if available
+  if (iconName && ICON_MAP[iconName]) {
+    return ICON_MAP[iconName];
+  }
+  // Fall back to type-based icon
+  switch (type) {
+    case 'bank': return Building2;
+    case 'cash': return Wallet;
+    case 'credit': return CreditCard;
+    default: return Utensils;
+  }
+};
 
 interface Reconciliation {
   id: string;
@@ -103,11 +140,14 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     color: activeTab === tab ? '#fff' : 'var(--text-secondary, #666)',
   });
 
+  const AccountIcon = getIcon(account.icon, account.type);
+
   return (
     <div style={{ paddingBottom: '80px', paddingTop: '20px' }}>
-      <BalanceCard 
-        title={account.name} 
-        balance={account.balance} 
+      <BalanceCard
+        title={account.name}
+        icon={<AccountIcon size={24} />}
+        balance={account.balance}
         onReconcile={() => setIsReconcileOpen(true)}
         onEdit={() => setIsEditOpen(true)}
       />
