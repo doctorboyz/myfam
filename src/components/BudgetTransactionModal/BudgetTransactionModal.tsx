@@ -6,6 +6,8 @@ import styles from "./BudgetTransactionModal.module.css";
 import { BudgetTransaction, TransactionType, BudgetStatus } from "@/types";
 import { Trash2, Ban, CheckCircle } from "lucide-react";
 import TagSelector from "../TagSelector";
+import CategorySelector from "../CategorySelector/CategorySelector";
+import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
 
 interface BudgetTransactionModalProps {
   isOpen: boolean;
@@ -15,7 +17,7 @@ interface BudgetTransactionModalProps {
 }
 
 export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit }: BudgetTransactionModalProps) {
-  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, getGroupsByType, accounts, allAccounts, currentUser, transactions } = useFinance();
+  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, getGroupsByType, accounts, allAccounts, currentUser, transactions } = useFinance();
   
   const [name, setName] = useState("");
   const [plannedAmount, setPlannedAmount] = useState("");
@@ -23,10 +25,12 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<TransactionType>("expense");
   const [categoryId, setCategoryId] = useState("");
+  const [categoryName, setCategoryName] = useState("");
   const [accountId, setAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [isCancelled, setIsCancelled] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
 
   // Compute available tags from all transactions
   const availableTags = useMemo(() => {
@@ -40,16 +44,48 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
   useEffect(() => {
     if (isOpen) {
       if (itemToEdit) {
-        // ... (same logic)
+        setName(itemToEdit.name);
+        setPlannedAmount(itemToEdit.plannedAmount.toString());
+        setActualAmount(itemToEdit.actualAmount?.toString() || "");
+        setDate(new Date(itemToEdit.date).toISOString().split('T')[0]);
+        setType(itemToEdit.type);
+        setCategoryId(itemToEdit.categoryId);
+        // Find category name from ID
+        const cat = categories.find(c => c.id === itemToEdit.categoryId);
+        setCategoryName(cat?.name || "");
+        setAccountId(itemToEdit.accountId || "");
+        setToAccountId(itemToEdit.toAccountId || "");
+        setIsCancelled(itemToEdit.status === 'cancelled');
+        setTags(itemToEdit.tags || []);
       } else {
-        // ...
+        // Reset for new item
+        setName("");
+        setPlannedAmount("");
+        setActualAmount("");
+        setDate(new Date().toISOString().split('T')[0]);
+        setType("expense");
+        setCategoryId("");
+        setCategoryName("");
+        setAccountId("");
+        setToAccountId("");
+        setIsCancelled(false);
+        setTags([]);
       }
     }
-  }, [isOpen, itemToEdit]);
+  }, [isOpen, itemToEdit, categories]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Resolve category ID from name
+    const selectedCat = categories.find(c => c.name === categoryName);
+    const resolvedCategoryId = selectedCat?.id || categoryId;
+
+    if (!resolvedCategoryId) {
+      alert("Please select a category");
+      return;
+    }
+
     // Determine status
     let status: BudgetStatus = 'pending';
     if (isCancelled) {
@@ -76,7 +112,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
         actualAmount: status === 'done' ? parseFloat(actualAmount) : undefined,
         date,
         type,
-        categoryId,
+        categoryId: resolvedCategoryId,
         accountId: status === 'done' ? accountId : undefined,
         toAccountId: (status === 'done' && type === 'transfer') ? toAccountId : undefined,
         status,
@@ -151,12 +187,13 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
 
           <div className={styles.formGroup}>
              <label className={styles.label}>Type</label>
-             <select 
-                className={styles.select} 
-                value={type} 
+             <select
+                className={styles.select}
+                value={type}
                 onChange={(e) => {
                     setType(e.target.value as TransactionType);
-                    setCategoryId(""); 
+                    setCategoryId("");
+                    setCategoryName("");
                 }}
                 disabled={isCancelled}
              >
@@ -166,24 +203,15 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
              </select>
           </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Category</label>
-            <select
-                className={styles.select}
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                required
-                disabled={isCancelled}
-            >
-                <option value="" disabled>Select Category</option>
-                {currentGroups.map(group => (
-                    <optgroup key={group.id} label={group.name}>
-                        {categories.filter(c => c.groupId === group.id).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                    </optgroup>
-                ))}
-            </select>
+          <div className={styles.categorySection} style={{ pointerEvents: isCancelled ? 'none' : 'auto', opacity: isCancelled ? 0.6 : 1 }}>
+            <CategorySelector
+              value={categoryName}
+              onChange={(newName) => setCategoryName(newName)}
+              onAddNew={() => setIsCreateCategoryOpen(true)}
+              categories={categories}
+              groups={groups}
+              transactionType={type}
+            />
           </div>
 
           <div className={styles.formGroup}>
@@ -309,6 +337,15 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           )}
 
         </form>
+
+        <CreateCategoryModal
+          isOpen={isCreateCategoryOpen}
+          onClose={() => setIsCreateCategoryOpen(false)}
+          onSuccess={(newCategoryName) => {
+            setCategoryName(newCategoryName);
+          }}
+          transactionType={type}
+        />
       </div>
     </div>
   );

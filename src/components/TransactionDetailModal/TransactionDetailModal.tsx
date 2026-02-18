@@ -5,6 +5,8 @@ import styles from "./TransactionDetailModal.module.css";
 import { Trash2, Edit2, Image } from "lucide-react";
 import { useFinance } from "@/context/FinanceContext";
 import TagSelector from "../TagSelector";
+import CategorySelector from "../CategorySelector/CategorySelector";
+import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
 import { compressImage } from "@/lib/compressImage";
 
 interface TransactionDetailModalProps {
@@ -33,6 +35,7 @@ export default function TransactionDetailModal({
   const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions } = useFinance();
   const [isEditing, setIsEditing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Transaction>>({
     amount: 0,
     category: "",
@@ -337,27 +340,14 @@ export default function TransactionDetailModal({
             </div>
         </div>
 
-        <div className={styles.field}>
-          <label>Category</label>
-          <select
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            className={styles.select}
-          >
-             <option value="" disabled>Select Category</option>
-             {currentGroups.map(group => {
-                 const groupCats = getCategoriesByGroup(group.id);
-                 if (groupCats.length === 0) return null;
-                 return (
-                     <optgroup key={group.id} label={group.name}>
-                         {groupCats.map(c => (
-                             <option key={c.id} value={c.name}>{c.name}</option>
-                         ))}
-                     </optgroup>
-                 );
-             })}
-          </select>
-        </div>
+        <CategorySelector
+          value={formData.category as string}
+          onChange={(categoryName) => setFormData({ ...formData, category: categoryName })}
+          onAddNew={() => setIsCreateCategoryOpen(true)}
+          categories={categories}
+          groups={groups}
+          transactionType={formData.type as TransactionType}
+        />
 
         <div className={styles.fileInputContainer}>
           <label className={styles.label}>Slip Image</label>
@@ -429,6 +419,15 @@ export default function TransactionDetailModal({
           </button>
         </div>
        </form>
+
+       <CreateCategoryModal
+        isOpen={isCreateCategoryOpen}
+        onClose={() => setIsCreateCategoryOpen(false)}
+        onSuccess={(categoryName) => {
+          setFormData({ ...formData, category: categoryName });
+        }}
+        transactionType={formData.type as TransactionType}
+       />
     </Modal>
   );
 }
