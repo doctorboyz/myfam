@@ -2,7 +2,7 @@
 set -e
 
 echo "Running Prisma migrations..."
-node node_modules/prisma/build/index.js migrate deploy
+./node_modules/.bin/prisma migrate deploy
 
 echo "Starting Next.js..."
-exec node server.js
+exec ./node_modules/.bin/next start -p ${PORT:-3000}
