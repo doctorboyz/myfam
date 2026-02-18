@@ -5,7 +5,9 @@ node_modules
 npm-debug.log*
 .env
 .env.*
-!.env.example
 README.md
 docker-compose.yml
 Dockerfile
+.dockerignore
+favicon.png
+prisma/seed.ts
