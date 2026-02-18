@@ -40,8 +40,7 @@ export default function Home() {
     <div className={styles.container}>
       <header className={styles.header}>
          <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '1.2rem', fontWeight: 600 }}>My Accounts</h1>
-            <p style={{ fontSize: '0.9rem', color: '#666' }}>{currentUser?.name}</p>
+            <h1 style={{ fontSize: '1.2rem', fontWeight: 600 }}>{currentUser?.name}</h1>
          </div>
          <button className={styles.addBtn} onClick={() => setIsAddAccountOpen(true)}>
             <Plus size={20} />
