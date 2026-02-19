@@ -29,6 +29,18 @@ export async function DELETE(
   try {
     const id = await parseId(props);
 
+    // Check if category is used in any transactions
+    const usedCount = await prisma.transaction.count({
+      where: { categoryId: id },
+    });
+
+    if (usedCount > 0) {
+      return apiError(
+        `Cannot delete this category because it is used in ${usedCount} transaction(s). You can rename it instead.`,
+        409
+      );
+    }
+
     await prisma.category.delete({
       where: { id },
     });

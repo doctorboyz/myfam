@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutDashboard, Layers, Home, Calculator, User } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, Home, Calculator, User } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import styles from './BottomNav.module.css';
@@ -14,7 +14,7 @@ export default function BottomNav() {
 
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { name: 'Categories', path: '/categories', icon: Layers },
+    { name: 'History', path: '/categories', icon: ClipboardList },
     { name: 'Home', path: '/', icon: Home },
     { name: 'Budget', path: '/budget', icon: Calculator },
     { name: 'Profile', path: '/profile', icon: User },

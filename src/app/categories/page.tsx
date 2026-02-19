@@ -1,163 +1,168 @@
 "use client";
 
-import { useState } from "react";
-import BottomNav from "@/components/BottomNav/BottomNav";
-import CategoryFormModal from "@/components/CategoryFormModal/CategoryFormModal";
-import CategoryGroupFormModal from "@/components/CategoryGroupFormModal/CategoryGroupFormModal";
-import styles from "./categories.module.css";
+import { useState, useMemo } from "react";
 import { useFinance } from "@/context/FinanceContext";
-import { Category, CategoryGroup, TransactionType } from "@/types";
-import { ChevronDown, ChevronRight, Plus, Edit2, FolderPlus } from "lucide-react";
+import { Transaction, DashboardFilters as FilterType, TransactionType } from "@/types";
+import { ChevronDown, ChevronRight, ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } from "lucide-react";
+import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
+import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
+import ActionFab, { TransactionType as FabType } from "@/components/ActionFab/ActionFab";
+import Money from "@/components/Money/Money";
+import styles from "./history.module.css";
 
-export default function CategoriesPage() {
-  const { getGroupsByType, getCategoriesByGroup, currentUser } = useFinance();
-  const [activeTab, setActiveTab] = useState<TransactionType>('expense');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+export default function HistoryPage() {
+  const { transactions, currentUser, users, accounts, addTransaction, deleteTransaction, getFilteredTransactions } = useFinance();
+  const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['expense', 'income', 'transfer']));
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [initialType, setInitialType] = useState<FabType>('expense');
 
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  const [selectedGroup, setSelectedGroup] = useState<CategoryGroup | null>(null);
+  const [filters, setFilters] = useState<FilterType>(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return {
+      users: [],
+      dateRange: { start: startOfMonth, end: endOfMonth },
+      types: [],
+      categories: [],
+      accounts: []
+    };
+  });
 
-  const toggleGroup = (groupId: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupId)) {
-        newExpanded.delete(groupId);
-    } else {
-        newExpanded.add(groupId);
+  const displayedTransactions = getFilteredTransactions(filters);
+
+  const grouped = useMemo(() => {
+    const groups: Record<TransactionType, Transaction[]> = {
+      income: [],
+      expense: [],
+      transfer: [],
+    };
+    displayedTransactions.forEach(tx => {
+      if (groups[tx.type]) {
+        groups[tx.type].push(tx);
+      }
+    });
+    return groups;
+  }, [displayedTransactions]);
+
+  const getTotal = (txs: Transaction[]) => txs.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+
+  const toggleType = (type: string) => {
+    const next = new Set(expandedTypes);
+    if (next.has(type)) next.delete(type);
+    else next.add(type);
+    setExpandedTypes(next);
+  };
+
+  const getIcon = (categoryGroup: string) => {
+    switch (categoryGroup.toLowerCase()) {
+      case 'food': return Utensils;
+      case 'income': return Briefcase;
+      case 'transfer': return ArrowRightLeft;
+      case 'shopping': return ShoppingCart;
+      case 'housing': return Home;
+      default: return CreditCard;
     }
-    setExpandedGroups(newExpanded);
   };
 
-  const handleEdit = (category: Category) => {
-    setSelectedCategory(category);
-    setIsModalOpen(true);
+  const typeConfig: Record<string, { label: string; color: string; sign: string }> = {
+    income: { label: 'Income', color: 'var(--success)', sign: '+' },
+    expense: { label: 'Expense', color: 'var(--danger)', sign: '-' },
+    transfer: { label: 'Transfer', color: 'var(--primary)', sign: '' },
   };
 
-  const handleAdd = () => {
-    setSelectedCategory(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditGroup = (group: CategoryGroup) => {
-      setSelectedGroup(group);
-      setIsGroupModalOpen(true);
-  };
-  
-  const handleAddGroup = () => {
-      setSelectedGroup(null);
-      setIsGroupModalOpen(true);
-  };
-
-  const groupsList = getGroupsByType(activeTab);
+  if (!currentUser) return <div style={{ padding: 20 }}>Loading...</div>;
 
   return (
     <div className={styles.container}>
-      
+      <DashboardFilter
+        users={users}
+        currentUser={currentUser}
+        filters={filters}
+        onFilterChange={setFilters}
+      />
+
       <div className={styles.content}>
-        {/* Type Tabs */}
-        <div className={styles.tabs}>
-            {(['income', 'expense', 'transfer'] as TransactionType[]).map(t => (
-                <button
-                    key={t}
-                    className={`${styles.tab} ${activeTab === t ? styles.activeTab : ''} ${styles[t]}`}
-                    onClick={() => setActiveTab(t)}
-                >
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-            ))}
-        </div>
+        {(['income', 'expense', 'transfer'] as TransactionType[]).map(type => {
+          const txs = grouped[type];
+          const isExpanded = expandedTypes.has(type);
+          const config = typeConfig[type];
+          const total = getTotal(txs);
 
-        {/* Groups List */}
-        <div className={styles.list}>
-            {groupsList.map(group => {
-                const groupCats = getCategoriesByGroup(group.id);
-                const isExpanded = expandedGroups.has(group.id);
+          return (
+            <div key={type} className={styles.group}>
+              <div className={styles.groupHeader} onClick={() => toggleType(type)}>
+                <div className={styles.headerLeft}>
+                  <div className={`${styles.dot}`} style={{ background: config.color }} />
+                  <span className={styles.groupTitle}>{config.label}</span>
+                  <span className={styles.groupCount}>{txs.length}</span>
+                </div>
+                <div className={styles.headerRight}>
+                  <span className={styles.groupTotal} style={{ color: config.color }}>
+                    {config.sign}<Money amount={total} colored={false} />
+                  </span>
+                  {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
+                </div>
+              </div>
 
-                return (
-                    <div key={group.id} className={styles.groupItem}>
-                        <div 
-                            className={styles.groupHeader} 
-                            onClick={() => toggleGroup(group.id)}
+              {isExpanded && (
+                <div className={styles.txList}>
+                  {txs.length === 0 ? (
+                    <div className={styles.empty}>No {type} transactions</div>
+                  ) : (
+                    txs.map(tx => {
+                      const Icon = getIcon(tx.categoryGroup);
+                      return (
+                        <div
+                          key={tx.id}
+                          className={styles.txItem}
+                          onClick={() => { setSelectedTransaction(tx); setIsTxModalOpen(true); }}
                         >
-                            <span className={styles.groupName}>{group.name}</span>
-                            <div className={styles.groupMeta}>
-                                {currentUser?.isAdmin && (
-                                    <button 
-                                        className={styles.editBtn}
-                                        style={{ marginRight: 8 }}
-                                        onClick={(e) => { e.stopPropagation(); handleEditGroup(group); }}
-                                    >
-                                        <Edit2 size={16} />
-                                    </button>
-                                )}
-                                <span className={styles.count}>{groupCats.length}</span>
-                                {isExpanded ? <ChevronDown size={20} /> : <ChevronRight size={20} />}
-                            </div>
+                          <div className={`${styles.iconBox} ${styles[type]}`}>
+                            <Icon size={20} strokeWidth={2} />
+                          </div>
+                          <div className={styles.txDetails}>
+                            <span className={styles.txCategory}>{tx.category}</span>
+                            <span className={styles.txDate}>{tx.date}</span>
+                          </div>
+                          <div className={styles.txAmount} style={{ color: config.color }}>
+                            {type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :
+                             type === 'income' ? <Money amount={Math.abs(tx.amount)} colored={false} /> :
+                             <Money amount={Math.abs(tx.amount)} colored={false} />}
+                          </div>
                         </div>
-                        
-                        {isExpanded && (
-                            <div className={styles.categoryList}>
-                                {groupCats.map(cat => (
-                                    <div key={cat.id} className={styles.categoryItem}>
-                                        <span className={styles.categoryName}>{cat.name}</span>
-                                        {/* 
-                                            Show Edit if: 
-                                            1. Admin (can edit Global or Personal?) -> Req: "add/edit category userid=null specific admin"
-                                            2. Owner (userId matches) -> Req: "add/edit category userid who create can do"
-                                            
-                                            Global Category (userId is null/undefined): Only Admin
-                                            Personal Category (userId is set): Only Owner
-                                        */}
-                                        {((!cat.userId && currentUser?.isAdmin) || (cat.userId && cat.userId === currentUser?.id)) && (
-                                            <button 
-                                                className={styles.editBtn}
-                                                onClick={(e) => { e.stopPropagation(); handleEdit(cat); }}
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                                {groupCats.length === 0 && (
-                                    <div className={styles.emptyState}>No categories</div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                );
-            })}
-        </div>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
+      <ActionFab onTypeSelect={(type) => {
+        setInitialType(type);
+        setSelectedTransaction(null);
+        setIsTxModalOpen(true);
+      }} />
 
-
-      <CategoryFormModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        category={selectedCategory}
-        initialType={activeTab}
+      <TransactionDetailModal
+        isOpen={isTxModalOpen}
+        onClose={() => setIsTxModalOpen(false)}
+        transaction={selectedTransaction}
+        initialType={initialType}
+        accountId=""
+        availableAccounts={accounts}
+        isOwner={true}
+        onSave={(txData) => {
+          if (selectedTransaction) deleteTransaction(selectedTransaction.id);
+          addTransaction(txData);
+          setIsTxModalOpen(false);
+        }}
+        onDelete={deleteTransaction}
       />
-      
-      <CategoryGroupFormModal 
-        isOpen={isGroupModalOpen} 
-        onClose={() => setIsGroupModalOpen(false)} 
-        group={selectedGroup}
-        initialType={activeTab}
-      />
-      
-      <div className={styles.fabContainer}>
-          {currentUser?.isAdmin && (
-            <button className={styles.fabSecondary} onClick={handleAddGroup} title="New Group">
-                <FolderPlus size={20} color="var(--primary)" />
-            </button>
-          )}
-          <button className={styles.fab} onClick={handleAdd}>
-            <Plus size={24} color="white" />
-          </button>
-      </div>
-      
-      <BottomNav />
     </div>
   );
 }

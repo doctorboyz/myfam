@@ -65,6 +65,7 @@ interface FinanceContextType {
   // Category Features
   addCategory: (category: Omit<Category, 'id'>) => void;
   updateCategory: (id: string, updates: Partial<Category>) => void;
+  deleteCategory: (id: string) => Promise<boolean>;
   addGroup: (group: { name: string; type: TransactionType }) => void;
   updateGroup: (id: string, updates: Partial<CategoryGroup>) => void;
   deleteGroup: (id: string) => void;
@@ -411,20 +412,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
        const account = accounts.find(a => a.id === tx.accountId);
        if (!account) return false;
 
-       // Security: Child can only see own transactions
-       if (currentUser?.role === 'child' && currentUser.name && account.owner !== currentUser.name) {
-           return false;
-       }
-
-       // 1. User Filter (Only applies if user has permission to filter, i.e., Parent)
-       // If filter.users is NOT empty, we check. 
-       // If Empty, it means "All" (for Parent) OR "Own" (for Child who can't change it).
-       // But wait, if Child sends empty users list?
-       // The Security check above handles the restriction.
-       // So if Child + Empty Users -> Security check passes only Own -> Returns Own. Correct.
-       
-       if (filters.users.length > 0 && !filters.users.includes(account.owner)) {
-           return false;
+       // Default: show only current user's account transactions
+       // Parent can see others by explicitly selecting users in filter
+       if (filters.users.length > 0) {
+           if (!filters.users.includes(account.owner)) return false;
+       } else {
+           // No user filter = show only own transactions
+           if (account.owner !== currentUser.name) return false;
        }
        
        // 2. Type Filter
@@ -513,6 +507,23 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       } catch (error) {
           console.error("Failed to update category", error);
       }
+  };
+
+  const deleteCategory = async (id: string): Promise<boolean> => {
+    try {
+        const res = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            setCategories(categories.filter(c => c.id !== id));
+            return true;
+        } else {
+            const data = await res.json();
+            alert(data.error || 'Failed to delete category');
+            return false;
+        }
+    } catch (error) {
+        console.error("Failed to delete category", error);
+        return false;
+    }
   };
 
   const getGroupsByType = (type: TransactionType) => {
@@ -743,6 +754,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       categories,
       addCategory,
       updateCategory,
+      deleteCategory,
       addGroup,
       updateGroup,
       deleteGroup,

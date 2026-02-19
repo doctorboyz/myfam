@@ -5,6 +5,7 @@ import Modal from "../Modal/Modal";
 import { Category, CategoryGroup, TransactionType } from "@/types";
 import styles from "./CategoryFormModal.module.css";
 import { useFinance } from "@/context/FinanceContext";
+import { Trash2 } from "lucide-react";
 
 interface CategoryFormModalProps {
   isOpen: boolean;
@@ -14,40 +15,36 @@ interface CategoryFormModalProps {
 }
 
 export default function CategoryFormModal({ isOpen, onClose, category, initialType = 'expense' }: CategoryFormModalProps) {
-  const { addCategory, updateCategory, getGroupsByType, currentUser } = useFinance();
-  
+  const { addCategory, updateCategory, deleteCategory, getGroupsByType, groups, currentUser } = useFinance();
+
   const [type, setType] = useState<TransactionType>(initialType);
   const [groupId, setGroupId] = useState<string>("");
   const [name, setName] = useState("");
-  const [isGlobal, setIsGlobal] = useState(false); // Only for admins
-  
+  const [isGlobal, setIsGlobal] = useState(false);
+
   // Available groups based on selected type
   const availableGroups = getGroupsByType(type);
 
   useEffect(() => {
     if (isOpen) {
         if (category) {
-            // Edit Mode - Find group to get type
-            // Note: In real app, we might need value lookup. 
-            // For now, assume we can find the group in the context logic if needed, 
-            // but here we just need to prepopulate.
-            // Wait, we don't have the group object here, just groupId.
-            // We need to find the group to know the type.
-            // Let's assume the user passes correct initialType or we find it.
-            // Actually, better to just rely on category.groupId
+            // Edit Mode - Look up the group to determine type
+            const group = groups.find(g => g.id === category.groupId);
+            if (group) {
+              setType(group.type as TransactionType);
+            }
             setName(category.name);
             setGroupId(category.groupId);
-            setIsGlobal(!category.userId); // If no userId, it's global
+            setIsGlobal(!category.userId);
         } else {
             // Add Mode
             setType(initialType);
             setName("");
             setGroupId("");
-            setIsGlobal(currentUser?.isAdmin ?? false); // Default to Global for Admin
+            setIsGlobal(currentUser?.isAdmin ?? false);
         }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, category]); // Only run when isOpen or category changes
+  }, [isOpen, category, groups, initialType, currentUser?.isAdmin]);
 
   // Update groups when type changes
   useEffect(() => {
@@ -76,6 +73,19 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
     }
     onClose();
   };
+
+  const handleDelete = async () => {
+    if (!category) return;
+    if (!confirm('Delete this category? If it is used in transactions, deletion will be blocked.')) return;
+    const success = await deleteCategory(category.id);
+    if (success) onClose();
+  };
+
+  // Can delete if: admin (for global) or owner (for personal)
+  const canDelete = category && (
+    (!category.userId && currentUser?.isAdmin) ||
+    (category.userId && category.userId === currentUser?.id)
+  );
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={category ? "Edit Category" : "New Category"}>
@@ -123,6 +133,12 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
         </div>
 
         <div className={styles.formActions}>
+          {canDelete && (
+            <button type="button" onClick={handleDelete} className={styles.deleteBtn}>
+              <Trash2 size={16} />
+            </button>
+          )}
+          <div style={{ flex: 1 }} />
           <button type="button" onClick={onClose} className={styles.cancelBtn}>
              Cancel
           </button>

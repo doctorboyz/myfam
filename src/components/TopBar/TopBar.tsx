@@ -16,7 +16,7 @@ export default function TopBar() {
   const getTitle = () => {
     switch (pathname) {
       case '/dashboard': return 'Dashboard';
-      case '/categories': return 'Categories';
+      case '/categories': return 'History';
       case '/budget': return 'Budget';
       case '/profile': return 'Profile';
       case '/': return 'My Accounts';

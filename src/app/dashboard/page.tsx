@@ -2,7 +2,6 @@
 
 import { useFinance } from "@/context/FinanceContext";
 import styles from "./dashboard.module.css";
-import TransactionList from "@/components/TransactionList/TransactionList";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
@@ -18,7 +17,6 @@ export default function Dashboard() {
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
-  const [activeTab, setActiveTab] = useState<'transactions' | 'visuals'>('transactions');
   // Initial filters with Default Date Range (This Month)
   const [filters, setFilters] = useState<FilterType>(() => {
       const now = new Date();
@@ -97,33 +95,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className={styles.tabs}>
-          <div 
-              className={`${styles.tab} ${activeTab === 'transactions' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('transactions')}
-          >
-              Transactions
-          </div>
-           <div 
-              className={`${styles.tab} ${activeTab === 'visuals' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('visuals')}
-          >
-              Visualized
-          </div>
-      </div>
-
       <div className={styles.section}>
-        {activeTab === 'transactions' ? (
-            <TransactionList 
-                transactions={displayedTransactions.slice(0, 20)}
-                onTransactionClick={(tx) => {
-                    setSelectedTransaction(tx);
-                    setIsTxModalOpen(true);
-                }}
-            />
-        ) : (
-            <VisualizationView transactions={displayedTransactions} />
-        )}
+        <VisualizationView transactions={displayedTransactions} />
       </div>
       
       <ActionFab onTypeSelect={handleTypeSelect} />

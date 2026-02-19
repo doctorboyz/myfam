@@ -95,3 +95,18 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.deleteBtn {
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--danger, #FF3B30);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.deleteBtn:hover {
+  background: var(--danger-bg, #fff0f0);
+}

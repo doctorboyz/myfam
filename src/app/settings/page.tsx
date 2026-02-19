@@ -8,6 +8,7 @@ export default function SettingsPage() {
   const { currentUser } = useFinance();
   if (!currentUser) return <div style={{padding: 20}}>Loading...</div>;
 
+  const isAdmin = currentUser.isAdmin;
   const isParent = currentUser.role === 'parent';
 
   return (
@@ -36,24 +37,28 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Management (Parent Only) */}
-      {isParent && (
+      {/* Management */}
+      {(isAdmin || isParent) && (
         <div style={{ marginBottom: '24px' }}>
           <h3 style={{ fontSize: '14px', color: 'var(--secondary-text)', marginBottom: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Management
           </h3>
           <div style={{ background: 'var(--card-bg)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)' }}>
-            <Link href="/categories" style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}>
-                <Layers size={20} style={{ marginRight: '12px', color: 'var(--primary)' }} />
-                <span style={{ flex: 1, fontSize: '15px', color: 'var(--foreground)' }}>Categories</span>
-                <ChevronRight size={18} color="var(--secondary-text)" />
-            </Link>
-            
-            <Link href="/settings/family" style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', cursor: 'pointer' }}>
-                <Users size={20} style={{ marginRight: '12px', color: 'var(--primary)' }} />
-                <span style={{ flex: 1, fontSize: '15px', color: 'var(--foreground)' }}>Family Members</span>
-                <ChevronRight size={18} color="var(--secondary-text)" />
-            </Link>
+            {isAdmin && (
+              <Link href="/settings/categories" style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background 0.2s' }}>
+                  <Layers size={20} style={{ marginRight: '12px', color: 'var(--primary)' }} />
+                  <span style={{ flex: 1, fontSize: '15px', color: 'var(--foreground)' }}>Categories</span>
+                  <ChevronRight size={18} color="var(--secondary-text)" />
+              </Link>
+            )}
+
+            {isParent && (
+              <Link href="/settings/family" style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', cursor: 'pointer' }}>
+                  <Users size={20} style={{ marginRight: '12px', color: 'var(--primary)' }} />
+                  <span style={{ flex: 1, fontSize: '15px', color: 'var(--foreground)' }}>Family Members</span>
+                  <ChevronRight size={18} color="var(--secondary-text)" />
+              </Link>
+            )}
           </div>
         </div>
       )}
