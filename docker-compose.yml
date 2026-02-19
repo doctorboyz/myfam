@@ -21,6 +21,8 @@ services:
       - POSTGRES_USER=myfam
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=myfam
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - myfam-db-data:/var/lib/postgresql/data
     healthcheck:
