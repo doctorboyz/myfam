@@ -628,6 +628,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
       const payload = {
           amount: item.plannedAmount,
+          planAmount: item.plannedAmount,
           date: item.date,
           type: item.type,
           categoryId: item.categoryId,
@@ -655,7 +656,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                    status: 'pending',
                    type: newTx.type,
                    categoryId: newTx.categoryId || '',
-                   tags: newTx.tags || []
+                   tags: newTx.tags || [],
+                   createdById: currentUser.id,
                };
 
                setBudgets(budgets.map(b => b.id === budgetId ? { ...b, items: [...b.items, newItem] } : b));

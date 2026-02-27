@@ -15,12 +15,39 @@ export async function GET() {
         transactions: true,
       },
     });
-    return apiSuccess(budgets);
+
+    // Map Prisma transactions → frontend BudgetTransaction items
+    const STATUS_MAP: Record<string, string> = {
+      planned: 'pending',
+      completed: 'done',
+      void: 'cancelled',
+    };
+
+    const mapped = budgets.map((b) => ({
+      ...b,
+      items: b.transactions.map((tx) => ({
+        id: tx.id,
+        name: tx.description || '',
+        plannedAmount: Number(tx.planAmount ?? tx.amount),
+        actualAmount: tx.status === 'completed' ? Number(tx.amount) : undefined,
+        date: tx.date,
+        status: STATUS_MAP[tx.status] ?? 'pending',
+        type: tx.type,
+        categoryId: tx.categoryId ?? '',
+        accountId: tx.accountId ?? undefined,
+        toAccountId: tx.toAccountId ?? undefined,
+        tags: tx.tags ?? [],
+        createdById: tx.createdById,
+      })),
+    }));
+
+    return apiSuccess(mapped);
   } catch (error) {
     console.error('Failed to fetch budgets:', error);
     return apiError('Failed to fetch budgets');
   }
 }
+
 
 export async function POST(request: Request) {
   try {

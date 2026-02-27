@@ -14,9 +14,12 @@ interface BudgetTransactionModalProps {
   onClose: () => void;
   budgetId: string;
   itemToEdit?: BudgetTransaction | null;
+  canEditItem?: boolean; // Can the current user edit this item?
+  isBudgetCreator?: boolean; // Is current user the budget creator?
 }
 
-export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit }: BudgetTransactionModalProps) {
+export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit, canEditItem = true, isBudgetCreator = false }: BudgetTransactionModalProps) {
+  const isReadonly = !!itemToEdit && !canEditItem;
   const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser, transactions } = useFinance();
   
   const [name, setName] = useState("");
@@ -160,28 +163,35 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-            <h2 className={styles.title}>{itemToEdit ? "Edit Plan Item" : "New Plan Item"}</h2>
+            <h2 className={styles.title}>{itemToEdit ? (isReadonly ? "ดูแผนรายการ" : "Edit Plan Item") : "เพิ่มแผนรายการ"}</h2>
         </div>
         
-        {isCancelled && (
+        {isReadonly && (
+            <div className={styles.restrictedNotice}>
+                <Ban size={16} />
+                <span>รายการนี้สร้างโดยสมาชิกคนอื่น คุณไม่สามารถแก้ไขได้</span>
+            </div>
+        )}
+
+        {!isReadonly && isCancelled && (
             <div className={styles.restrictedNotice}>
                 <Ban size={16} className="text-red-500" />
                 <span>This item is voided. Reactivate it to make changes.</span>
             </div>
         )}
         
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={isReadonly ? (e) => e.preventDefault() : handleSubmit}>
           
           <div className={styles.formGroup}>
-            <label className={styles.label}>Name</label>
+            <label className={styles.label}>ชื่อรายการ</label>
             <input
               type="text"
               className={styles.input}
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Flight Ticket"
+              placeholder="เช่น ซื้อของเล่น, โอนเงินให้ลูก"
               required
-              disabled={isCancelled}
+              disabled={isCancelled || isReadonly}
             />
           </div>
 
@@ -195,7 +205,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                     setCategoryId("");
                     setCategoryName("");
                 }}
-                disabled={isCancelled}
+                disabled={isCancelled || isReadonly}
              >
                  <option value="expense">Expense</option>
                  <option value="income">Income</option>
@@ -203,7 +213,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
              </select>
           </div>
 
-          <div className={styles.categorySection} style={{ pointerEvents: isCancelled ? 'none' : 'auto', opacity: isCancelled ? 0.6 : 1 }}>
+          <div className={styles.categorySection} style={{ pointerEvents: (isCancelled || isReadonly) ? 'none' : 'auto', opacity: (isCancelled || isReadonly) ? 0.6 : 1 }}>
             <CategorySelector
               value={categoryName}
               onChange={(newName) => setCategoryName(newName)}
@@ -222,7 +232,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
               value={date}
               onChange={(e) => setDate(e.target.value)}
               required
-              disabled={isCancelled}
+              disabled={isCancelled || isReadonly}
             />
           </div>
 
@@ -236,7 +246,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
               placeholder="0.00"
               step="0.01"
               required
-              disabled={isCancelled}
+              disabled={isCancelled || isReadonly}
             />
           </div>
           
@@ -308,27 +318,32 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           )}
 
           <div className={styles.actions}>
-            {!isCancelled ? (
-                 <button type="button" className={styles.cancelItemBtn} onClick={handleCancelItem}>
-                   <Ban size={16} /> Void Item
-                 </button>
-            ) : (
+            {!isReadonly && (
+              !isCancelled ? (
+                <button type="button" className={styles.cancelItemBtn} onClick={handleCancelItem}>
+                  <Ban size={16} /> Void Item
+                </button>
+              ) : (
                 <button type="button" className={styles.reactivateBtn} onClick={handleReactivate}>
-                   <CheckCircle size={16} /> Reactivate
-                 </button>
+                  <CheckCircle size={16} /> Reactivate
+                </button>
+              )
             )}
             
             <div className={styles.rightActions}>
                 <button type="button" className={styles.cancelBtn} onClick={onClose}>
-                Close
+                ปิด
                 </button>
-                <button type="submit" className={styles.submitBtn}>
-                Save
-                </button>
+                {!isReadonly && (
+                  <button type="submit" className={styles.submitBtn}>
+                  บันทึก
+                  </button>
+                )}
             </div>
           </div>
           
-          {itemToEdit && (
+          {/* Delete: only item creator (canEditItem) or budget creator can delete */}
+          {itemToEdit && (canEditItem || isBudgetCreator) && (
               <div className={styles.deleteContainer}>
                    <button type="button" className={styles.deleteTextBtn} onClick={handleDelete}>
                        <Trash2 size={16} /> Delete Permanently

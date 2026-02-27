@@ -57,6 +57,7 @@ export interface BudgetTransaction {
   toAccountId?: string; // For transfers
   linkedTransactionId?: string; // ID of the real transaction when status is done
   tags?: string[];
+  createdById?: string; // Who created this plan item
 }
 
 export interface Budget {
