@@ -3,15 +3,18 @@ services:
     image: myfam-app:latest
     container_name: myfam-app
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"
     environment:
-      - DATABASE_URL=postgresql://myfam:${POSTGRES_PASSWORD}@db:5432/myfam
+      - DATABASE_URL=postgresql://myfam:${POSTGRES_PASSWORD}@myfam-db:5432/myfam
       - NODE_ENV=production
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
     depends_on:
       db:
         condition: service_healthy
     networks:
-      - myfam-net
-      - web-public
+      - server-network
 
   db:
     image: postgres:16-alpine
@@ -21,8 +24,6 @@ services:
       - POSTGRES_USER=myfam
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=myfam
-    ports:
-      - "127.0.0.1:5432:5432"
     volumes:
       - myfam-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -31,14 +32,11 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - myfam-net
+      - server-network
 
 volumes:
   myfam-db-data:
 
 networks:
-  myfam-net:
-    internal: true
-  web-public:
+  server-network:
     external: true
-    name: web-public
