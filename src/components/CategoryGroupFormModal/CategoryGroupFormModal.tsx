@@ -24,6 +24,7 @@ export default function CategoryGroupFormModal({ isOpen, onClose, group, initial
     if (isOpen) {
         if (group) {
             // Edit Mode
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setName(group.name);
             setType(group.type);
         } else {

@@ -66,6 +66,18 @@ export default function Home() {
   return (
     <div className={styles.container}>
       
+      <div className={styles.header}>
+        <h1 className={styles.title}>Accounts</h1>
+        <button 
+          onClick={() => setIsAddAccountOpen(true)}
+          className={styles.addBtn}
+          style={{ background: 'var(--card-bg)', color: 'var(--foreground)' }}
+        >
+          <Plus size={18} />
+          New
+        </button>
+      </div>
+
       <div className={styles.grid}>
         {myAccounts.map((account) => {
           const Icon = getIcon(account.icon, account.type);
@@ -83,20 +95,6 @@ export default function Home() {
             </Link>
           );
         })}
-
-        {/* New Account Button */}
-        <button 
-          onClick={() => setIsAddAccountOpen(true)} 
-          className={styles.card} 
-          style={{ borderLeftColor: 'var(--text-secondary)', cursor: 'pointer', background: 'transparent', border: '2px dashed var(--card-bg)' }}
-        >
-          <div className={styles.iconBox} style={{ backgroundColor: 'transparent', border: '2px dashed var(--text-secondary)' }}>
-            <Plus size={24} color="var(--text-secondary)" />
-          </div>
-          <div className={styles.info}>
-            <div className={styles.name} style={{ color: 'var(--text-secondary)' }}>New Account</div>
-          </div>
-        </button>
       </div>
 
       <ActionFab onTypeSelect={handleTypeSelect} />

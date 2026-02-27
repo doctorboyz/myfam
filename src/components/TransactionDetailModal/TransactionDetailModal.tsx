@@ -362,6 +362,7 @@ export default function TransactionDetailModal({
             </label>
             {formData.slipImage && (
                 <div className="relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={formData.slipImage} alt="Slip Preview" className={styles.slipPreview} />
                     <button 
                         type="button" 

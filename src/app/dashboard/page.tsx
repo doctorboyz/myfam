@@ -13,7 +13,7 @@ import VisualizationView from "@/components/VisualizationView/VisualizationView"
 import Money from "@/components/Money/Money";
 
 export default function Dashboard() {
-  const { globalBalance, transactions, currentUser, addTransaction, deleteTransaction, accounts, users, getFilteredTransactions } = useFinance();
+  const { globalBalance, currentUser, addTransaction, deleteTransaction, accounts, users, getFilteredTransactions } = useFinance();
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');

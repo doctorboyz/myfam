@@ -11,7 +11,7 @@ import Money from "@/components/Money/Money";
 import styles from "./history.module.css";
 
 export default function HistoryPage() {
-  const { transactions, currentUser, users, accounts, addTransaction, deleteTransaction, getFilteredTransactions } = useFinance();
+  const { currentUser, users, accounts, addTransaction, deleteTransaction, getFilteredTransactions } = useFinance();
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['expense', 'income', 'transfer']));
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);

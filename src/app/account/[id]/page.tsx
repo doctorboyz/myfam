@@ -97,6 +97,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
   }, [id]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReconciliations();
   }, [fetchReconciliations]);
 

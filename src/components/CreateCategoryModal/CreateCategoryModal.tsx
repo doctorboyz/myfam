@@ -4,7 +4,7 @@ import { useState } from "react";
 import Modal from "../Modal/Modal";
 import styles from "./CreateCategoryModal.module.css";
 import { useFinance } from "@/context/FinanceContext";
-import { CategoryGroup, TransactionType } from "@/types";
+import { TransactionType } from "@/types";
 
 interface CreateCategoryModalProps {
   isOpen: boolean;
