@@ -81,6 +81,7 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
   useEffect(() => {
     if (isOpen) {
         if (initialData) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
             name: initialData.name,
             type: initialData.type,

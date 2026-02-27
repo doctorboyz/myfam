@@ -386,7 +386,7 @@ async function main() {
 
     // Determine Account (Default to Main Bank)
     // user is defined at line 351
-    const account = user.accounts.find((a: any) => a.name === 'Main Bank')!
+    const account = user.accounts.find((a: Prisma.AccountGetPayload<Record<string, never>>) => a.name === 'Main Bank')!
 
     await prisma.transaction.create({
       data: {
@@ -451,8 +451,8 @@ async function main() {
 
      // Find Account
      const targetAccName = kidAccountMap[accountName] || accountName
-     const account = childUser.accounts.find((a: any) => a.name === targetAccName) 
-        || childUser.accounts.find((a: any) => a.name === 'Budget')! // Fallback to Cash
+     const account = childUser.accounts.find((a: Prisma.AccountGetPayload<Record<string, never>>) => a.name === targetAccName) 
+        || childUser.accounts.find((a: Prisma.AccountGetPayload<Record<string, never>>) => a.name === 'Budget')! // Fallback to Cash
 
      // Map Category
      const systemCategoryName = csvCategoryMapping[csvCategory] || csvCategory

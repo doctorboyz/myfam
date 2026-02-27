@@ -17,7 +17,7 @@ interface BudgetTransactionModalProps {
 }
 
 export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit }: BudgetTransactionModalProps) {
-  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, getGroupsByType, accounts, allAccounts, currentUser, transactions } = useFinance();
+  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser, transactions } = useFinance();
   
   const [name, setName] = useState("");
   const [plannedAmount, setPlannedAmount] = useState("");
@@ -44,6 +44,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
   useEffect(() => {
     if (isOpen) {
       if (itemToEdit) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setName(itemToEdit.name);
         setPlannedAmount(itemToEdit.plannedAmount.toString());
         setActualAmount(itemToEdit.actualAmount?.toString() || "");
@@ -152,8 +153,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
 
   if (!isOpen) return null;
 
-  // Filter categories by type
-  const currentGroups = getGroupsByType(type);
+  if (!isOpen) return null;
 
 
   return (

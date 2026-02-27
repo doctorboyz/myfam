@@ -10,9 +10,10 @@ import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import Money from "@/components/Money/Money";
+import { Plus } from "lucide-react";
 
 // Icon mapping
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
   'Wallet': Wallet,
   'CreditCard': CreditCard,
   'PiggyBank': PiggyBank,
@@ -82,6 +83,20 @@ export default function Home() {
             </Link>
           );
         })}
+
+        {/* New Account Button */}
+        <button 
+          onClick={() => setIsAddAccountOpen(true)} 
+          className={styles.card} 
+          style={{ borderLeftColor: 'var(--text-secondary)', cursor: 'pointer', background: 'transparent', border: '2px dashed var(--card-bg)' }}
+        >
+          <div className={styles.iconBox} style={{ backgroundColor: 'transparent', border: '2px dashed var(--text-secondary)' }}>
+            <Plus size={24} color="var(--text-secondary)" />
+          </div>
+          <div className={styles.info}>
+            <div className={styles.name} style={{ color: 'var(--text-secondary)' }}>New Account</div>
+          </div>
+        </button>
       </div>
 
       <ActionFab onTypeSelect={handleTypeSelect} />

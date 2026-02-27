@@ -81,9 +81,6 @@ export default function TransactionDetailModal({
 
   const getAccountLabel = (acc: Account) => `${acc.name} - ${acc.owner}`;
 
-  // Get available groups for current form type
-  const currentGroups = getGroupsByType((formData.type as TransactionType) || 'expense');
-
   // Compute available tags from all transactions
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
@@ -97,6 +94,7 @@ export default function TransactionDetailModal({
     if (isOpen) {
       if (transaction) {
         // View existing
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setFormData({
             ...transaction,
             toAccountId: transaction.toAccountId || "",
@@ -128,7 +126,7 @@ export default function TransactionDetailModal({
         setIsEditing(true);
       }
     }
-  }, [isOpen, transaction, initialType, accountId, availableAccounts]); 
+  }, [isOpen, transaction, initialType, accountId, availableAccounts, getGroupsByType, getCategoriesByGroup]); 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,7 +362,7 @@ export default function TransactionDetailModal({
             </label>
             {formData.slipImage && (
                 <div className="relative">
-                    <img src={formData.slipImage} alt="Slip" className={styles.slipPreview} />
+                    <img src={formData.slipImage} alt="Slip Preview" className={styles.slipPreview} />
                     <button 
                         type="button" 
                         onClick={() => {

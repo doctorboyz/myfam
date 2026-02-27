@@ -14,7 +14,7 @@ import Money from "@/components/Money/Money";
 import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
 
 // Icon mapping
-const ICON_MAP: Record<string, React.ComponentType<any>> = {
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
   'Wallet': Wallet,
   'CreditCard': CreditCard,
   'PiggyBank': PiggyBank,
@@ -140,13 +140,11 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     color: activeTab === tab ? '#fff' : 'var(--text-secondary, #666)',
   });
 
-  const AccountIcon = getIcon(account.icon, account.type);
-
   return (
     <div style={{ paddingBottom: '80px', paddingTop: '20px' }}>
       <BalanceCard
         title={account.name}
-        icon={<AccountIcon size={24} />}
+        icon={React.createElement(getIcon(account.icon, account.type), { size: 24 })}
         balance={account.balance}
         onReconcile={() => setIsReconcileOpen(true)}
         onEdit={() => setIsEditOpen(true)}
