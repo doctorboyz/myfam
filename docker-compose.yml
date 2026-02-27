@@ -1,6 +1,7 @@
 services:
   app:
     image: myfam-app:latest
+    build: .
     container_name: myfam-app
     restart: unless-stopped
     ports:
