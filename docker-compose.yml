@@ -10,12 +10,12 @@ services:
       - DATABASE_URL=postgresql://myfam:${POSTGRES_PASSWORD}@myfam-db:5432/myfam
       - NODE_ENV=production
     depends_on:
-      db:
+      myfam-db:
         condition: service_healthy
     networks:
       - server-network
 
-  db:
+  myfam-db:
     image: postgres:16-alpine
     container_name: myfam-db
     restart: unless-stopped
