@@ -21,6 +21,7 @@ import {
   detectIntent,
   formatQuickReply,
   QUICK_REPLY_ITEMS,
+  CONFIRM_TYPE_ITEMS,
   type ExtractedTransaction,
 } from '@/lib/ollama';
 
@@ -44,7 +45,16 @@ interface SandboxQueryRequest {
   userId: string;
 }
 
-type SandboxRequest = SandboxTextRequest | SandboxImageRequest | SandboxQueryRequest;
+interface SandboxConfirmRequest {
+  type: 'confirm';
+  /** The transaction type the user confirmed: 'income' or 'expense' */
+  confirmedType: 'income' | 'expense';
+  /** The original extracted data from the needsConfirmation response */
+  extracted: ExtractedTransaction;
+  userId: string;
+}
+
+type SandboxRequest = SandboxTextRequest | SandboxImageRequest | SandboxQueryRequest | SandboxConfirmRequest;
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -236,6 +246,72 @@ export async function POST(request: Request) {
     }
     console.log(`[sandbox] user ${user.name} (${user.role}) type=${body.type}`);
 
+    // ── Confirm: user confirmed the transaction type ──
+    if (body.type === 'confirm') {
+      const confirmBody = body as SandboxConfirmRequest;
+      if (!confirmBody.confirmedType || !confirmBody.extracted) {
+        return NextResponse.json(
+          { error: 'Missing confirmedType or extracted data' },
+          { status: 400 },
+        );
+      }
+
+      const extracted: ExtractedTransaction = {
+        ...confirmBody.extracted,
+        type: confirmBody.confirmedType,
+        needsConfirmation: false,
+      };
+
+      // Re-match category with the confirmed type
+      const categories = await getCategoriesForFamily(user.familyId);
+
+      // Find a category matching the confirmed type
+      // 1. Try matching by group name first
+      let matchedCat = extracted.categoryGroupName
+        ? categories.find(
+            (c) => c.group.name === extracted.categoryGroupName && c.group.type === extracted.type,
+          )
+        : null;
+
+      // 2. Try matching by category name
+      if (!matchedCat && extracted.categoryGroupName) {
+        matchedCat = categories.find(
+          (c) => c.name === extracted.categoryGroupName && c.group.type === extracted.type,
+        );
+      }
+
+      // 3. Fallback: first category of the confirmed type
+      if (!matchedCat) {
+        matchedCat = categories.find((c) => c.group.type === extracted.type);
+      }
+
+      if (matchedCat) {
+        extracted.categoryId = matchedCat.id;
+        extracted.categoryGroupName = matchedCat.group.name;
+      }
+
+      const transaction = await createTransactionFromExtracted(extracted, user);
+      const replyText = formatConfirmationMessage(transaction, extracted);
+
+      return NextResponse.json({
+        success: true,
+        intent: 'confirm_type',
+        parsed: extracted,
+        transaction: {
+          id: transaction.id,
+          amount: Number(transaction.amount),
+          type: transaction.type,
+          description: transaction.description,
+          date: transaction.date,
+          category: transaction.category?.name ?? null,
+          categoryGroup: transaction.category?.group?.name ?? null,
+          account: transaction.account?.name ?? 'Unknown',
+        },
+        lineReplySent: replyText,
+        quickReply: formatQuickReply(QUICK_REPLY_ITEMS),
+      });
+    }
+
     // ── Query: direct query from Quick Reply or explicit type ──
     if (body.type === 'query') {
       if (!('query' in body) || !body.query) {
@@ -260,7 +336,7 @@ export async function POST(request: Request) {
     // ── Validate create-type requests ──
     if (body.type !== 'text' && body.type !== 'image') {
       return NextResponse.json(
-        { error: 'Invalid type. Use "text", "image", or "query".' },
+        { error: 'Invalid type. Use "text", "image", "query", or "confirm".' },
         { status: 400 },
       );
     }
@@ -330,6 +406,22 @@ export async function POST(request: Request) {
         success: false,
         error: 'Could not extract transaction data. Please provide more details.',
         extracted,
+      });
+    }
+
+    // ── If type is uncertain, ask for confirmation instead of auto-creating ──
+    if (extracted.needsConfirmation) {
+      const fmt = new Intl.NumberFormat('th-TH');
+      const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+
+      return NextResponse.json({
+        success: false,
+        needsConfirmation: true,
+        intent: 'confirm_type',
+        parsed: extracted,
+        lineReplySent: replyText,
+        quickReply: formatQuickReply(CONFIRM_TYPE_ITEMS),
       });
     }
 

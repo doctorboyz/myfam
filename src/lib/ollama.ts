@@ -173,8 +173,15 @@ export async function extractFromSlip(
   const prompt = `อ่านสลิป/ใบเสร็จ/QR payment นี้แล้วสกัดข้อมูลธุรกรรม
 วันนี้: ${new Date().toISOString().split('T')[0]}
 กลุ่มหมวด: ${groupList}
+
+สำคัญ: พิจารณา type จากสลิปอย่างรอบคอบ:
+- expense (เราจ่ายออก): เห็นชื่อเราเป็น "ผู้โอน" หรือ "จากบ/ช", มีคำว่า "โอนเงิน", "จ่าย", "ชำระ", PromptPay ที่เราแสกนจ่าย
+- income (เรารับเข้า): เห็นชื่อเราเป็น "ผู้รับโอน" หรือ "เข้าบ/ช", มีคำว่า "รับโอน", "รับเงิน", "CREDIT", สลิปที่คนอื่นส่งมา
+- transfer: โอนระหว่างบัญชีตัวเอง
+- ถ้าไม่แน่ใจว่า expense หรือ income ให้ใส่ needsConfirmation=true
+
 ตอบเป็น JSON เท่านั้น:
-{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincome","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","confidence":0ถึง1}
+{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าอ่านจำนวนเงินไม่ได้ให้ใส่ amount=0
 เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
@@ -246,6 +253,7 @@ export interface ExtractedTransaction {
   categoryGroupName: string;
   merchantName?: string;
   confidence: number;
+  needsConfirmation?: boolean;
 }
 
 /**
@@ -315,6 +323,7 @@ function parseExtractedTransaction(raw: string): ExtractedTransaction {
     categoryGroupName: String(parsed.categoryGroupName || ''),
     merchantName: parsed.merchantName ? String(parsed.merchantName) : undefined,
     confidence: Number(parsed.confidence) || 0.5,
+    needsConfirmation: parsed.needsConfirmation === true,
   };
 }
 
@@ -325,7 +334,7 @@ export function formatConfirmationMessage(
   transaction: { amount: number | { toString(): string }; type: string; description: string | null; date: string | Date },
   extracted: ExtractedTransaction,
 ): string {
-  const typeLabel = extracted.type === 'income' ? 'รายรับ' : 'รายจ่าย';
+  const typeLabel = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
   const amount = new Intl.NumberFormat('th-TH').format(Number(transaction.amount));
 
   let msg = `✅ บันทึก${typeLabel}แล้ว!\n`;
@@ -333,20 +342,17 @@ export function formatConfirmationMessage(
   msg += `💰 ${amount} บาท\n`;
 
   if (extracted.categoryGroupName) {
-    msg += `📂 หมวด: ${extracted.categoryGroupName}`;
-    if (extracted.categoryId) {
-      // Find category name from the extraction context
-    }
-    msg += '\n';
+    msg += `📂 หมวด: ${extracted.categoryGroupName}\n`;
   }
 
   if (extracted.merchantName) {
     msg += `🏪 ร้าน: ${extracted.merchantName}\n`;
   }
 
-  const confidence = extracted.confidence;
-  if (confidence < 0.7) {
-    msg += `\n⚠️ ความมั่นใจ: ${Math.round(confidence * 100)}% — กรุณาตรวจสอบความถูกต้อง`;
+  if (extracted.needsConfirmation) {
+    msg += `\n❓ ไม่แน่ใจว่าเป็นรายรับหรือรายจ่าย — กรุณาตรวจสอบ`;
+  } else if (extracted.confidence < 0.7) {
+    msg += `\n⚠️ ความมั่นใจ: ${Math.round(extracted.confidence * 100)}% — กรุณาตรวจสอบความถูกต้อง`;
   }
 
   return msg;
@@ -444,6 +450,15 @@ export const QUICK_REPLY_ITEMS = [
   { label: '📋 รายการล่าสุด', action: 'รายการล่าสุด' },
   { label: '📈 สรุปยอด', action: 'สรุปยอด' },
   { label: '❓ ช่วยเหลือ', action: 'ช่วยเหลือ' },
+] as const;
+
+/**
+ * Quick Reply items shown when type needs confirmation (expense vs income).
+ */
+export const CONFIRM_TYPE_ITEMS = [
+  { label: '✅ ใช่ รายจ่าย', action: 'ยืนยันรายจ่าย' },
+  { label: '✅ ใช่ รายรับ', action: 'ยืนยันรายรับ' },
+  { label: '❌ ยกเลิก', action: 'ยกเลิก' },
 ] as const;
 
 /**
