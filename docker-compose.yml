@@ -9,9 +9,17 @@ services:
     environment:
       - DATABASE_URL=postgresql://myfam:${POSTGRES_PASSWORD}@myfam-db:5432/myfam
       - NODE_ENV=production
+      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
+      - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen3:8b}
+      - OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL:-qwen3.5:cloud}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     depends_on:
       myfam-db:
         condition: service_healthy
+      ollama:
+        condition: service_started
     networks:
       - server-network
 
@@ -19,6 +27,8 @@ services:
     image: postgres:16-alpine
     container_name: myfam-db
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5433:5432"
     environment:
       - POSTGRES_USER=myfam
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
@@ -33,8 +43,18 @@ services:
     networks:
       - server-network
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: myfam-ollama
+    restart: unless-stopped
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - server-network
+
 volumes:
   myfam-db-data:
+  ollama-data:
 
 networks:
   server-network:

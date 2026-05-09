@@ -75,6 +75,7 @@ model User {
   transactions Transaction[]
   categories   Category[] // User defined categories
   budgets      Budget[]
+  lineLink     LineLink?
 }
 
 model Account {
@@ -169,6 +170,19 @@ model Transaction {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model LineLink {
+  id          String   @id @default(uuid())
+  lineUserId  String   @unique @map("line_user_id")
+  userId      String   @unique @map("user_id")
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("line_links")
 }
 
 model Budget {
