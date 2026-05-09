@@ -462,10 +462,46 @@ export const CONFIRM_TYPE_ITEMS = [
 ] as const;
 
 /**
+ * Build Quick Reply items for category group selection.
+ * Groups are filtered by transaction type (expense/income/transfer).
+ * LINE allows max 13 items per Quick Reply.
+ */
+export function buildCategoryGroupReply(
+  groups: Array<{ id: string; name: string; type: string }>,
+  transactionType: 'income' | 'expense' | 'transfer',
+  pendingTransactionId?: string,
+) {
+  const filtered = groups.filter((g) => g.type === transactionType);
+  // Format: "เลือกหมวด:{groupId}" so we can parse it back
+  const items = filtered.slice(0, 12).map((g) => ({
+    label: g.name,
+    action: `เลือกหมวด:${g.id}`,
+  }));
+  // Add cancel option
+  items.push({ label: '❌ ข้าม', action: 'ข้ามหมวด' });
+  return formatQuickReply(items);
+}
+
+/**
+ * Build Quick Reply items for subcategory selection within a group.
+ */
+export function buildSubcategoryReply(
+  categories: Array<{ id: string; name: string }>,
+) {
+  // LINE allows max 13 items
+  const items = categories.slice(0, 12).map((c) => ({
+    label: c.name,
+    action: `เลือกประเภท:${c.id}`,
+  }));
+  items.push({ label: '❌ ข้าม', action: 'ข้ามประเภท' });
+  return formatQuickReply(items);
+}
+
+/**
  * Format a LINE Quick Reply JSON for the given actions.
  * Returns the LINE Messaging API quickReply structure.
  */
-export function formatQuickReply(actions: readonly Array<{ label: string; action: string }>) {
+export function formatQuickReply(actions: ReadonlyArray<{ label: string; action: string }>) {
   return {
     type: 'quickReply' as const,
     items: actions.map((a) => ({

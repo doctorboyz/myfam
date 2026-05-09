@@ -2,22 +2,37 @@
  * POST /api/line/webhook
  *
  * LINE Messaging API webhook handler.
- * Receives events from LINE, verifies signature, processes messages,
- * and replies to users.
  *
- * Key behaviors:
- * - Verifies X-Line-Signature header for security
- * - Processes one event at a time (single-item operations)
- * - Resolves LINE userId to MyFam user via LineLink table
- * - Enforces role-based access (child: own data only, parent: all family data)
- * - Returns 200 quickly to LINE, processes async
+ * Flow: reply "processing" immediately → process AI → push result.
+ * Reply tokens expire in 30s, so we acknowledge fast and push later.
+ *
+ * Quick Reply actions handled as text commands:
+ * - ดูยอด / รายการล่าสุด / สรุปยอด / ช่วยเหลือ
+ * - ยืนยันรายจ่าย / ยืนยันรายรับ / ยกเลิก
+ * - เลือกหมวด:{groupId} / เลือกประเภท:{categoryId} / ข้ามหมวด / ข้ามประเภท
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyLineSignature } from '@/lib/line-verify';
-import { sendLineReply, downloadLineImage } from '@/lib/line';
-import { extractFromText, extractFromSlip, formatConfirmationMessage, formatErrorMessage, type ExtractedTransaction } from '@/lib/ollama';
+import { sendLineReply, sendLinePush, downloadLineImage } from '@/lib/line';
+import {
+  extractFromText,
+  extractFromSlip,
+  formatConfirmationMessage,
+  formatErrorMessage,
+  detectIntent,
+  formatQuickReply,
+  QUICK_REPLY_ITEMS,
+  CONFIRM_TYPE_ITEMS,
+  buildCategoryGroupReply,
+  buildSubcategoryReply,
+  type ExtractedTransaction,
+} from '@/lib/ollama';
+
+export const maxDuration = 300;
+
+// ── Types ──────────────────────────────────────────────────────
 
 interface LineEvent {
   type: string;
@@ -37,10 +52,8 @@ interface LineWebhookBody {
   events: LineEvent[];
 }
 
-/**
- * Get data scope based on user role.
- * Single-item access only.
- */
+// ── Helpers ─────────────────────────────────────────────────────
+
 function getDataScope(user: { id: string; role: string; familyId: string }) {
   if (user.role === 'parent') {
     return { createdBy: { familyId: user.familyId } };
@@ -48,9 +61,6 @@ function getDataScope(user: { id: string; role: string; familyId: string }) {
   return { createdById: user.id };
 }
 
-/**
- * Find user's default account (first active account).
- */
 async function findDefaultAccount(userId: string) {
   return prisma.account.findFirst({
     where: { ownerId: userId, status: 'active' },
@@ -58,9 +68,6 @@ async function findDefaultAccount(userId: string) {
   });
 }
 
-/**
- * Fetch categories for user's family.
- */
 async function getCategoriesForFamily(familyId: string) {
   const users = await prisma.user.findMany({
     where: { familyId },
@@ -79,13 +86,135 @@ async function getCategoriesForFamily(familyId: string) {
   });
 }
 
-/**
- * Create a single transaction from extracted data.
- * Follows the same pattern as POST /api/transactions.
- */
+function getCategoryContext(categories: Awaited<ReturnType<typeof getCategoriesForFamily>>) {
+  return categories.map((c) => ({
+    id: c.id,
+    name: c.name,
+    groupName: c.group.name,
+    groupType: c.group.type,
+  }));
+}
+
+// ── Quick Reply Shorthand ──────────────────────────────────────
+
+const menuQuickReply = formatQuickReply(QUICK_REPLY_ITEMS);
+
+// ── Command Detection ───────────────────────────────────────────
+
+type CommandType =
+  | 'balance'
+  | 'recent'
+  | 'summary'
+  | 'help'
+  | 'confirm_expense'
+  | 'confirm_income'
+  | 'cancel'
+  | 'link'
+  | 'unlink'
+  | 'delete_last'
+  | 'select_group'
+  | 'select_subcategory'
+  | 'skip_group'
+  | 'skip_subcategory'
+  | 'none';
+
+function detectCommand(text: string): CommandType {
+  const q = text.trim();
+
+  // Exact match for Quick Reply action texts
+  if (q === 'ยืนยันรายจ่าย') return 'confirm_expense';
+  if (q === 'ยืนยันรายรับ') return 'confirm_income';
+  if (q === 'ยกเลิก') return 'cancel';
+  if (q.startsWith('เลือกหมวด:')) return 'select_group';
+  if (q.startsWith('เลือกประเภท:')) return 'select_subcategory';
+  if (q === 'ข้ามหมวด') return 'skip_group';
+  if (q === 'ข้ามประเภท') return 'skip_subcategory';
+
+  // Fuzzy match for user-typed commands (handles typos and variations)
+  if (/ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|ยอด|balance/i.test(q)) return 'balance';
+  if (/รายการล่าสุด|ล่าสุด|รายการวันนี้|recent/i.test(q)) return 'recent';
+  if (/สรุปยอด|สรุปยอด|รวมรายจ่าย|รวมรายรับ|สรุป|summary/i.test(q)) return 'summary';
+  if (/ช่วยเหลือ|ช่วย|ใช้ยังไง|ทำอะไรได้|help|บอททำอะไร/i.test(q)) return 'help';
+  if (/^ลิงก์|^link/i.test(q)) return 'link';
+  if (/ยกเลิกลิงก์|unlink/i.test(q)) return 'unlink';
+  if (/ลบรายการล่าสุด|ลบล่าสุด|ลบรายการ/i.test(q)) return 'delete_last';
+
+  return 'none';
+}
+
+// ── Query Handlers ──────────────────────────────────────────────
+
+async function handleBalanceQuery(user: { id: string; role: string; familyId: string }): Promise<string> {
+  const accounts = await prisma.account.findMany({
+    where: { ownerId: user.id, status: 'active' },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (accounts.length === 0) {
+    return 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน';
+  }
+
+  const fmt = new Intl.NumberFormat('th-TH');
+  const lines = accounts.map((a) => `💳 ${a.name}: ${fmt.format(Number(a.balance))} บาท`);
+  const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+  lines.push(`\n💰 รวมทุกบัญชี: ${fmt.format(total)} บาท`);
+
+  return `📊 ยอดคงเหลือ\n${lines.join('\n')}`;
+}
+
+async function handleRecentQuery(user: { id: string; role: string; familyId: string }): Promise<string> {
+  const scope = getDataScope(user);
+  const transactions = await prisma.transaction.findMany({
+    where: scope,
+    include: { category: { include: { group: true } }, account: true },
+    orderBy: { createdAt: 'desc' },
+    take: 5,
+  });
+
+  if (transactions.length === 0) {
+    return 'ยังไม่มีรายการ';
+  }
+
+  const fmt = new Intl.NumberFormat('th-TH');
+  const lines = transactions.map((t) => {
+    const icon = t.type === 'income' ? '🟢' : t.type === 'transfer' ? '🔄' : '🔴';
+    const typeLabel = t.type === 'income' ? '+' : '-';
+    return `${icon} ${t.description || 'ไม่ระบุ'} ${typeLabel}${fmt.format(Number(t.amount))} บาท (${t.category?.group?.name ?? '-'})`;
+  });
+
+  return `📋 รายการล่าสุด (${transactions.length} รายการ)\n${lines.join('\n')}`;
+}
+
+async function handleSummaryQuery(user: { id: string; role: string; familyId: string }): Promise<string> {
+  const scope = getDataScope(user);
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const fmt = new Intl.NumberFormat('th-TH');
+
+  const [income, expense] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { ...scope, type: 'income', date: { gte: startOfMonth } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { ...scope, type: 'expense', date: { gte: startOfMonth } },
+      _sum: { amount: true },
+    }),
+  ]);
+
+  const totalIncome = Number(income._sum.amount ?? 0);
+  const totalExpense = Number(expense._sum.amount ?? 0);
+  const monthName = today.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+  return `📊 สรุปยอดเดือน${monthName}\n🟢 รายรับ: ${fmt.format(totalIncome)} บาท\n🔴 รายจ่าย: ${fmt.format(totalExpense)} บาท\n💰 คงเหลือ: ${fmt.format(totalIncome - totalExpense)} บาท`;
+}
+
+// ── Transaction Creation ─────────────────────────────────────────
+
 async function createTransactionFromExtracted(
   extracted: ExtractedTransaction,
   user: { id: string; role: string; familyId: string },
+  status: 'completed' | 'pending' = 'completed',
 ) {
   const account = await findDefaultAccount(user.id);
   if (!account) {
@@ -99,7 +228,7 @@ async function createTransactionFromExtracted(
         date: new Date(extracted.date),
         type: extracted.type,
         description: extracted.description,
-        status: 'completed',
+        status,
         accountId: account.id,
         categoryId: extracted.categoryId,
         createdById: user.id,
@@ -113,8 +242,96 @@ async function createTransactionFromExtracted(
       },
     });
 
-    const amount = extracted.amount;
-    if (extracted.type === 'income') {
+    if (status === 'completed') {
+      const amount = extracted.amount;
+      if (extracted.type === 'income') {
+        await tx.account.update({
+          where: { id: account.id },
+          data: { balance: { increment: amount } },
+        });
+      } else {
+        await tx.account.update({
+          where: { id: account.id },
+          data: { balance: { decrement: amount } },
+        });
+      }
+    }
+
+    return transaction;
+  });
+}
+
+// ── Confirm Pending Transaction ──────────────────────────────────
+
+async function confirmPendingTransaction(
+  user: { id: string; role: string; familyId: string },
+  confirmedType: 'income' | 'expense',
+): Promise<string> {
+  const scope = getDataScope(user);
+
+  const pending = await prisma.transaction.findFirst({
+    where: { ...scope, status: 'pending', tags: { has: 'line-bot' } },
+    orderBy: { createdAt: 'desc' },
+    include: { category: { include: { group: true } } },
+  });
+
+  if (!pending) {
+    return 'ไม่พบรายการที่รอการยืนยัน';
+  }
+
+  const categories = await getCategoriesForFamily(user.familyId);
+  const categoryContext = getCategoryContext(categories);
+
+  // Re-match category with the confirmed type
+  const extracted: ExtractedTransaction = {
+    amount: Number(pending.amount),
+    date: pending.date.toISOString().split('T')[0],
+    description: pending.description || '',
+    type: confirmedType,
+    categoryId: pending.categoryId,
+    categoryGroupName: pending.category?.group?.name || '',
+    confidence: 1,
+    needsConfirmation: false,
+  };
+
+  // Find matching category for confirmed type
+  let matchedCat = extracted.categoryGroupName
+    ? categories.find(
+        (c) => c.group.name === extracted.categoryGroupName && c.group.type === confirmedType,
+      )
+    : null;
+
+  if (!matchedCat && extracted.categoryGroupName) {
+    matchedCat = categories.find(
+      (c) => c.name === extracted.categoryGroupName && c.group.type === confirmedType,
+    );
+  }
+
+  if (!matchedCat) {
+    matchedCat = categories.find((c) => c.group.type === confirmedType);
+  }
+
+  const categoryId = matchedCat?.id ?? pending.categoryId;
+
+  // Update transaction: change type, status, and category
+  const account = await findDefaultAccount(user.id);
+  if (!account) {
+    return 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน';
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.update({
+      where: { id: pending.id },
+      data: {
+        type: confirmedType,
+        status: 'completed',
+        categoryId,
+      },
+    });
+
+    // Adjust balance
+    const amount = Number(pending.amount);
+    if (confirmedType === 'income') {
       await tx.account.update({
         where: { id: account.id },
         data: { balance: { increment: amount } },
@@ -125,17 +342,218 @@ async function createTransactionFromExtracted(
         data: { balance: { decrement: amount } },
       });
     }
-
-    return transaction;
   });
+
+  // Refetch for confirmation message
+  const updated = await prisma.transaction.findUnique({
+    where: { id: pending.id },
+    include: { category: { include: { group: true } }, account: true },
+  });
+
+  if (matchedCat) {
+    extracted.categoryId = matchedCat.id;
+    extracted.categoryGroupName = matchedCat.group.name;
+  }
+
+  return formatConfirmationMessage(updated!, extracted);
 }
 
-/**
- * Handle a single LINE event.
- * Processes one event at a time — no batch operations.
- */
+// ── Cancel Pending Transaction ────────────────────────────────────
+
+async function cancelPendingTransaction(
+  user: { id: string; role: string; familyId: string },
+): Promise<string> {
+  const scope = getDataScope(user);
+
+  const pending = await prisma.transaction.findFirst({
+    where: { ...scope, status: 'pending', tags: { has: 'line-bot' } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!pending) {
+    return 'ไม่พบรายการที่รอการยืนยัน';
+  }
+
+  await prisma.transaction.update({
+    where: { id: pending.id },
+    data: { status: 'void' },
+  });
+
+  return `❌ ยกเลิกรายการแล้ว\n📝 ${pending.description || 'ไม่ระบุ'} ${new Intl.NumberFormat('th-TH').format(Number(pending.amount))} บาท`;
+}
+
+// ── Category Selection ───────────────────────────────────────────
+
+async function handleSelectGroup(
+  groupId: string,
+  user: { id: string; role: string; familyId: string },
+): Promise<{ text: string; quickReply: ReturnType<typeof formatQuickReply> }> {
+  // Find the most recent completed transaction from line-bot for this user
+  const scope = getDataScope(user);
+  const transaction = await prisma.transaction.findFirst({
+    where: { ...scope, status: 'completed', tags: { has: 'line-bot' } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!transaction) {
+    return { text: 'ไม่พบรายการที่สร้างล่าสุด', quickReply: menuQuickReply };
+  }
+
+  // Get subcategories for the selected group
+  const categories = await prisma.category.findMany({
+    where: { groupId },
+    orderBy: { name: 'asc' },
+  });
+
+  if (categories.length === 0) {
+    return { text: 'ไม่พบหมวดหมู่ย่อย', quickReply: menuQuickReply };
+  }
+
+  const quickReply = buildSubcategoryReply(categories);
+  return { text: `📂 เลือกหมวดหมู่ย่อย:`, quickReply };
+}
+
+async function handleSelectSubcategory(
+  categoryId: string,
+  user: { id: string; role: string; familyId: string },
+): Promise<string> {
+  const scope = getDataScope(user);
+
+  const transaction = await prisma.transaction.findFirst({
+    where: { ...scope, status: 'completed', tags: { has: 'line-bot' } },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!transaction) {
+    return 'ไม่พบรายการที่สร้างล่าสุด';
+  }
+
+  const category = await prisma.category.findUnique({
+    where: { id: categoryId },
+    include: { group: true },
+  });
+
+  if (!category) {
+    return 'ไม่พบหมวดหมู่';
+  }
+
+  await prisma.transaction.update({
+    where: { id: transaction.id },
+    data: { categoryId },
+  });
+
+  return `✅ อัปเดตหมวดหมู่เป็น "${category.name}" (${category.group.name}) แล้ว`;
+}
+
+// ── Delete Last Transaction ───────────────────────────────────────
+
+async function handleDeleteLast(
+  user: { id: string; role: string; familyId: string },
+): Promise<string> {
+  const scope = user.role === 'parent'
+    ? { createdBy: { familyId: user.familyId } }
+    : { createdById: user.id };
+
+  const lastTransaction = await prisma.transaction.findFirst({
+    where: { ...scope, tags: { has: 'line-bot' } },
+    orderBy: { createdAt: 'desc' },
+    include: { account: true },
+  });
+
+  if (!lastTransaction) {
+    return 'ไม่พบรายการที่สร้างผ่าน LINE';
+  }
+
+  const amount = Number(lastTransaction.amount);
+
+  // Only revert balance if transaction was completed
+  if (lastTransaction.status === 'completed' && lastTransaction.accountId) {
+    const accountId = lastTransaction.accountId;
+    await prisma.$transaction(async (tx) => {
+      if (lastTransaction.type === 'income') {
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: { decrement: amount } },
+        });
+      } else {
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: { increment: amount } },
+        });
+      }
+
+      await tx.transaction.delete({
+        where: { id: lastTransaction.id },
+      });
+    });
+  } else {
+    await prisma.transaction.delete({
+      where: { id: lastTransaction.id },
+    });
+  }
+
+  const formattedAmount = new Intl.NumberFormat('th-TH').format(amount);
+  return `🗑️ ลบรายการแล้ว\n${lastTransaction.description || '-'} ${formattedAmount} บาท`;
+}
+
+// ── Handle Link Command ───────────────────────────────────────────
+
+async function handleLinkCommand(
+  text: string,
+  replyToken: string,
+  lineUserId: string,
+): Promise<void> {
+  // Extract display name from "ลิงก์ <name>" or "link <name>"
+  const name = text.replace(/^ลิงก์\s*/i, '').replace(/^link\s*/i, '').trim();
+
+  if (!name) {
+    await sendLineReply(replyToken, 'กรุณาระบุชื่อ เช่น "ลิงก์ พ่อ" หรือ "ลิงก์ แม่"');
+    return;
+  }
+
+  // Search user by name (partial match)
+  const user = await prisma.user.findFirst({
+    where: {
+      name: { contains: name, mode: 'insensitive' },
+    },
+  });
+
+  if (!user) {
+    await sendLineReply(replyToken, `ไม่พบผู้ใช้ชื่อ "${name}" ในระบบ\nกรุณาตรวจสอบชื่อแล้วลองใหม่`);
+    return;
+  }
+
+  // Check if LINE user is already linked
+  const existingLink = await prisma.lineLink.findUnique({
+    where: { lineUserId },
+  });
+
+  if (existingLink) {
+    // Update existing link
+    await prisma.lineLink.update({
+      where: { id: existingLink.id },
+      data: { userId: user.id, displayName: name },
+    });
+    await sendLineReply(replyToken, `✅ เชื่อมต่อใหม่กับ "${user.name}" เรียบร้อยแล้ว`);
+    return;
+  }
+
+  // Create new link
+  await prisma.lineLink.create({
+    data: {
+      lineUserId,
+      userId: user.id,
+      displayName: name,
+    },
+  });
+
+  await sendLineReply(replyToken, `✅ เชื่อมต่อกับ "${user.name}" เรียบร้อยแล้ว\nตอนนี้คุณสามารถส่งข้อความหรือสลิปเพื่อบันทึกรายการได้เลย!`);
+}
+
+// ── Event Handler ─────────────────────────────────────────────────
+
 async function handleLineEvent(event: LineEvent): Promise<void> {
-  if (event.type !== 'message' || !event.source?.userId || !event.message) {
+  if (event.type !== 'message' || !event.source?.userId) {
     return;
   }
 
@@ -143,124 +561,254 @@ async function handleLineEvent(event: LineEvent): Promise<void> {
   const replyToken = event.replyToken;
   if (!replyToken) return;
 
-  // Resolve MyFam user from LINE userId (1:1 mapping)
+  // Resolve MyFam user from LINE userId
   const link = await prisma.lineLink.findUnique({
     where: { lineUserId },
     include: { user: true },
   });
 
+  // ── Unlinked user commands ──
   if (!link) {
+    if (event.message?.type === 'text') {
+      const text = event.message.text?.trim() || '';
+      const cmd = detectCommand(text);
+
+      if (cmd === 'link') {
+        await handleLinkCommand(text, replyToken, lineUserId);
+        return;
+      }
+
+      if (cmd === 'help') {
+        await sendLineReply(replyToken, `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n🔗 เชื่อมบัญชี — พิมพ์ "ลิงก์ ชื่อ"\n📊 ดูยอด — พิมพ์ "ดูยอด"`, menuQuickReply);
+        return;
+      }
+    }
+
     await sendLineReply(
       replyToken,
-      'ยังไม่ได้เชื่อมบัญชี MyFam\n\nกรุณาพิมพ์ "ลิงก์ <ชื่อผู้ใช้>" เพื่อเชื่อมต่อ\nเช่น "ลิงก์ พ่อ"',
+      'ยังไม่ได้เชื่อมบัญชี MyFam\n\nกรุณาพิมพ์ "ลิงก์ <ชื่อ>" เพื่อเชื่อมต่อ\nเช่น "ลิงก์ พ่อ" หรือ "ลิงก์ แม่"',
     );
     return;
   }
 
   const user = link.user;
 
-  // Handle link command
-  if (event.message.type === 'text') {
+  // ── Handle text messages ──
+  if (event.message?.type === 'text') {
     const text = event.message.text?.trim() || '';
-
-    // Check for unlink command
-    if (text === 'ยกเลิกลิงก์' || text.toLowerCase() === 'unlink') {
-      await prisma.lineLink.delete({ where: { id: link.id } });
-      await sendLineReply(replyToken, 'ยกเลิกการเชื่อมต่อเรียบร้อยแล้ว');
-      return;
-    }
-
-    // Check for balance command
-    if (text === 'ดูยอด' || text === 'ยอด' || text === 'balance') {
-      await handleBalanceQuery(replyToken, user);
-      return;
-    }
-
-    // Check for delete last transaction
-    if (text === 'ลบรายการล่าสุด' || text === 'ลบล่าสุด') {
-      await handleDeleteLast(replyToken, user);
-      return;
-    }
-
-    // Extract transaction from text
-    await handleTextMessage(replyToken, text, user);
+    await handleTextMessage(replyToken, lineUserId, text, user);
     return;
   }
 
-  // Handle image message (slip/receipt)
-  if (event.message.type === 'image' && event.message.id) {
-    await handleImageMessage(replyToken, event.message.id, user);
+  // ── Handle image messages (slip/receipt) ──
+  if (event.message?.type === 'image' && event.message.id) {
+    await handleImageMessage(replyToken, lineUserId, event.message.id, user);
     return;
   }
 }
 
-/**
- * Handle text message: extract transaction data and create record.
- * Single item only.
- */
+// ── Text Message Handler ────────────────────────────────────────
+
 async function handleTextMessage(
   replyToken: string,
+  lineUserId: string,
   text: string,
   user: { id: string; name: string; role: string; familyId: string },
 ): Promise<void> {
-  try {
-    const categories = await getCategoriesForFamily(user.familyId);
-    const categoryContext = categories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      groupName: c.group.name,
-      groupType: c.group.type,
-    }));
+  const cmd = detectCommand(text);
 
+  // ── Command shortcuts (reply immediately, no AI needed) ──
+  if (cmd === 'unlink') {
+    await prisma.lineLink.deleteMany({ where: { userId: user.id } });
+    await sendLineReply(replyToken, 'ยกเลิกการเชื่อมต่อเรียบร้อยแล้ว');
+    return;
+  }
+
+  if (cmd === 'balance') {
+    const reply = await handleBalanceQuery(user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'recent') {
+    const reply = await handleRecentQuery(user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'summary') {
+    const reply = await handleSummaryQuery(user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'help') {
+    await sendLineReply(
+      replyToken,
+      `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"`,
+      menuQuickReply,
+    );
+    return;
+  }
+
+  if (cmd === 'delete_last') {
+    const reply = await handleDeleteLast(user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'confirm_expense' || cmd === 'confirm_income') {
+    const confirmedType: 'expense' | 'income' = cmd === 'confirm_expense' ? 'expense' : 'income';
+    const reply = await confirmPendingTransaction(user, confirmedType);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'cancel') {
+    const reply = await cancelPendingTransaction(user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'select_group') {
+    const groupId = text.split(':')[1];
+    if (groupId) {
+      const { text: replyText, quickReply } = await handleSelectGroup(groupId, user);
+      await sendLineReply(replyToken, replyText, quickReply);
+    }
+    return;
+  }
+
+  if (cmd === 'select_subcategory') {
+    const categoryId = text.split(':')[1];
+    if (categoryId) {
+      const reply = await handleSelectSubcategory(categoryId, user);
+      await sendLineReply(replyToken, reply, menuQuickReply);
+    }
+    return;
+  }
+
+  if (cmd === 'skip_group' || cmd === 'skip_subcategory') {
+    await sendLineReply(replyToken, '✅ ข้ามการเลือกหมวดหมู่', menuQuickReply);
+    return;
+  }
+
+  // ── AI-powered text processing (needs time) ──
+  // Reply "processing" immediately, then push result
+  await sendLineReply(replyToken, '⏳ กำลังประมวลผล...');
+
+  try {
+    const intent = await detectIntent(text);
+    console.log(`[webhook] intent: ${intent} for text: "${text.slice(0, 50)}"`);
+
+    // Route by intent
+    if (intent === 'balance') {
+      const reply = await handleBalanceQuery(user);
+      await sendLinePush(lineUserId, reply, menuQuickReply);
+      return;
+    }
+
+    if (intent === 'recent') {
+      const reply = await handleRecentQuery(user);
+      await sendLinePush(lineUserId, reply, menuQuickReply);
+      return;
+    }
+
+    if (intent === 'summary') {
+      const reply = await handleSummaryQuery(user);
+      await sendLinePush(lineUserId, reply, menuQuickReply);
+      return;
+    }
+
+    if (intent === 'help') {
+      await sendLinePush(
+        lineUserId,
+        `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"`,
+        menuQuickReply,
+      );
+      return;
+    }
+
+    // intent === 'create_transaction'
+    const categories = await getCategoriesForFamily(user.familyId);
+    const categoryContext = getCategoryContext(categories);
     const extracted = await extractFromText(text, categoryContext);
 
+    // Low confidence and no amount — likely not a transaction, show help
     if (extracted.amount === 0 && extracted.confidence < 0.3) {
-      await sendLineReply(
-        replyToken,
-        'ไม่พบจำนวนเงินในข้อความ\nกรุณาระบุจำนวนเงิน เช่น "ซื้อข้าว 85 บาท"',
+      await sendLinePush(
+        lineUserId,
+        `🤔 ไม่เข้าใจข้อความ "${text.length > 30 ? text.slice(0, 30) + '...' : text}"\n\nลองพิมพ์เช่น:\n📝 "ซื้อข้าว 85 บาท" — บันทึกรายการ\n📊 "ดูยอด" — ดูยอดเงิน\n📋 "รายการล่าสุด" — ดูรายการล่าสุด\n📈 "สรุปยอด" — สรุปรายรับรายจ่าย\n❓ "ช่วยเหลือ" — ดูคำสั่งทั้งหมด`,
+        menuQuickReply,
       );
+      return;
+    }
+
+    // If type is uncertain, ask for confirmation
+    if (extracted.needsConfirmation) {
+      const fmt = new Intl.NumberFormat('th-TH');
+      const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+
+      // Create pending transaction
+      await createTransactionFromExtracted(extracted, user, 'pending');
+
+      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+
+      await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
       return;
     }
 
     const transaction = await createTransactionFromExtracted(extracted, user);
     const replyText = formatConfirmationMessage(transaction, extracted);
-    await sendLineReply(replyToken, replyText);
+    await sendLinePush(lineUserId, replyText, menuQuickReply);
   } catch (error) {
     console.error('Text processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    await sendLineReply(replyToken, formatErrorMessage(message));
+    await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
   }
 }
 
-/**
- * Handle image message: download, OCR, extract, create transaction.
- * Single item only.
- */
+// ── Image Message Handler ────────────────────────────────────────
+
 async function handleImageMessage(
   replyToken: string,
+  lineUserId: string,
   messageId: string,
   user: { id: string; name: string; role: string; familyId: string },
 ): Promise<void> {
+  // Acknowledge immediately — OCR takes time
+  await sendLineReply(replyToken, '⏳ กำลังอ่านสลิป...');
+
   try {
-    // Download image from LINE (auto-deleted, must download promptly)
+    // Download image from LINE
     const imageBuffer = await downloadLineImage(messageId);
     const imageBase64 = imageBuffer.toString('base64');
 
+    // Process with AI
     const categories = await getCategoriesForFamily(user.familyId);
-    const categoryContext = categories.map((c) => ({
-      id: c.id,
-      name: c.name,
-      groupName: c.group.name,
-      groupType: c.group.type,
-    }));
-
+    const categoryContext = getCategoryContext(categories);
     const extracted = await extractFromSlip(imageBase64, categoryContext);
 
     if (extracted.amount === 0 && extracted.confidence < 0.3) {
-      await sendLineReply(
-        replyToken,
+      await sendLinePush(
+        lineUserId,
         'ไม่สามารถอ่านสลิปได้ กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+        menuQuickReply,
       );
+      return;
+    }
+
+    // If type is uncertain, ask for confirmation
+    if (extracted.needsConfirmation) {
+      const fmt = new Intl.NumberFormat('th-TH');
+      const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+
+      // Create pending transaction
+      await createTransactionFromExtracted(extracted, user, 'pending');
+
+      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+
+      await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
       return;
     }
 
@@ -273,103 +821,18 @@ async function handleImageMessage(
     });
 
     const replyText = formatConfirmationMessage(transaction, extracted);
-    await sendLineReply(replyToken, replyText);
+    await sendLinePush(lineUserId, replyText, menuQuickReply);
   } catch (error) {
     console.error('Image processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
-    await sendLineReply(replyToken, formatErrorMessage(message));
+    await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
   }
 }
 
-/**
- * Handle balance query: show user's account balances.
- * Child sees own accounts only, parent sees all family accounts.
- */
-async function handleBalanceQuery(
-  replyToken: string,
-  user: { id: string; name: string; role: string; familyId: string },
-): Promise<void> {
-  const scope = user.role === 'parent'
-    ? { owner: { familyId: user.familyId } }
-    : { ownerId: user.id };
-
-  const accounts = await prisma.account.findMany({
-    where: { ...scope, status: 'active' },
-    orderBy: { createdAt: 'asc' },
-  });
-
-  if (accounts.length === 0) {
-    await sendLineReply(replyToken, 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน');
-    return;
-  }
-
-  const totalBalance = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
-  let msg = `💰 ยอดคงเหลือ\n\n`;
-
-  for (const account of accounts) {
-    const balance = new Intl.NumberFormat('th-TH').format(Number(account.balance));
-    msg += `${account.name}: ${balance} บาท\n`;
-  }
-
-  msg += `\n💵 รวม: ${new Intl.NumberFormat('th-TH').format(totalBalance)} บาท`;
-  await sendLineReply(replyToken, msg);
-}
-
-/**
- * Delete the last transaction created by the user.
- * Child: can only delete own. Parent: can delete any in family.
- * Single item only.
- */
-async function handleDeleteLast(
-  replyToken: string,
-  user: { id: string; name: string; role: string; familyId: string },
-): Promise<void> {
-  const scope = user.role === 'parent'
-    ? { createdBy: { familyId: user.familyId } }
-    : { createdById: user.id };
-
-  const lastTransaction = await prisma.transaction.findFirst({
-    where: { ...scope, tags: { has: 'line-bot' } },
-    orderBy: { createdAt: 'desc' },
-    include: { account: true },
-  });
-
-  if (!lastTransaction) {
-    await sendLineReply(replyToken, 'ไม่พบรายการที่สร้างผ่าน LINE');
-    return;
-  }
-
-  // Revert balance and delete (same pattern as DELETE /api/transactions/[id])
-  const amount = Number(lastTransaction.amount);
-
-  await prisma.$transaction(async (tx) => {
-    if (lastTransaction.type === 'income') {
-      await tx.account.update({
-        where: { id: lastTransaction.accountId! },
-        data: { balance: { decrement: amount } },
-      });
-    } else {
-      await tx.account.update({
-        where: { id: lastTransaction.accountId! },
-        data: { balance: { increment: amount } },
-      });
-    }
-
-    await tx.transaction.delete({
-      where: { id: lastTransaction.id },
-    });
-  });
-
-  const formattedAmount = new Intl.NumberFormat('th-TH').format(amount);
-  await sendLineReply(
-    replyToken,
-    `🗑️ ลบรายการแล้ว\n${lastTransaction.description || '-'} ${formattedAmount} บาท`,
-  );
-}
+// ── POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
   try {
-    // 1. Verify LINE signature
     const channelSecret = process.env.LINE_CHANNEL_SECRET;
     if (!channelSecret) {
       console.error('LINE_CHANNEL_SECRET not configured');
@@ -383,16 +846,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
-    // 2. Parse webhook body
     const body: LineWebhookBody = JSON.parse(rawBody);
 
-    // 3. Process each event independently (single-item operations)
-    // Return 200 quickly to LINE, process events sequentially
+    // Process each event independently
     const results = await Promise.allSettled(
       (body.events || []).map((event) => handleLineEvent(event)),
     );
 
-    // Log any failures but don't fail the webhook
     for (const result of results) {
       if (result.status === 'rejected') {
         console.error('Event processing failed:', result.reason);

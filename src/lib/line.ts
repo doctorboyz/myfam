@@ -9,11 +9,18 @@ const LINE_DATA_BASE = 'https://api-data.line.me/v2/bot';
 /**
  * Send a reply message using a reply token (valid for 30 seconds).
  * Each reply token can only be used once.
+ * Optionally includes Quick Reply buttons.
  */
 export async function sendLineReply(
   replyToken: string,
   text: string,
+  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } }> },
 ): Promise<void> {
+  const message: Record<string, unknown> = { type: 'text', text };
+  if (quickReply) {
+    message.quickReply = quickReply;
+  }
+
   const response = await fetch(`${LINE_API_BASE}/message/reply`, {
     method: 'POST',
     headers: {
@@ -22,7 +29,7 @@ export async function sendLineReply(
     },
     body: JSON.stringify({
       replyToken,
-      messages: [{ type: 'text', text }],
+      messages: [message],
     }),
   });
 
@@ -35,11 +42,18 @@ export async function sendLineReply(
 
 /**
  * Send a push message to a user (no time limit, but costs quota).
+ * Optionally includes Quick Reply buttons.
  */
 export async function sendLinePush(
   to: string,
   text: string,
+  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } }> },
 ): Promise<void> {
+  const message: Record<string, unknown> = { type: 'text', text };
+  if (quickReply) {
+    message.quickReply = quickReply;
+  }
+
   const response = await fetch(`${LINE_API_BASE}/message/push`, {
     method: 'POST',
     headers: {
@@ -48,7 +62,7 @@ export async function sendLinePush(
     },
     body: JSON.stringify({
       to,
-      messages: [{ type: 'text', text }],
+      messages: [message],
     }),
   });
 

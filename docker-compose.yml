@@ -1,7 +1,10 @@
 services:
   app:
     image: myfam-app:latest
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_LIFF_ID: ${NEXT_PUBLIC_LIFF_ID}
     container_name: myfam-app
     restart: unless-stopped
     ports:
@@ -12,7 +15,7 @@ services:
       - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
       - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen3:8b}
+      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen3.5:cloud}
       - OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL:-qwen3.5:cloud}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     depends_on:
