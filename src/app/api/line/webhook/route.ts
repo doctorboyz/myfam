@@ -734,11 +734,21 @@ async function handleTextMessage(
     const categoryContext = getCategoryContext(categories);
     const extracted = await extractFromText(text, categoryContext);
 
-    // Low confidence and no amount — likely not a transaction, show help
-    if (extracted.amount === 0 && extracted.confidence < 0.3) {
+    // Low confidence — likely not a transaction, show help
+    if (extracted.confidence < 0.3) {
       await sendLinePush(
         lineUserId,
         `🤔 ไม่เข้าใจข้อความ "${text.length > 30 ? text.slice(0, 30) + '...' : text}"\n\nลองพิมพ์เช่น:\n📝 "ซื้อข้าว 85 บาท" — บันทึกรายการ\n📊 "ดูยอด" — ดูยอดเงิน\n📋 "รายการล่าสุด" — ดูรายการล่าสุด\n📈 "สรุปยอด" — สรุปรายรับรายจ่าย\n❓ "ช่วยเหลือ" — ดูคำสั่งทั้งหมด`,
+        menuQuickReply,
+      );
+      return;
+    }
+
+    // No amount found — ask user to specify
+    if (extracted.amount === 0) {
+      await sendLinePush(
+        lineUserId,
+        `ไม่พบจำนวนเงินในข้อความ\n\nกรุณาระบุจำนวนเงิน เช่น "ซื้อข้าว 85 บาท"`,
         menuQuickReply,
       );
       return;
@@ -789,10 +799,19 @@ async function handleImageMessage(
     const categoryContext = getCategoryContext(categories);
     const extracted = await extractFromSlip(imageBase64, categoryContext);
 
-    if (extracted.amount === 0 && extracted.confidence < 0.3) {
+    if (extracted.confidence < 0.3) {
       await sendLinePush(
         lineUserId,
         'ไม่สามารถอ่านสลิปได้ กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+        menuQuickReply,
+      );
+      return;
+    }
+
+    if (extracted.amount === 0) {
+      await sendLinePush(
+        lineUserId,
+        'ไม่พบจำนวนเงินในสลิป กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
         menuQuickReply,
       );
       return;
@@ -829,6 +848,14 @@ async function handleImageMessage(
   }
 }
 
+// ── GET Handler (LINE Webhook Verification) ──────────────────────────
+
+export async function GET() {
+  // LINE sends a GET request to verify the webhook URL is reachable.
+  // We just need to return 200 OK to confirm the endpoint is alive.
+  return NextResponse.json({ status: 'ok' });
+}
+
 // ── POST Handler ──────────────────────────────────────────────────
 
 export async function POST(request: Request) {
@@ -842,9 +869,15 @@ export async function POST(request: Request) {
     const signature = request.headers.get('x-line-signature');
     const rawBody = await request.text();
 
+    console.log('[webhook] Received POST, signature:', signature ? `${signature.slice(0, 10)}...` : 'null');
+    console.log('[webhook] Body length:', rawBody.length);
+
     if (!verifyLineSignature(rawBody, signature, channelSecret)) {
+      console.error('[webhook] Signature verification FAILED');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
+
+    console.log('[webhook] Signature verified OK');
 
     const body: LineWebhookBody = JSON.parse(rawBody);
 

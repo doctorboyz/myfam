@@ -401,10 +401,19 @@ export async function POST(request: Request) {
       extracted = await extractFromSlip(body.imageBase64, categoryContext);
     }
 
-    if (extracted.amount === 0 && extracted.confidence < 0.3) {
+    if (extracted.confidence < 0.3) {
       return NextResponse.json({
         success: false,
         error: 'Could not extract transaction data. Please provide more details.',
+        extracted,
+      });
+    }
+
+    // No amount found — ask user to specify
+    if (extracted.amount === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No amount detected. Please include the amount, e.g. "ซื้อข้าว 85 บาท"',
         extracted,
       });
     }

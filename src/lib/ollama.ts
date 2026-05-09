@@ -136,14 +136,42 @@ export async function extractFromText(
   const groups = [...new Set(categories.map((c) => `${c.groupName}(${c.groupType})`))];
   const groupList = groups.join(', ');
 
-  const prompt = `สกัดข้อมูลธุรกรรมจาก: "${text}"
-วันนี้: ${new Date().toISOString().split('T')[0]}
+  const systemPrompt = `คุณคือ AI สกัดข้อมูลธุรกรรมการเงินจากข้อความภาษาไทย
+พิจารณา type อย่างรอบคอบ:
+- expense (รายจ่าย): ซื้อ, จ่าย, ชำระ, ค่า, กิน, ดื่ม, เติม, โอนให้คนอื่น — เงินออกจากเรา
+- income (รายรับ): รับ, เงินเข้า, เงินเดือน, โบนัส, ลูกค้าโอน, รับโอน — เงินเข้ามาหาเรา
+- transfer: โอนระหว่างบัญชีตัวเอง
+- ถ้าไม่แน่ใจว่า expense หรือ income ให้ใส่ needsConfirmation=true
+
+ถ้าข้อความไม่มีจำนวนเงินชัดเจน หรือไม่ใช่ข้อความเกี่ยวกับธุรกรรมการเงิน ให้ confidence ต่ำ (ต่ำกว่า 0.4)`;
+
+  const today = new Date().toISOString().split('T')[0];
+
+  const userPrompt = `สกัดข้อมูลธุรกรรมจาก: "${text}"
+
+วันนี้: ${today}
 กลุ่มหมวด: ${groupList}
-ตอบเป็น JSON: {"amount":0,"date":"YYYY-MM-DD","description":"คำอธิบาย","type":"income|expense","categoryGroupName":"กลุ่มหมวด","merchantName":null,"confidence":0-1}`;
+
+ตัวอย่าง:
+"ซื้อข้าวผัด 85 บาท" → {"amount":85,"date":"${today}","description":"ซื้อข้าวผัด","type":"expense","categoryGroupName":"อาหาร","merchantName":null,"confidence":0.95,"needsConfirmation":false}
+"รับเงินเดือน 45000 บาท" → {"amount":45000,"date":"${today}","description":"เงินเดือน","type":"income","categoryGroupName":"เงินเดือน","merchantName":null,"confidence":0.95,"needsConfirmation":false}
+"โอนเงิน 5000 บาท" → {"amount":5000,"date":"${today}","description":"โอนเงิน","type":"transfer","categoryGroupName":"การเงิน","merchantName":null,"confidence":0.8,"needsConfirmation":false}
+"จ่ายให้แม่ 3000 บาท" → {"amount":3000,"date":"${today}","description":"จ่ายให้แม่","type":"expense","categoryGroupName":"ลูกและครอบครัว","merchantName":null,"confidence":0.7,"needsConfirmation":true}
+"สวัสดีครับ" → {"amount":0,"date":"${today}","description":"","type":"expense","categoryGroupName":"","merchantName":null,"confidence":0.1,"needsConfirmation":false}
+"85" → {"amount":85,"date":"${today}","description":"85","type":"expense","categoryGroupName":"","merchantName":null,"confidence":0.2,"needsConfirmation":false}
+"ซื้อของที่เซเว่น" → {"amount":0,"date":"${today}","description":"ซื้อของที่เซเว่น","type":"expense","categoryGroupName":"อาหาร","merchantName":"เซเว่น","confidence":0.5,"needsConfirmation":false}
+
+ตอบเป็น JSON เท่านั้น:
+{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"คำอธิบาย","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวด","merchantName":"ชื่อร้านหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
+ถ้าไม่มีจำนวนเงิน ให้ใส่ amount=0
+เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
   const result = await ollamaChat({
     model: OLLAMA_TEXT_MODEL,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt },
+    ],
     format: 'json',
   });
 
