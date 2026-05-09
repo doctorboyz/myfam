@@ -1,19 +1,30 @@
-export const maxDuration = 300; // 5 min for OCR inference on CPU
+export const maxDuration = 300; // 5 min for OCR inference
 
 /**
  * POST /api/line/sandbox
  *
  * Sandbox endpoint for testing the AI pipeline without LINE webhook.
- * Accepts text or image and returns extracted transaction data + reply message.
  *
- * Request body:
- *   { type: 'text', text: 'ซื้อข้าว 85 บาท', userId: '<myfam-user-id>' }
- *   { type: 'image', imageBase64: '<base64>', userId: '<myfam-user-id>' }
+ * Request types:
+ *   { type: 'text', text: 'ซื้อข้าว 85 บาท', userId: '<id>' }  — auto-detect intent
+ *   { type: 'image', imageBase64: '<base64>', userId: '<id>' }   — create from slip
+ *   { type: 'query', query: 'ดูยอด', userId: '<id>' }          — direct query
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { extractFromText, extractFromSlip, formatConfirmationMessage, formatErrorMessage, type ExtractedTransaction } from '@/lib/ollama';
+import {
+  extractFromText,
+  extractFromSlip,
+  formatConfirmationMessage,
+  formatErrorMessage,
+  detectIntent,
+  formatQuickReply,
+  QUICK_REPLY_ITEMS,
+  type ExtractedTransaction,
+} from '@/lib/ollama';
+
+// ── Request Types ──────────────────────────────────────────────
 
 interface SandboxTextRequest {
   type: 'text';
@@ -27,13 +38,16 @@ interface SandboxImageRequest {
   userId: string;
 }
 
-type SandboxRequest = SandboxTextRequest | SandboxImageRequest;
+interface SandboxQueryRequest {
+  type: 'query';
+  query: string;
+  userId: string;
+}
 
-/**
- * Get data scope filter based on user role.
- * - child: can only access their own data
- * - parent: can access all family members' data
- */
+type SandboxRequest = SandboxTextRequest | SandboxImageRequest | SandboxQueryRequest;
+
+// ── Helpers ────────────────────────────────────────────────────
+
 function getDataScope(user: { id: string; role: string; familyId: string }) {
   if (user.role === 'parent') {
     return { createdBy: { familyId: user.familyId } };
@@ -41,10 +55,6 @@ function getDataScope(user: { id: string; role: string; familyId: string }) {
   return { createdById: user.id };
 }
 
-/**
- * Find the user's default account for transaction creation.
- * Single-item only: returns first active account.
- */
 async function findDefaultAccount(userId: string) {
   return prisma.account.findFirst({
     where: { ownerId: userId, status: 'active' },
@@ -52,9 +62,6 @@ async function findDefaultAccount(userId: string) {
   });
 }
 
-/**
- * Fetch categories available to the user's family.
- */
 async function getCategoriesForFamily(familyId: string) {
   const users = await prisma.user.findMany({
     where: { familyId },
@@ -65,19 +72,100 @@ async function getCategoriesForFamily(familyId: string) {
   return prisma.category.findMany({
     where: {
       OR: [
-        { userId: null }, // System categories
-        { userId: { in: userIds } }, // Family custom categories
+        { userId: null },
+        { userId: { in: userIds } },
       ],
     },
     include: { group: true },
   });
 }
 
-/**
- * Create a transaction from extracted data.
- * Uses the same pattern as POST /api/transactions with prisma.$transaction.
- * Single-item only: creates one transaction at a time.
- */
+// ── Query Handler ─────────────────────────────────────────────
+
+type QueryIntent = 'balance' | 'recent' | 'summary';
+
+function detectQueryIntent(query: string): QueryIntent {
+  const q = query.toLowerCase().trim();
+
+  if (/(ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|balance)/i.test(q)) return 'balance';
+  if (/(รายการล่าสุด|ล่าสุด|รายการวันนี้|วันนี้|recent|last)/i.test(q)) return 'recent';
+  if (/(สรุป|สรุปยอด|รวม|รวมรายจ่าย|รวมรายรับ|summary|total)/i.test(q)) return 'summary';
+
+  return 'recent'; // default to recent
+}
+
+async function handleQuery(user: { id: string; name: string; role: string; familyId: string }, intent: QueryIntent) {
+  const scope = getDataScope(user);
+  const fmt = new Intl.NumberFormat('th-TH');
+
+  if (intent === 'balance') {
+    const accounts = await prisma.account.findMany({
+      where: { ownerId: user.id, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (accounts.length === 0) {
+      return { reply: 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน', data: null };
+    }
+
+    const lines = accounts.map((a) => `💳 ${a.name}: ${fmt.format(Number(a.balance))} บาท`);
+    const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
+    lines.push(`\n💰 รวมทุกบัญชี: ${fmt.format(total)} บาท`);
+
+    return { reply: `📊 ยอดคงเหลือ\n${lines.join('\n')}`, data: { accounts, total } };
+  }
+
+  if (intent === 'recent') {
+    const transactions = await prisma.transaction.findMany({
+      where: scope,
+      include: { category: { include: { group: true } }, account: true },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    });
+
+    if (transactions.length === 0) {
+      return { reply: 'ยังไม่มีรายการ', data: null };
+    }
+
+    const lines = transactions.map((t) => {
+      const icon = t.type === 'income' ? '🟢' : t.type === 'transfer' ? '🔄' : '🔴';
+      const typeLabel = t.type === 'income' ? '+' : '-';
+      return `${icon} ${t.description || 'ไม่ระบุ'} ${typeLabel}${fmt.format(Number(t.amount))} บาท (${t.category?.group?.name ?? '-'})`;
+    });
+
+    return { reply: `📋 รายการล่าสุด (${transactions.length} รายการ)\n${lines.join('\n')}`, data: transactions };
+  }
+
+  if (intent === 'summary') {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const [income, expense] = await Promise.all([
+      prisma.transaction.aggregate({
+        where: { ...scope, type: 'income', date: { gte: startOfMonth } },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.aggregate({
+        where: { ...scope, type: 'expense', date: { gte: startOfMonth } },
+        _sum: { amount: true },
+      }),
+    ]);
+
+    const totalIncome = Number(income._sum.amount ?? 0);
+    const totalExpense = Number(expense._sum.amount ?? 0);
+    const monthName = today.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+    return {
+      reply: `📊 สรุปยอดเดือน${monthName}\n🟢 รายรับ: ${fmt.format(totalIncome)} บาท\n🔴 รายจ่าย: ${fmt.format(totalExpense)} บาท\n💰 คงเหลือ: ${fmt.format(totalIncome - totalExpense)} บาท`,
+      data: { totalIncome, totalExpense },
+    };
+  }
+
+  return { reply: 'ไม่สามารถประมวลผลคำสั่งได้', data: null };
+}
+
+// ── Transaction Creation ────────────────────────────────────────
+
 async function createTransactionFromExtracted(
   extracted: ExtractedTransaction,
   user: { id: string; role: string; familyId: string },
@@ -108,7 +196,6 @@ async function createTransactionFromExtracted(
       },
     });
 
-    // Adjust account balance (same pattern as POST /api/transactions)
     const amount = extracted.amount;
     if (extracted.type === 'income') {
       await tx.account.update({
@@ -126,11 +213,12 @@ async function createTransactionFromExtracted(
   });
 }
 
+// ── POST Handler ───────────────────────────────────────────────
+
 export async function POST(request: Request) {
   try {
     const body: SandboxRequest = await request.json();
 
-    // Validate request
     if (!body.type || !body.userId) {
       return NextResponse.json(
         { error: 'Missing required fields: type, userId' },
@@ -138,28 +226,83 @@ export async function POST(request: Request) {
       );
     }
 
-    if (body.type !== 'text' && body.type !== 'image') {
-      return NextResponse.json(
-        { error: 'Invalid type. Use "text" or "image".' },
-        { status: 400 },
-      );
-    }
-
-    // Resolve user — sandbox uses userId directly (no LINE mapping needed)
     const user = await prisma.user.findUnique({
       where: { id: body.userId },
       select: { id: true, name: true, role: true, familyId: true },
     });
 
     if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    console.log(`[sandbox] user ${user.name} (${user.role}) type=${body.type}`);
+
+    // ── Query: direct query from Quick Reply or explicit type ──
+    if (body.type === 'query') {
+      if (!('query' in body) || !body.query) {
+        return NextResponse.json(
+          { error: 'Missing query field for query type' },
+          { status: 400 },
+        );
+      }
+
+      const intent = detectQueryIntent(body.query);
+      const { reply, data } = await handleQuery(user, intent);
+
+      return NextResponse.json({
+        success: true,
+        intent,
+        lineReplySent: reply,
+        quickReply: formatQuickReply(QUICK_REPLY_ITEMS),
+        data,
+      });
+    }
+
+    // ── Validate create-type requests ──
+    if (body.type !== 'text' && body.type !== 'image') {
       return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 },
+        { error: 'Invalid type. Use "text", "image", or "query".' },
+        { status: 400 },
       );
     }
-    console.log(`[sandbox] found user ${user.name} (${user.role})`);
 
-    // Fetch categories for the user's family
+    // ── Text: detect intent first ──
+    if (body.type === 'text') {
+      if (!body.text) {
+        return NextResponse.json(
+          { error: 'Missing text field for text type' },
+          { status: 400 },
+        );
+      }
+
+      const intent = await detectIntent(body.text);
+      console.log(`[sandbox] intent: ${intent} for text: "${body.text.slice(0, 50)}"`);
+
+      // Route to query handler for non-transaction intents
+      if (intent === 'balance' || intent === 'recent' || intent === 'summary') {
+        const { reply, data } = await handleQuery(user, intent);
+        return NextResponse.json({
+          success: true,
+          intent,
+          lineReplySent: reply,
+          quickReply: formatQuickReply(QUICK_REPLY_ITEMS),
+          data,
+        });
+      }
+
+      if (intent === 'help') {
+        const helpText = `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"`;
+        return NextResponse.json({
+          success: true,
+          intent: 'help',
+          lineReplySent: helpText,
+          quickReply: formatQuickReply(QUICK_REPLY_ITEMS),
+        });
+      }
+
+      // intent === 'create_transaction' — fall through to extraction
+    }
+
+    // ── Fetch categories ──
     const categories = await getCategoriesForFamily(user.familyId);
     const categoryContext = categories.map((c) => ({
       id: c.id,
@@ -169,30 +312,19 @@ export async function POST(request: Request) {
     }));
 
     let extracted: ExtractedTransaction;
-    let rawAiResponse: string | undefined;
 
     if (body.type === 'text') {
-      if (!body.text) {
-        return NextResponse.json(
-          { error: 'Missing text field for text type' },
-          { status: 400 },
-        );
-      }
-
       extracted = await extractFromText(body.text, categoryContext);
     } else {
-      // Image type
       if (!body.imageBase64) {
         return NextResponse.json(
           { error: 'Missing imageBase64 field for image type' },
           { status: 400 },
         );
       }
-
       extracted = await extractFromSlip(body.imageBase64, categoryContext);
     }
 
-    // Validate extraction confidence
     if (extracted.amount === 0 && extracted.confidence < 0.3) {
       return NextResponse.json({
         success: false,
@@ -201,17 +333,13 @@ export async function POST(request: Request) {
       });
     }
 
-    // Role-based scope check
     const scope = getDataScope(user);
-
-    // Create transaction (single item only)
     const transaction = await createTransactionFromExtracted(extracted, user);
-
-    // Format reply message
     const replyText = formatConfirmationMessage(transaction, extracted);
 
     return NextResponse.json({
       success: true,
+      intent: 'create_transaction',
       parsed: extracted,
       transaction: {
         id: transaction.id,
@@ -224,6 +352,7 @@ export async function POST(request: Request) {
         account: transaction.account?.name ?? 'Unknown',
       },
       lineReplySent: replyText,
+      quickReply: formatQuickReply(QUICK_REPLY_ITEMS),
       scope,
     });
   } catch (error) {
@@ -232,11 +361,7 @@ export async function POST(request: Request) {
     const thaiMessage = formatErrorMessage(message);
 
     return NextResponse.json(
-      {
-        success: false,
-        error: message,
-        thaiMessage,
-      },
+      { success: false, error: message, thaiMessage },
       { status: 500 },
     );
   }

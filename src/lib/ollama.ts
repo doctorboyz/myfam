@@ -1,15 +1,13 @@
 /**
  * Ollama API client for AI text generation and vision (OCR).
  *
- * Two models are used:
- * - Text chat (Thai understanding): qwen3:8b (local)
- * - Vision/OCR (slip receipt): qwen3.5:cloud (Ollama Max cloud, 397B params)
- *
- * Text model runs locally; vision model uses Ollama Max cloud for GPU inference.
+ * Both models use Ollama Max cloud (qwen3.5:cloud, 397B params):
+ * - Text chat (Thai understanding): qwen3.5:cloud
+ * - Vision/OCR (slip receipt): qwen3.5:cloud
  */
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || 'qwen3:8b';
+const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || 'qwen3.5:cloud';
 const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || 'qwen3.5:cloud';
 
 interface OllamaGenerateOptions {
@@ -375,6 +373,96 @@ export function formatErrorMessage(error: string): string {
 
 // Export model names for use in other modules
 export { OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL };
+
+/**
+ * Intent types the LLM can detect from user messages.
+ */
+export type UserIntent = 'create_transaction' | 'balance' | 'recent' | 'summary' | 'help';
+
+/**
+ * Use LLM to detect the user's intent from a Thai text message.
+ * Routes between transaction creation and data queries.
+ */
+export async function detectIntent(text: string): Promise<UserIntent> {
+  const prompt = `จากข้อความต่อไปนี้ ระบุความตั้งใจของผู้ใช้:
+
+ข้อความ: "${text}"
+
+ตอบเป็น JSON เท่านั้น โดยเลือก intent หนึ่งตัวเท่านั้น:
+- "create_transaction" — ผู้ใช้ต้องการบันทึกรายการใช้เงิน/รับเงิน (มีจำนวนเงิน)
+- "balance" — ผู้ใช้ต้องการดูยอดเงินคงเหลือ
+- "recent" — ผู้ใช้ต้องการดูรายการล่าสุด
+- "summary" — ผู้ใช้ต้องการดูสรุปยอดรายรับรายจ่าย
+- "help" — ผู้ใช้ถามว่าบอททำอะไรได้ หรือข้อความไม่เข้ากรณีอื่น
+
+ตอบ: {"intent":"..."}`;
+
+  try {
+    const result = await ollamaChat({
+      model: OLLAMA_TEXT_MODEL,
+      messages: [{ role: 'user', content: prompt }],
+      format: 'json',
+      temperature: 0,
+      topP: 0.3,
+    });
+
+    const parsed = JSON.parse(result.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, ''));
+    const intent = String(parsed.intent ?? '');
+
+    if (['create_transaction', 'balance', 'recent', 'summary', 'help'].includes(intent)) {
+      return intent as UserIntent;
+    }
+  } catch {
+    // Fall through to keyword detection
+  }
+
+  // Fallback: keyword-based detection
+  return detectIntentByKeywords(text);
+}
+
+/**
+ * Fallback intent detection using Thai/English keywords.
+ * Used when LLM is unavailable or returns unexpected output.
+ */
+function detectIntentByKeywords(text: string): UserIntent {
+  const q = text.toLowerCase().trim();
+
+  if (/(ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|เหลือเท่าไหร่|balance)/i.test(q)) return 'balance';
+  if (/(รายการล่าสุด|ล่าสุด|รายการวันนี้|วันนี้|recent|last)/i.test(q)) return 'recent';
+  if (/(สรุป|สรุปยอด|รวม|รวมรายจ่าย|รวมรายรับ|summary|total)/i.test(q)) return 'summary';
+  if (/(ช่วย|ใช้ยังไง|ทำอะไรได้|help|บอททำอะไร)/i.test(q)) return 'help';
+
+  return 'create_transaction';
+}
+
+/**
+ * LINE Quick Reply items for the main menu.
+ * Shown after every bot response so users can tap to navigate.
+ */
+export const QUICK_REPLY_ITEMS = [
+  { label: '📊 ดูยอด', action: 'ดูยอด' },
+  { label: '📋 รายการล่าสุด', action: 'รายการล่าสุด' },
+  { label: '📈 สรุปยอด', action: 'สรุปยอด' },
+  { label: '❓ ช่วยเหลือ', action: 'ช่วยเหลือ' },
+] as const;
+
+/**
+ * Format a LINE Quick Reply JSON for the given actions.
+ * Returns the LINE Messaging API quickReply structure.
+ */
+export function formatQuickReply(actions: readonly Array<{ label: string; action: string }>) {
+  return {
+    type: 'quickReply' as const,
+    items: actions.map((a) => ({
+      type: 'action' as const,
+      action: {
+        type: 'message' as const,
+        label: a.label,
+        text: a.action,
+      },
+    })),
+  };
+}
 
 /**
  * Resize a base64-encoded image to a maximum dimension.
