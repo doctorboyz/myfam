@@ -1,0 +1,297 @@
+.page {
+  padding: var(--space-lg);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.subtitle {
+  font-size: var(--font-sm);
+  color: var(--secondary-text);
+  margin: 0 0 var(--space-lg);
+}
+
+/* Add row */
+.addRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-lg);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+}
+
+.addIcon {
+  color: var(--secondary-text);
+  flex-shrink: 0;
+}
+
+.addInput {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: var(--font-md);
+  color: var(--foreground);
+  outline: none;
+  min-width: 0;
+}
+
+.addInput::placeholder {
+  color: var(--secondary-text);
+}
+
+.colorInput {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  cursor: pointer;
+  background: var(--card-bg);
+  flex-shrink: 0;
+}
+
+.addBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.addBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.addBtn:not(:disabled):active {
+  background: var(--primary-dark, #05a74a);
+}
+
+/* Tag list */
+.tagList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.empty {
+  padding: var(--space-2xl) var(--space-lg);
+  text-align: center;
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+}
+
+.tagItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  min-height: 44px;
+  border-bottom: 1px solid var(--border);
+}
+
+.tagItem:last-child {
+  border-bottom: none;
+}
+
+.tagInfo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tagDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  flex-shrink: 0;
+}
+
+.tagName {
+  font-size: var(--font-md);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tagActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Edit row */
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.editInput {
+  flex: 1;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: var(--font-md);
+  background: var(--card-bg);
+  color: var(--foreground);
+  outline: none;
+  min-width: 0;
+}
+
+.editInput:focus {
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* Icon buttons */
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.iconBtn:active {
+  background: var(--input-bg);
+}
+
+.iconBtnCancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--danger);
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.iconBtnCancel:active {
+  background: var(--input-bg);
+}
+
+.iconBtnDanger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger);
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.iconBtnDanger:active {
+  background: var(--danger);
+  color: white;
+}
+
+/* Delete confirmation overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-lg);
+}
+
+.confirmDialog {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.confirmTitle {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  margin: 0 0 var(--space-md);
+  color: var(--foreground);
+}
+
+.confirmText {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.5;
+}
+
+.confirmWarning {
+  font-size: var(--font-xs);
+  color: var(--danger);
+  margin: 0 0 var(--space-lg);
+  line-height: 1.4;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.cancelBtn {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.dangerBtn {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  color: white;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}

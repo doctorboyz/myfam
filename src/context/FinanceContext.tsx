@@ -75,7 +75,8 @@ interface FinanceContextType {
 
   // Tags
   tags: Tag[];
-  addTag: (name: string) => Promise<Tag | null>;
+  addTag: (name: string, color?: string) => Promise<Tag | null>;
+  updateTag: (id: string, updates: { name?: string; color?: string | null }) => Promise<void>;
   deleteTag: (id: string) => void;
 
   // Budget Features
@@ -565,12 +566,12 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   };
 
   // Tag CRUD
-  const addTag = async (name: string): Promise<Tag | null> => {
+  const addTag = async (name: string, color?: string): Promise<Tag | null> => {
     try {
       const res = await fetch('/api/tags', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, color: color || undefined }),
       });
       if (res.ok) {
         const newTag = await res.json();
@@ -590,6 +591,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       setTags(tags.filter(t => t.id !== id));
     } catch (error) {
       console.error("Failed to delete tag", error);
+    }
+  };
+
+  const updateTag = async (id: string, updates: { name?: string; color?: string | null }) => {
+    try {
+      const res = await fetch(`/api/tags/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setTags(tags.map(t => t.id === id ? { ...t, ...updated } : t));
+      }
+    } catch (error) {
+      console.error("Failed to update tag", error);
     }
   };
 
@@ -826,6 +843,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       // Tags
       tags,
       addTag,
+      updateTag,
       deleteTag,
 
       // Budget

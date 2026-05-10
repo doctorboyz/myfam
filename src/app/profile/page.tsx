@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
-import { Shield, User, Users, Layers, Pencil, Check, X } from 'lucide-react';
+import { Shield, User, Users, Layers, Tags, Pencil, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import s from './profile.module.css';
 
@@ -86,7 +86,7 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Menu */}
+      {/* Menu — จัดการ */}
       {(isParent || isAdmin) && (
         <div className={s.menuSection}>
           <div className={s.menuLabel}>จัดการ</div>
@@ -108,6 +108,18 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {/* Menu — ส่วนตัว */}
+      <div className={s.menuSection}>
+        <div className={s.menuLabel}>ส่วนตัว</div>
+        <div className={s.menuCard}>
+          <Link href="/settings/tags" className={s.menuItem}>
+            <Tags size={20} className={s.menuItemIcon} />
+            <span className={s.menuItemLabel}>จัดการแท็ก</span>
+            <span className={s.menuItemChevron}>›</span>
+          </Link>
+        </div>
+      </div>
 
       {/* Footer */}
       <div className={s.footer}>
