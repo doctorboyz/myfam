@@ -55,9 +55,9 @@ export default function Dashboard() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return "สวัสดีตอนเช้า";
+    if (hour < 18) return "สวัสดีตอนบ่าย";
+    return "สวัสดีตอนเย็น";
   };
 
   const handleTypeSelect = (type: TransactionType) => {
@@ -69,14 +69,14 @@ export default function Dashboard() {
   // Removed User Switcher
 
 
-  if (!currentUser) return <div className={styles.loading}>Loading...</div>;
+  if (!currentUser) return <div className={styles.loading}>กำลังโหลด...</div>;
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.greeting}>{getGreeting()}</div>
         <h1 className={styles.title}>{currentUser.name} <span style={{fontSize: 12, opacity: 0.7}}>({currentUser.role})</span></h1>
-        <div className={styles.date}>{new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        <div className={styles.date}>{new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
       </header>
 
       <DashboardFilter 
@@ -89,7 +89,7 @@ export default function Dashboard() {
 
 
       <div className={styles.balanceCard}>
-        <div className={styles.label}>Total Balance</div>
+        <div className={styles.label}>ยอดคงเหลือ</div>
         <div className={styles.amount}>
             <Money amount={dashboardBalance} />
         </div>

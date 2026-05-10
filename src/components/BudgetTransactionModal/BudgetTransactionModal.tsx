@@ -86,7 +86,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
     const resolvedCategoryId = selectedCat?.id || categoryId;
 
     if (!resolvedCategoryId) {
-      alert("Please select a category");
+      alert("กรุณาเลือกหมวดหมู่");
       return;
     }
 
@@ -101,11 +101,11 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
     // Validation for Done status
     if (status === 'done') {
         if (!accountId) {
-            alert("Please select an account.");
+            alert("กรุณาเลือกบัญชี");
             return;
         }
         if (type === 'transfer' && !toAccountId) {
-            alert("Please select a destination account.");
+            alert("กรุณาเลือกบัญชีปลายทาง");
             return;
         }
     }
@@ -132,14 +132,14 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
   };
 
   const handleDelete = () => {
-    if (itemToEdit && confirm("Are you sure you want to delete this item?")) {
+    if (itemToEdit && confirm("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?")) {
         deleteBudgetTransaction(budgetId, itemToEdit.id);
         onClose();
     }
   };
 
   const handleCancelItem = () => {
-      if (confirm("Mark this item as Cancelled?")) {
+      if (confirm("ทำเครื่องหมายรายการนี้เป็นยกเลิก?")) {
           // We can either save immediately or just set state and let user save
           // User said "cancelled just trigger by click button" which sounds like an action.
           // Let's treat it as a state change that requires saving, or immediate save?
@@ -163,7 +163,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-            <h2 className={styles.title}>{itemToEdit ? (isReadonly ? "ดูแผนรายการ" : "Edit Plan Item") : "เพิ่มแผนรายการ"}</h2>
+            <h2 className={styles.title}>{itemToEdit ? (isReadonly ? "ดูแผนรายการ" : "แก้ไขแผนรายการ") : "เพิ่มแผนรายการ"}</h2>
         </div>
         
         {isReadonly && (
@@ -176,7 +176,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
         {!isReadonly && isCancelled && (
             <div className={styles.restrictedNotice}>
                 <Ban size={16} className="text-red-500" />
-                <span>This item is voided. Reactivate it to make changes.</span>
+                <span>รายการนี้ถูกยกเลิกแล้ว กดเปิดใช้งานใหม่เพื่อแก้ไข</span>
             </div>
         )}
         
@@ -196,7 +196,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           </div>
 
           <div className={styles.formGroup}>
-             <label className={styles.label}>Type</label>
+             <label className={styles.label}>ประเภท</label>
              <select
                 className={styles.select}
                 value={type}
@@ -207,9 +207,9 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                 }}
                 disabled={isCancelled || isReadonly}
              >
-                 <option value="expense">Expense</option>
-                 <option value="income">Income</option>
-                 <option value="transfer">Transfer</option>
+                 <option value="expense">รายจ่าย</option>
+                 <option value="income">รายรับ</option>
+                 <option value="transfer">โอน</option>
              </select>
           </div>
 
@@ -225,7 +225,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label}>Target Date</label>
+            <label className={styles.label}>วันที่เป้าหมาย</label>
             <input
               type="date"
               className={styles.input}
@@ -237,7 +237,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           </div>
 
           <div className={styles.formGroup}>
-            <label className={styles.label}>Planned Amount</label>
+            <label className={styles.label}>จำนวนที่วางแผน</label>
             <input
               type="number"
               className={styles.input}
@@ -263,13 +263,13 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           {!isCancelled && (
             <div className={styles.actualSection}>
                 <div className={styles.formGroup}>
-                    <label className={styles.label}>Actual Amount <span className={styles.hint}>(Fill to Complete)</span></label>
+                    <label className={styles.label}>จำนวนจริง <span className={styles.hint}>(กรอกเพื่อทำเสร็จ)</span></label>
                     <input
                     type="number"
                     className={styles.input}
                     value={actualAmount}
                     onChange={(e) => setActualAmount(e.target.value)}
-                    placeholder="Enter amount to mark as Done"
+                    placeholder="กรอกจำนวนเพื่อทำเสร็จ"
                     step="0.01"
                     />
                 </div>
@@ -278,14 +278,14 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                 {actualAmount && parseFloat(actualAmount) > 0 && (
                     <div className={styles.accountSelection}>
                         <div className={styles.formGroup}>
-                            <label className={styles.label}>{type === 'income' ? 'To Account' : 'Paid From'}</label>
+                            <label className={styles.label}>{type === 'income' ? 'บัญชีปลายทาง' : 'จ่ายจาก'}</label>
                             <select
                                 className={styles.select}
                                 value={accountId}
                                 onChange={(e) => setAccountId(e.target.value)}
                                 required
                             >
-                                <option value="" disabled>Select Account</option>
+                                <option value="" disabled>เลือกบัญชี</option>
                                 {accounts
                                 .filter(a => (a.status === 'active' || a.id === accountId) && a.owner === currentUser?.name)
                                 .map(acc => (
@@ -296,14 +296,14 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
 
                         {type === 'transfer' && (
                             <div className={styles.formGroup}>
-                                <label className={styles.label}>To Account</label>
+                                <label className={styles.label}>บัญชีปลายทาง</label>
                                 <select
                                     className={styles.select}
                                     value={toAccountId}
                                     onChange={(e) => setToAccountId(e.target.value)}
                                     required
                                 >
-                                    <option value="" disabled>Select Account</option>
+                                    <option value="" disabled>เลือกบัญชี</option>
                                     {allAccounts
                                     .filter(a => (a.status === 'active' || a.id === toAccountId) && a.id !== accountId)
                                     .map(acc => (
@@ -321,11 +321,11 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
             {!isReadonly && (
               !isCancelled ? (
                 <button type="button" className={styles.cancelItemBtn} onClick={handleCancelItem}>
-                  <Ban size={16} /> Void Item
+                  <Ban size={16} /> ยกเลิกรายการ
                 </button>
               ) : (
                 <button type="button" className={styles.reactivateBtn} onClick={handleReactivate}>
-                  <CheckCircle size={16} /> Reactivate
+                  <CheckCircle size={16} /> เปิดใช้งานใหม่
                 </button>
               )
             )}
@@ -346,7 +346,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           {itemToEdit && (canEditItem || isBudgetCreator) && (
               <div className={styles.deleteContainer}>
                    <button type="button" className={styles.deleteTextBtn} onClick={handleDelete}>
-                       <Trash2 size={16} /> Delete Permanently
+                       <Trash2 size={16} /> ลบถาวร
                    </button>
               </div>
           )}

@@ -14,6 +14,8 @@ interface VisualizationViewProps {
 
 const COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#5856D6', '#AF52DE', '#FF3B30', '#8E8E93'];
 
+const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
 export default function VisualizationView({ transactions }: VisualizationViewProps) {
     const { categories, groups } = useFinance();
     const [timeScale, setTimeScale] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -29,17 +31,18 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
             let label = '';
 
             if (timeScale === 'daily') {
-                key = tx.date.split('T')[0]; // YYYY-MM-DD
-                label = new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                key = tx.date.split('T')[0];
+                const d = new Date(key);
+                label = `${d.getDate()} ${thaiMonths[d.getMonth()]}`;
             } else if (timeScale === 'weekly') {
                 const day = date.getDay();
-                const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is sunday
+                const diff = date.getDate() - day + (day === 0 ? -6 : 1);
                 const monday = new Date(date.setDate(diff));
                 key = monday.toISOString().split('T')[0];
-                label = `Week of ${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                label = `สัปดาห์ ${monday.getDate()} ${thaiMonths[monday.getMonth()]}`;
             } else {
-                key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`; // YYYY-MM
-                label = new Date(date.getFullYear(), date.getMonth(), 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                label = `${thaiMonths[date.getMonth()]} ${date.getFullYear() + 543}`;
             }
             
             if (!map.has(key)) {
@@ -68,8 +71,8 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
         transactions
             .filter(tx => tx.type === 'expense')
             .forEach(tx => {
-                let name = 'Uncategorized';
-                
+                let name = 'ไม่มีหมวดหมู่';
+
                 if (groupBy === 'group') {
                     if (tx.categoryGroup && tx.categoryGroup !== 'Unknown') {
                         name = tx.categoryGroup;
@@ -85,7 +88,7 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                     }
                 } else {
                     // Group by Category
-                    name = tx.category || 'Uncategorized';
+                    name = tx.category || 'ไม่มีหมวดหมู่';
                 }
                 
                 const amount = Math.abs(Number(tx.amount)) + (Number(tx.fee) || 0);
@@ -102,25 +105,25 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
             {/* Timeline Section */}
             <div className={styles.chartCard}>
                 <div className={styles.cardHeader}>
-                    <h3 className={styles.chartTitle}>Income vs Expense</h3>
+                    <h3 className={styles.chartTitle}>รายรับ vs รายจ่าย</h3>
                     <div className={styles.toggleGroup}>
-                        <button 
+                        <button
                             className={`${styles.toggleBtn} ${timeScale === 'daily' ? styles.active : ''}`}
                             onClick={() => setTimeScale('daily')}
                         >
-                            Daily
+                            รายวัน
                         </button>
-                        <button 
+                        <button
                             className={`${styles.toggleBtn} ${timeScale === 'weekly' ? styles.active : ''}`}
                             onClick={() => setTimeScale('weekly')}
                         >
-                            Weekly
+                            รายสัปดาห์
                         </button>
-                        <button 
+                        <button
                             className={`${styles.toggleBtn} ${timeScale === 'monthly' ? styles.active : ''}`}
                             onClick={() => setTimeScale('monthly')}
                         >
-                            Monthly
+                            รายเดือน
                         </button>
                     </div>
                 </div>
@@ -146,8 +149,8 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                                 formatter={(value: number | undefined) => [`฿${formatMoney(value)}`]}
                             />
                             <CartesianGrid vertical={false} stroke="#eee" strokeDasharray="5 5" />
-                            <Bar dataKey="income" fill="url(#colorIncome)" radius={[4, 4, 0, 0]} name="Income" />
-                            <Bar dataKey="expense" fill="url(#colorExpense)" radius={[4, 4, 0, 0]} name="Expense" />
+                            <Bar dataKey="income" fill="url(#colorIncome)" radius={[4, 4, 0, 0]} name="รายรับ" />
+                            <Bar dataKey="expense" fill="url(#colorExpense)" radius={[4, 4, 0, 0]} name="รายจ่าย" />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
@@ -156,19 +159,19 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
             {/* Pie Chart Section */}
             <div className={styles.chartCard}>
                 <div className={styles.cardHeader}>
-                    <h3 className={styles.chartTitle}>Expense Structure</h3>
+                    <h3 className={styles.chartTitle}>สัดส่วนรายจ่าย</h3>
                     <div className={styles.toggleGroup}>
-                         <button 
+                         <button
                             className={`${styles.toggleBtn} ${groupBy === 'group' ? styles.active : ''}`}
                             onClick={() => setGroupBy('group')}
                         >
-                            By Group
+                            ตามกลุ่ม
                         </button>
-                        <button 
+                        <button
                             className={`${styles.toggleBtn} ${groupBy === 'category' ? styles.active : ''}`}
                             onClick={() => setGroupBy('category')}
                         >
-                            By Category
+                            ตามหมวด
                         </button>
                     </div>
                 </div>

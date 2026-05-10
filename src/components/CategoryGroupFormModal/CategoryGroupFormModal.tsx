@@ -48,7 +48,7 @@ export default function CategoryGroupFormModal({ isOpen, onClose, group, initial
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={group ? "Edit Group" : "New Group"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={group ? "แก้ไขกลุ่ม" : "กลุ่มใหม่"}>
       <form onSubmit={handleSubmit} className={styles.form}>
         {!group && (
             <div className={styles.typeSelector}>
@@ -59,30 +59,30 @@ export default function CategoryGroupFormModal({ isOpen, onClose, group, initial
                 className={`${styles.typeBtn} ${type === t ? styles.selectedType : ''} ${type === t ? styles[t] : ''}`}
                 onClick={() => setType(t)}
                 >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t === 'income' ? 'รายรับ' : t === 'expense' ? 'รายจ่าย' : 'โอน'}
                 </button>
             ))}
             </div>
         )}
 
         <div className={styles.field}>
-          <label>Group Name</label>
+          <label>ชื่อกลุ่ม</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={styles.input}
-            placeholder="e.g. Vacation"
+            placeholder="เช่น ท่องเที่ยว"
             autoFocus
           />
         </div>
 
         <div className={styles.formActions}>
           <button type="button" onClick={onClose} className={styles.cancelBtn}>
-             Cancel
+             ยกเลิก
           </button>
           <button type="submit" className={styles.saveBtn} disabled={!name}>
-            Save
+            บันทึก
           </button>
         </div>
       </form>

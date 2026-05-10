@@ -76,7 +76,7 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
 
   const handleDelete = async () => {
     if (!category) return;
-    if (!confirm('Delete this category? If it is used in transactions, deletion will be blocked.')) return;
+    if (!confirm('ลบหมวดหมู่นี้? หากมีการใช้งานในรายการแล้ว จะไม่สามารถลบได้')) return;
     const success = await deleteCategory(category.id);
     if (success) onClose();
   };
@@ -88,7 +88,7 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={category ? "Edit Category" : "New Category"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={category ? "แก้ไขหมวดหมู่" : "หมวดหมู่ใหม่"}>
       <form onSubmit={handleSubmit} className={styles.form}>
         {!category && (
             <div className={styles.typeSelector}>
@@ -99,21 +99,21 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
                 className={`${styles.typeBtn} ${type === t ? styles.selectedType : ''} ${type === t ? styles[t] : ''}`}
                 onClick={() => { setType(t); setGroupId(""); }}
                 >
-                {t.charAt(0).toUpperCase() + t.slice(1)}
+                {t === 'income' ? 'รายรับ' : t === 'expense' ? 'รายจ่าย' : 'โอน'}
                 </button>
             ))}
             </div>
         )}
 
         <div className={styles.field}>
-            <label>Group</label>
+            <label>กลุ่ม</label>
             <select 
                 value={groupId} 
                 onChange={e => setGroupId(e.target.value)}
                 className={styles.select}
                 disabled={!!category} // Lock group for editing? Or allow move? Let's lock to simplify.
             >
-                <option value="" disabled>Select Group</option>
+                <option value="" disabled>เลือกกลุ่ม</option>
                 {availableGroups.map(g => (
                     <option key={g.id} value={g.id}>{g.name}</option>
                 ))}
@@ -121,13 +121,13 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
         </div>
 
         <div className={styles.field}>
-          <label>Category Name</label>
+          <label>ชื่อหมวดหมู่</label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={styles.input}
-            placeholder="e.g. Street Food"
+            placeholder="เช่น อาหารริมทาง"
             autoFocus
           />
         </div>
@@ -140,10 +140,10 @@ export default function CategoryFormModal({ isOpen, onClose, category, initialTy
           )}
           <div style={{ flex: 1 }} />
           <button type="button" onClick={onClose} className={styles.cancelBtn}>
-             Cancel
+             ยกเลิก
           </button>
           <button type="submit" className={styles.saveBtn} disabled={!name || !groupId}>
-            Save
+            บันทึก
           </button>
         </div>
       </form>

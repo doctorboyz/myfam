@@ -29,10 +29,10 @@ export default function LoginPage() {
         router.refresh();
       } else {
         const data = await res.json();
-        setError(data.error || "Login failed");
+        setError(data.error || "เข้าสู่ระบบไม่สำเร็จ");
       }
     } catch {
-      setError("Connection error. Please try again.");
+      setError("การเชื่อมต่อผิดพลาด กรุณาลองใหม่");
     } finally {
       setIsLoading(false);
     }
@@ -44,18 +44,18 @@ export default function LoginPage() {
         <div className={styles.logo}>
           <Image src="/favicon.png" alt="My Fam" width={80} height={80} className={styles.logoIcon} />
           <h1 className={styles.title}>My Fam</h1>
-          <p className={styles.subtitle}>Family Finance Tracker</p>
+          <p className={styles.subtitle}>จัดการการเงินครอบครัว</p>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
-            <label className={styles.label}>Username</label>
+            <label className={styles.label}>ชื่อผู้ใช้</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className={styles.input}
-              placeholder="Enter your name"
+              placeholder="กรอกชื่อผู้ใช้"
               autoComplete="username"
               autoFocus
               required
@@ -63,7 +63,7 @@ export default function LoginPage() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label}>Password</label>
+            <label className={styles.label}>รหัสผ่าน</label>
             <input
               type="password"
               value={password}
@@ -82,7 +82,7 @@ export default function LoginPage() {
             className={styles.button}
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </button>
         </form>
       </div>

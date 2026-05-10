@@ -18,14 +18,14 @@ export default function FamilyManagement() {
   const [formData, setFormData] = useState<Partial<User>>({});
 
   // Protect route
-  if (!currentUser) return <div style={{padding: 20, textAlign: 'center'}}>Loading...</div>;
+  if (!currentUser) return <div style={{padding: 20, textAlign: 'center'}}>กำลังโหลด...</div>;
 
   if (currentUser.role !== 'parent') {
       return (
           <div style={{ padding: '20px', textAlign: 'center' }}>
-              <h2>Access Denied</h2>
-              <p>Only parents can manage family members.</p>
-              <button onClick={() => router.back()} style={{ marginTop: '20px' }}>Go Back</button>
+              <h2>ไม่มีสิทธิ์เข้าถึง</h2>
+              <p>เฉพาะผู้ปกครองเท่านั้นที่สามารถจัดการสมาชิกครอบครัวได้</p>
+              <button onClick={() => router.back()} style={{ marginTop: '20px' }}>ย้อนกลับ</button>
           </div>
       );
   }
@@ -69,7 +69,7 @@ export default function FamilyManagement() {
   };
 
   const handleDelete = (id: string) => {
-      if (confirm("Are you sure you want to remove this family member?")) {
+      if (confirm("คุณแน่ใจหรือไม่ที่จะลบสมาชิกคนนี้?")) {
           removeUser(id);
       }
   };
@@ -80,7 +80,7 @@ export default function FamilyManagement() {
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
             <ChevronLeft size={24} />
         </button>
-        <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>Family Members</h2>
+        <h2 style={{ fontSize: '20px', fontWeight: '700', margin: 0 }}>สมาชิกครอบครัว</h2>
       </header>
 
       <div style={{ display: 'grid', gap: '16px' }}>
@@ -112,7 +112,7 @@ export default function FamilyManagement() {
                               <input 
                                   value={formData.name || ''}
                                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                  placeholder="Name"
+                                  placeholder="ชื่อ"
                                   style={{
                                       width: '100%',
                                       padding: '8px',
@@ -133,19 +133,19 @@ export default function FamilyManagement() {
                                           type="radio" 
                                           checked={formData.role === 'parent'} 
                                           onChange={() => setFormData({ ...formData, role: 'parent' })}
-                                      /> Parent
+                                      /> ผู้ปกครอง
                                   </label>
                                   <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                       <input 
                                           type="radio" 
                                           checked={formData.role === 'child'} 
                                           onChange={() => setFormData({ ...formData, role: 'child' })}
-                                      /> Child
+                                      /> ลูก
                                   </label>
                               </div>
                           ) : (
-                              <div style={{ fontSize: '13px', color: 'var(--secondary-text)', textTransform: 'capitalize' }}>
-                                  {user.role}
+                              <div style={{ fontSize: '13px', color: 'var(--secondary-text)' }}>
+                                  {user.role === 'parent' ? 'ผู้ปกครอง' : 'ลูก'}
                               </div>
                           )}
                       </div>
@@ -159,13 +159,13 @@ export default function FamilyManagement() {
                                   <button onClick={() => setEditingId(null)} style={{ background: 'var(--hover-bg)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--secondary-text)', cursor: 'pointer' }}>
                                       <X size={18} />
                                   </button>
-                                  <button onClick={() => handleDelete(user.id)} style={{ background: '#FF3B3020', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', cursor: 'pointer' }} aria-label="Delete User">
+                                  <button onClick={() => handleDelete(user.id)} style={{ background: 'var(--danger-bg)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', cursor: 'pointer' }} aria-label="ลบสมาชิก">
                                       <Trash2 size={16} />
                                   </button>
                               </>
                           ) : (
                               <button onClick={() => handleEdit(user)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' }}>
-                                  Edit
+                                  แก้ไข
                               </button>
                           )}
                       </div>
@@ -197,7 +197,7 @@ export default function FamilyManagement() {
                   <input 
                       value={formData.name || ''}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="New Member Name"
+                      placeholder="ชื่อสมาชิกใหม่"
                       autoFocus
                       style={{
                           width: '100%',
@@ -214,14 +214,14 @@ export default function FamilyManagement() {
                               type="radio" 
                               checked={formData.role === 'parent'} 
                               onChange={() => setFormData({ ...formData, role: 'parent' })}
-                          /> Parent
+                          /> ผู้ปกครอง
                       </label>
                       <label style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <input 
                               type="radio" 
                               checked={formData.role === 'child'} 
                               onChange={() => setFormData({ ...formData, role: 'child' })}
-                          /> Child
+                          /> ลูก
                       </label>
                   </div>
               </div>
@@ -257,7 +257,7 @@ export default function FamilyManagement() {
               }}
           >
               <Plus size={20} />
-              Add Family Member
+              เพิ่มสมาชิกครอบครัว
           </button>
       )}
 

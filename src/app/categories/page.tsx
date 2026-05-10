@@ -67,12 +67,12 @@ export default function HistoryPage() {
   };
 
   const typeConfig: Record<string, { label: string; color: string; sign: string }> = {
-    income: { label: 'Income', color: 'var(--success)', sign: '+' },
-    expense: { label: 'Expense', color: 'var(--danger)', sign: '-' },
-    transfer: { label: 'Transfer', color: 'var(--primary)', sign: '' },
+    income: { label: 'รายรับ', color: 'var(--success)', sign: '+' },
+    expense: { label: 'รายจ่าย', color: 'var(--danger)', sign: '-' },
+    transfer: { label: 'โอน', color: 'var(--primary)', sign: '' },
   };
 
-  if (!currentUser) return <div style={{ padding: 20 }}>Loading...</div>;
+  if (!currentUser) return <div style={{ padding: 20 }}>กำลังโหลด...</div>;
 
   return (
     <div className={styles.container}>
@@ -109,7 +109,7 @@ export default function HistoryPage() {
               {isExpanded && (
                 <div className={styles.txList}>
                   {txs.length === 0 ? (
-                    <div className={styles.empty}>No {type} transactions</div>
+                    <div className={styles.empty}>ไม่มีรายการ{type === 'income' ? 'รายรับ' : type === 'expense' ? 'รายจ่าย' : 'โอน'}</div>
                   ) : (
                     txs.map(tx => {
                       const Icon = getIcon(tx.categoryGroup);

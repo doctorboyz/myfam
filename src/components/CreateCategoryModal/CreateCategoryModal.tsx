@@ -30,12 +30,12 @@ export default function CreateCategoryModal({
     e.preventDefault();
 
     if (!categoryName.trim()) {
-      alert("Please enter a category name");
+      alert("กรุณาใส่ชื่อหมวดหมู่");
       return;
     }
 
     if (!selectedGroupId) {
-      alert("Please select a group");
+      alert("กรุณาเลือกกลุ่ม");
       return;
     }
 
@@ -54,22 +54,22 @@ export default function CreateCategoryModal({
       onClose();
     } catch (err) {
       console.error("Failed to create category:", err);
-      alert("Failed to create category. Please try again.");
+      alert("สร้างหมวดหมู่ไม่สำเร็จ กรุณาลองใหม่");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Add New Category">
+    <Modal isOpen={isOpen} onClose={onClose} title="เพิ่มหมวดหมู่ใหม่">
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.formGroup}>
-          <label className={styles.label}>Category Name</label>
+          <label className={styles.label}>ชื่อหมวดหมู่</label>
           <input
             type="text"
             value={categoryName}
             onChange={(e) => setCategoryName(e.target.value)}
-            placeholder="e.g., Groceries, Gas Station..."
+            placeholder="เช่น อาหารริมทาง"
             className={styles.input}
             disabled={isLoading}
             autoFocus
@@ -77,7 +77,7 @@ export default function CreateCategoryModal({
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Group</label>
+          <label className={styles.label}>กลุ่ม</label>
           <select
             value={selectedGroupId}
             onChange={(e) => setSelectedGroupId(e.target.value)}
@@ -86,7 +86,7 @@ export default function CreateCategoryModal({
             required
           >
             <option value="" disabled>
-              Select a group
+              เลือกกลุ่ม
             </option>
             {availableGroups.map(group => (
               <option key={group.id} value={group.id}>
@@ -97,7 +97,7 @@ export default function CreateCategoryModal({
         </div>
 
         <div className={styles.hint}>
-          This will create a custom category visible only to you.
+          หมวดหมู่นี้จะมองเห็นได้เฉพาะคุณ
         </div>
 
         <div className={styles.actions}>
@@ -107,14 +107,14 @@ export default function CreateCategoryModal({
             className={styles.cancelBtn}
             disabled={isLoading}
           >
-            Cancel
+            ยกเลิก
           </button>
           <button
             type="submit"
             className={styles.submitBtn}
             disabled={isLoading}
           >
-            {isLoading ? "Creating..." : "Create Category"}
+            {isLoading ? "กำลังสร้าง..." : "สร้างหมวดหมู่"}
           </button>
         </div>
       </form>

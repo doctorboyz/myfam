@@ -49,21 +49,21 @@ export default function BudgetPage() {
                         <div className={styles.progressBar}>
                             <div 
                                 className={styles.progressFill} 
-                                style={{ width: `${percent}%`, backgroundColor: percent > 100 ? '#FF3B30' : undefined }} 
+                                style={{ width: `${percent}%`, backgroundColor: percent > 100 ? 'var(--danger)' : undefined }} 
                             />
                         </div>
                         <div className={styles.stats}>
 
 
                              <div className={styles.statItem}>
-                                <span className={styles.label}>Planned</span>
+                                <span className={styles.label}>วางแผนไว้</span>
                                 <span className={styles.amount}>
                                     <Money amount={planned} />
                                 </span>
                              </div>
                              <div className={styles.statItem} style={{alignItems: 'flex-end'}}>
-                                <span className={styles.label}>{percent.toFixed(0)}% Used</span>
-                                <span className={styles.amount} style={{color: percent > 100 ? '#FF3B30' : undefined}}>
+                                <span className={styles.label}>{percent.toFixed(0)}% ใช้ไป</span>
+                                <span className={styles.amount} style={{color: percent > 100 ? 'var(--danger)' : undefined}}>
                                     <Money amount={actual} colored={false} />
                                 </span>
                              </div>

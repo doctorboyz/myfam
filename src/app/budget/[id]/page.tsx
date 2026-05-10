@@ -20,7 +20,7 @@ export default function BudgetDetailPage() {
   const [editingItem, setEditingItem] = useState<BudgetTransaction | null>(null);
   const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
 
-  if (!budget) return <div style={{padding: 20}}>Budget not found</div>;
+  if (!budget) return <div style={{padding: 20}}>ไม่พบงบประมาณ</div>;
   
   const isBudgetCreator = currentUser?.id === budget.createdById;
   const items = budget.items || [];
@@ -50,7 +50,7 @@ export default function BudgetDetailPage() {
   };
 
   const handleCancel = (item: BudgetTransaction) => {
-    if (confirm('Are you sure you want to cancel this item?')) {
+    if (confirm('คุณแน่ใจหรือไม่ที่จะยกเลิกรายการนี้?')) {
       updateBudgetTransaction(budget.id, item.id, { status: 'cancelled' });
     }
   };
@@ -116,7 +116,7 @@ export default function BudgetDetailPage() {
                             cursor: 'pointer'
                         }}
                     >
-                        Edit
+                        แก้ไข
                     </button>
                 )}
             </div>
@@ -126,19 +126,19 @@ export default function BudgetDetailPage() {
 
             <div className={styles.summaryCard}>
                 <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Total Planned</span>
+                    <span className={styles.summaryLabel}>วางแผนไว้</span>
                     <span className={styles.summaryValue}>
                         <Money amount={totalPlanned} />
                     </span>
                 </div>
                 <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Total Spent</span>
+                    <span className={styles.summaryLabel}>ใช้ไปแล้ว</span>
                     <span className={styles.summaryValue} style={{color: totalActual > totalPlanned ? 'red' : 'green'}}>
                         <Money amount={totalActual} colored={false} />
                     </span>
                 </div>
                  <div className={styles.summaryItem}>
-                    <span className={styles.summaryLabel}>Remaining</span>
+                    <span className={styles.summaryLabel}>คงเหลือ</span>
                     <span className={styles.summaryValue} style={{color: leftToSpend < 0 ? 'red' : 'var(--foreground)'}}>
                         <Money amount={leftToSpend} />
                     </span>
@@ -172,7 +172,7 @@ export default function BudgetDetailPage() {
                             {isBudgetCreator && (
                                 <div className={styles.actions}>
                                     <button className={`${styles.actionBtn} ${styles.btnDone}`} onClick={(e) => { e.stopPropagation(); handleMarkDone(item); }}>
-                                        <Check size={14} style={{marginRight:4}} /> Done
+                                        <Check size={14} style={{marginRight:4}} /> เสร็จ
                                     </button>
                                     <button className={`${styles.actionBtn} ${styles.btnCancel}`} onClick={(e) => { e.stopPropagation(); handleCancel(item); }}>
                                         <X size={14} />
@@ -189,7 +189,7 @@ export default function BudgetDetailPage() {
        {/* Done Items */}
        {doneItems.length > 0 && (
            <div className={styles.section}>
-               <h3 className={styles.sectionTitle}>Completed</h3>
+               <h3 className={styles.sectionTitle}>เสร็จสิ้น</h3>
                {doneItems.map(item => {
                  const editable = canEditItem(item);
                  return (
@@ -202,7 +202,7 @@ export default function BudgetDetailPage() {
                        <div className={styles.itemInfo}>
                            <div className={styles.itemName}>{item.name}</div>
                            <CreatorBadge item={item} />
-                           <div className={styles.itemMeta}>Paid on {new Date(item.date).toLocaleDateString('th-TH')}</div>
+                           <div className={styles.itemMeta}>จ่ายเมื่อ {new Date(item.date).toLocaleDateString('th-TH')}</div>
                        </div>
                        <div className={styles.itemAmount}>
                             <div className={styles.actualAmount}>
@@ -221,7 +221,7 @@ export default function BudgetDetailPage() {
        {/* Cancelled Items */}
        {cancelledItems.length > 0 && (
            <div className={styles.section}>
-               <h3 className={styles.sectionTitle}>Cancelled</h3>
+               <h3 className={styles.sectionTitle}>ยกเลิกแล้ว</h3>
                {cancelledItems.map(item => {
                  const editable = canEditItem(item);
                  return (

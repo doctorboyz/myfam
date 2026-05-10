@@ -50,32 +50,32 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit }: Budge
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={budgetToEdit ? "Edit Budget" : "New Budget"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={budgetToEdit ? "แก้ไขงบประมาณ" : "งบประมาณใหม่"}>
       <form onSubmit={handleSubmit}>
         <div className={styles.formGroup}>
-          <label className={styles.label}>Budget Title</label>
+          <label className={styles.label}>ชื่องบประมาณ</label>
           <input
             type="text"
             className={styles.input}
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g., Japan Trip"
+            placeholder="เช่น ทริปญี่ปุ่น"
             required
           />
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Description</label>
+          <label className={styles.label}>รายละเอียด</label>
           <textarea
             className={styles.textarea}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional description"
+            placeholder="รายละเอียด (ไม่จำเป็น)"
           />
         </div>
 
         <div className={styles.formGroup}>
-           <label className={styles.label}>Limit Amount</label>
+           <label className={styles.label}>วงเงิน</label>
            <input
              type="number"
              className={styles.input}
@@ -87,19 +87,19 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit }: Budge
         </div>
 
         <div className={styles.formGroup}>
-           <label className={styles.label}>Period</label>
+           <label className={styles.label}>รอบระยะเวลา</label>
            <select
                className={styles.input}
                value={period}
                onChange={(e) => setPeriod(e.target.value as 'monthly' | 'one_time')}
            >
-               <option value="one_time">One Time</option>
-               <option value="monthly">Monthly</option>
+               <option value="one_time">ครั้งเดียว</option>
+               <option value="monthly">รายเดือน</option>
            </select>
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Start Date</label>
+          <label className={styles.label}>วันเริ่มต้น</label>
           <input
             type="date"
             className={styles.input}
@@ -110,7 +110,7 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit }: Budge
         </div>
 
          <div className={styles.formGroup}>
-          <label className={styles.label}>End Date (Optional)</label>
+          <label className={styles.label}>วันสิ้นสุด (ไม่จำเป็น)</label>
           <input
             type="date"
             className={styles.input}
@@ -123,7 +123,7 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit }: Budge
           {budgetToEdit && (
               <button type="button"
                 onClick={async () => {
-                    if(confirm("Delete this budget? Pending items will be voided.")) {
+                    if(confirm("ลบงบประมาณนี้? รายการที่รอดำเนินการจะถูกยกเลิก")) {
                         await deleteBudget(budgetToEdit.id);
                         onClose();
                         router.push('/budget');
@@ -132,15 +132,15 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit }: Budge
                 className={styles.deleteBtn}
                 style={{marginRight: 'auto', background: 'transparent', color: 'var(--danger)', border: 'none', cursor: 'pointer', fontWeight: 600}}
               >
-                  Delete Budget
+                  ลบงบประมาณ
               </button>
           )}
           <div style={{display:'flex', gap: 8}}>
               <button type="button" className={styles.cancelBtn} onClick={onClose}>
-              Cancel
+              ยกเลิก
               </button>
               <button type="submit" className={styles.submitBtn}>
-              Save
+              บันทึก
               </button>
           </div>
           </div>

@@ -134,7 +134,7 @@ export default function TransactionDetailModal({
     
     // Find selected category to get the group
     const selectedCatObj = categories.find(c => c.name === formData.category);
-    let groupName = formData.categoryGroup || "General";
+    let groupName = formData.categoryGroup || "ทั่วไป";
     
     if (selectedCatObj) {
         const groupObj = groups.find(g => g.id === selectedCatObj.groupId);
@@ -143,11 +143,11 @@ export default function TransactionDetailModal({
     
     // Validation
     if (formData.type === 'transfer' && !formData.toAccountId) {
-        alert("Please select a destination account.");
+        alert("กรุณาเลือกบัญชีปลายทาง");
         return;
     }
     if (formData.type === 'transfer' && formData.accountId === formData.toAccountId) {
-        alert("Source and Destination accounts must be different.");
+        alert("บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน");
         return;
     }
     
@@ -177,11 +177,11 @@ export default function TransactionDetailModal({
   // View Mode
   if (!isEditing && transaction) {
     return (
-      <Modal isOpen={isOpen} onClose={onClose} title="Transaction Details">
+      <Modal isOpen={isOpen} onClose={onClose} title="รายละเอียดรายการ">
         <div className={styles.viewContainer}>
           <div className={styles.viewHeader}>
             <span className={`${styles.badge} ${styles[transaction.type]}`}>
-              {transaction.type.toUpperCase()}
+              {transaction.type === 'income' ? 'รายรับ' : transaction.type === 'expense' ? 'รายจ่าย' : 'โอน'}
             </span>
             <span className={styles.viewDate}>{transaction.date}</span>
           </div>
@@ -193,41 +193,41 @@ export default function TransactionDetailModal({
           
            {transaction.fee && transaction.fee > 0 && (
               <div className={styles.viewFee}>
-                 Fee: -${transaction.fee.toLocaleString()}
+                 ค่าธรรมเนียม: -฿{transaction.fee.toLocaleString()}
               </div>
            )}
 
           <div className={styles.viewMeta}>
              <div className={styles.metaRow}>
                <span className={styles.label}>
-                  {transaction.type === 'income' ? 'To Account' : 'From Account'}
+                  {transaction.type === 'income' ? 'บัญชีปลายทาง' : 'บัญชีต้นทาง'}
                </span>
                <span className={styles.value}>
-                  {availableAccounts.find(a => a.id === transaction.accountId)?.name || "Unknown"}
+                  {availableAccounts.find(a => a.id === transaction.accountId)?.name || "ไม่ทราบ"}
                </span>
              </div>
              
              {transaction.type === 'transfer' && transaction.toAccountId && (
                  <div className={styles.metaRow}>
-                   <span className={styles.label}>To Account</span>
+                   <span className={styles.label}>บัญชีปลายทาง</span>
                    <span className={styles.value}>
-                      {allAccounts.find(a => a.id === transaction.toAccountId)?.name || "Unknown"}
+                      {allAccounts.find(a => a.id === transaction.toAccountId)?.name || "ไม่ทราบ"}
                    </span>
                  </div>
              )}
             <div className={styles.metaRow}>
-              <span className={styles.label}>Category</span>
+              <span className={styles.label}>หมวดหมู่</span>
               <span className={styles.value}>{transaction.category}</span>
             </div>
             {transaction.note && (
               <div className={styles.metaRow}>
-                <span className={styles.label}>Note</span>
+                <span className={styles.label}>หมายเหตุ</span>
                 <span className={styles.value}>{transaction.note}</span>
               </div>
             )}
             {transaction.tags && transaction.tags.length > 0 && (
               <div className={styles.metaRow}>
-                <span className={styles.label}>Tags</span>
+                <span className={styles.label}>แท็ก</span>
                 <div className="flex flex-wrap gap-1">
                   {transaction.tags.map(tag => (
                     <span key={tag} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full text-xs">
@@ -239,8 +239,8 @@ export default function TransactionDetailModal({
             )}
              {transaction.slipImage && (
               <div className={styles.metaRow}>
-                <span className={styles.label}>Slip</span>
-                <a href={transaction.slipImage} target="_blank" className={styles.link}>View Image</a>
+                <span className={styles.label}>สลิป</span>
+                <a href={transaction.slipImage} target="_blank" className={styles.link}>ดูรูป</a>
               </div>
             )}
           </div>
@@ -248,10 +248,10 @@ export default function TransactionDetailModal({
           {isOwner && (
             <div className={styles.actions}>
               <button onClick={handleDelete} className={styles.deleteBtn}>
-                <Trash2 size={18} /> Delete
+                <Trash2 size={18} /> ลบ
               </button>
               <button onClick={toggleEdit} className={styles.editBtn}>
-                <Edit2 size={18} /> Edit
+                <Edit2 size={18} /> แก้ไข
               </button>
             </div>
           )}
@@ -262,7 +262,7 @@ export default function TransactionDetailModal({
 
   // Edit/Add Mode
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={transaction ? "Edit Transaction" : "New Transaction"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={transaction ? "แก้ไขรายการ" : "รายการใหม่"}>
        <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.typeSelector}>
            {['income', 'expense', 'transfer'].map(t => (
@@ -272,16 +272,16 @@ export default function TransactionDetailModal({
                className={`${styles.typeBtn} ${formData.type === t ? styles.selectedType : ''} ${formData.type === t ? styles[t] : ''}`}
                onClick={() => setFormData({...formData, type: t as Transaction['type']})}
              >
-               {t.charAt(0).toUpperCase() + t.slice(1)}
+               {t === 'income' ? 'รายรับ' : t === 'expense' ? 'รายจ่าย' : 'โอน'}
              </button>
            ))}
         </div>
 
         {/* Account Section */}
-        <div className={styles.sectionHeader}>Account</div>
+        <div className={styles.sectionHeader}>บัญชี</div>
         <div className={styles.row}>
             <div className={styles.field}>
-                <label>{formData.type === 'income' ? 'To Account' : 'From Account'}</label>
+                <label>{formData.type === 'income' ? 'บัญชีปลายทาง' : 'บัญชีต้นทาง'}</label>
                 <select 
                     value={formData.accountId} 
                     onChange={e => setFormData({...formData, accountId: e.target.value})}
@@ -296,13 +296,13 @@ export default function TransactionDetailModal({
             
             {formData.type === 'transfer' && (
                 <div className={styles.field}>
-                    <label>To Account</label>
+                    <label>บัญชีปลายทาง</label>
                     <select 
                         value={formData.toAccountId || ""} 
                         onChange={e => setFormData({...formData, toAccountId: e.target.value})}
                         className={styles.select}
                     >
-                        <option value="">Select Account</option>
+                        <option value="">เลือกบัญชี</option>
                         {toAccounts.filter(a => a.id !== formData.accountId).map(acc => (
                             <option key={acc.id} value={acc.id}>{getAccountLabel(acc)}</option>
                         ))}
@@ -312,10 +312,10 @@ export default function TransactionDetailModal({
         </div>
 
         {/* Amount & Fee Section */}
-        <div className={styles.sectionHeader}>Amount</div>
+        <div className={styles.sectionHeader}>จำนวนเงิน</div>
         <div className={styles.row}>
             <div className={styles.field}>
-              <label>Amount</label>
+              <label>จำนวนเงิน</label>
               <input
                 type="number"
                 step="0.01"
@@ -326,7 +326,7 @@ export default function TransactionDetailModal({
               />
             </div>
             <div className={styles.field}>
-              <label>Fee</label>
+              <label>ค่าธรรมเนียม</label>
               <input
                 type="number"
                 step="0.01"
@@ -348,10 +348,10 @@ export default function TransactionDetailModal({
         />
 
         <div className={styles.fileInputContainer}>
-          <label className={styles.label}>Slip Image</label>
+          <label className={styles.label}>รูปสลิป</label>
             <label className={styles.fileLabel}>
                 <Image size={18} />
-                <span>{formData.slipImage ? "Change Image" : "Choose Image"}</span>
+                <span>{formData.slipImage ? "เปลี่ยนรูป" : "เลือกรูป"}</span>
                 <input 
                     type="file" 
                     key={fileInputKey}
@@ -363,7 +363,7 @@ export default function TransactionDetailModal({
             {formData.slipImage && (
                 <div className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={formData.slipImage} alt="Slip Preview" className={styles.slipPreview} />
+                    <img src={formData.slipImage} alt="สลิป" className={styles.slipPreview} />
                     <button 
                         type="button" 
                         onClick={() => {
@@ -371,7 +371,7 @@ export default function TransactionDetailModal({
                             setFileInputKey(Date.now());
                         }}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
-                        title="Remove Image"
+                        title="ลบรูป"
                     >
                         <Trash2 size={14} />
                     </button>
@@ -379,7 +379,7 @@ export default function TransactionDetailModal({
             )}
         </div>
         <div className={styles.field}>
-          <label>Date</label>
+          <label>วันที่</label>
           <input
             type="date"
             value={formData.date}
@@ -397,12 +397,12 @@ export default function TransactionDetailModal({
         </div>
 
         <div className={styles.field}>
-          <label>Note</label>
+          <label>หมายเหตุ</label>
           <input
             type="text"
             value={formData.note || ""}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-            placeholder="Add a note"
+            placeholder="เพิ่มหมายเหตุ"
             className={styles.input}
           />
         </div>
@@ -411,10 +411,10 @@ export default function TransactionDetailModal({
 
         <div className={styles.formActions}>
           <button type="button" onClick={onClose} className={styles.cancelBtn}>
-             Cancel
+             ยกเลิก
           </button>
           <button type="submit" className={styles.saveBtn}>
-            Save
+            บันทึก
           </button>
         </div>
        </form>

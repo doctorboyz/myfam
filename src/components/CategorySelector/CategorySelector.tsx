@@ -45,7 +45,7 @@ export default function CategorySelector({
     const grouped: Record<string, Category[]> = {};
     filteredCategories.forEach(cat => {
       const group = groups.find(g => g.id === cat.groupId);
-      const groupName = group?.name || "Other";
+      const groupName = group?.name || "อื่นๆ";
       if (!grouped[groupName]) {
         grouped[groupName] = [];
       }
@@ -58,7 +58,7 @@ export default function CategorySelector({
 
   return (
     <div className={styles.container}>
-      <label className={styles.label}>Category</label>
+      <label className={styles.label}>หมวดหมู่</label>
 
       <div className={styles.selectorWrapper}>
         <div
@@ -66,7 +66,7 @@ export default function CategorySelector({
           onClick={() => setIsOpen(!isOpen)}
         >
           <span className={styles.selectedValue}>
-            {value || "Select Category"}
+            {value || "เลือกหมวดหมู่"}
           </span>
           <span className={styles.arrow}>▼</span>
         </div>
@@ -76,7 +76,7 @@ export default function CategorySelector({
             <div className={styles.searchBox}>
               <input
                 type="text"
-                placeholder="Search categories..."
+                placeholder="ค้นหาหมวดหมู่..."
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 className={styles.searchInput}
@@ -86,7 +86,7 @@ export default function CategorySelector({
 
             <div className={styles.categoryList}>
               {Object.entries(groupedCategories).length === 0 ? (
-                <div className={styles.empty}>No categories found</div>
+                <div className={styles.empty}>ไม่พบหมวดหมู่</div>
               ) : (
                 Object.entries(groupedCategories).map(([groupName, cats]) => (
                   <div key={groupName} className={styles.group}>
@@ -106,7 +106,7 @@ export default function CategorySelector({
                         >
                           <span>{cat.name}</span>
                           {cat.isCustom && (
-                            <span className={styles.customBadge}>custom</span>
+                            <span className={styles.customBadge}>กำหนดเอง</span>
                           )}
                         </div>
                       ))}
@@ -125,7 +125,7 @@ export default function CategorySelector({
                 onAddNew();
               }}
             >
-              <Plus size={16} /> Add New Category
+              <Plus size={16} /> เพิ่มหมวดหมู่ใหม่
             </button>
           </div>
         )}

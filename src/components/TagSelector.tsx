@@ -56,7 +56,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onChange, avail
 
   return (
     <div className={styles.container} ref={wrapperRef}>
-      <label className={styles.label}>Tags</label>
+      <label className={styles.label}>แท็ก</label>
       <div 
         className={styles.inputWrapper}
         onClick={() => setIsDropdownOpen(true)}
@@ -82,7 +82,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onChange, avail
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsDropdownOpen(true)}
-          placeholder={selectedTags.length === 0 ? "Add tags..." : ""}
+          placeholder={selectedTags.length === 0 ? "เพิ่มแท็ก..." : ""}
           className={styles.input}
         />
       </div>
@@ -105,7 +105,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onChange, avail
                 onClick={() => handleAddTag(inputValue)}
                 className={styles.createOption}
             >
-                Create &quot;{inputValue}&quot;
+                สร้าง &quot;{inputValue}&quot;
             </button>
           )}
         </div>

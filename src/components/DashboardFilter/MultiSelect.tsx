@@ -42,13 +42,13 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
         onChange(newSelected);
     };
 
-    const displayText = selected.length === 0 
-        ? `All ${label}` 
-        : `${selected.length} ${label}${selected.length > 1 ? 's' : ''}`;
+    const displayText = selected.length === 0
+        ? `${label}ทั้งหมด`
+        : `${label}${selected.length} รายการ`;
 
     // Group options if needed
     const groups = options.reduce((acc, opt) => {
-        const group = opt.group || 'Other';
+        const group = opt.group || 'อื่นๆ';
         if (!acc[group]) acc[group] = [];
         acc[group].push(opt);
         return acc;
@@ -108,7 +108,7 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
                     
                     {selected.length > 0 && (
                         <div className={styles.footer} onClick={() => onChange([])}>
-                            Clear Filter
+                            ล้างตัวกรอง
                         </div>
                     )}
                 </div>

@@ -1,15 +1,26 @@
 import type { Metadata, Viewport } from "next";
+import { Sarabun } from "next/font/google";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav/BottomNav";
 import TopBar from "@/components/TopBar/TopBar";
 import { FinanceProvider } from "@/context/FinanceContext";
+import { LiffProvider } from "@/context/LiffContext";
 
-const inter = Inter({ subsets: ["latin"] });
+const sarabun = Sarabun({
+  subsets: ["thai", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sarabun",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "My Fam - Finance Tracker",
-  description: "Simple family expense tracker",
+  title: "MyFam - ติดตามการเงินครอบครัว",
+  description: "ติดตามรายรับรายจ่ายครอบครัวผ่าน LINE",
 };
 
 export const viewport: Viewport = {
@@ -25,15 +36,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <FinanceProvider>
-          <main>
-            <TopBar />
-            {children}
-            <BottomNav />
-          </main>
-        </FinanceProvider>
+    <html lang="th">
+      <body className={`${sarabun.variable} ${inter.variable}`}>
+        <LiffProvider>
+          <FinanceProvider>
+            <main>
+              <TopBar />
+              {children}
+              <BottomNav />
+            </main>
+          </FinanceProvider>
+        </LiffProvider>
       </body>
     </html>
   );

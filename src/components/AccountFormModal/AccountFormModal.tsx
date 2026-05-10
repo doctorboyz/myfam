@@ -113,15 +113,15 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "Edit Account" : "New Account"}>
+    <Modal isOpen={isOpen} onClose={onClose} title={initialData ? "แก้ไขบัญชี" : "บัญชีใหม่"}>
       <form onSubmit={handleSubmit} className={styles.form}>
         <div className={styles.field}>
-          <label>Description (Name)</label>
+          <label>ชื่อบัญชี</label>
           <input
             type="text"
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            placeholder="e.g. Main Bank"
+            placeholder="เช่น บัญชีออมทรัพย์"
             required
             className={styles.input}
           />
@@ -130,7 +130,7 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
         {/* Removed Owner Field */}
 
         <div className={styles.field}>
-            <label>Type</label>
+            <label>ประเภท</label>
             <select
                 value={formData.type}
                 onChange={(e) => {
@@ -143,17 +143,17 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
                 }}
                 className={styles.select}
             >
-                <option value="bank">Bank</option>
-                <option value="cash">Cash</option>
-                <option value="credit">Credit Card</option>
-                <option value="wallet">Digitial Wallet</option>
-                <option value="loan">Loan</option>
-                <option value="invest">Investment</option>
+                <option value="bank">ธนาคาร</option>
+                <option value="cash">เงินสด</option>
+                <option value="credit">บัตรเครดิต</option>
+                <option value="wallet">กระเป๋าเงินดิจิทัล</option>
+                <option value="loan">เงินกู้</option>
+                <option value="invest">การลงทุน</option>
             </select>
         </div>
 
         <div className={styles.field}>
-          <label>Icon</label>
+          <label>ไอคอน</label>
           <div className={styles.selectedIconDisplay}>
             {ICON_OPTIONS.find(o => o.name === formData.icon)?.icon}
             <span>{ICON_OPTIONS.find(o => o.name === formData.icon)?.label}</span>
@@ -174,19 +174,19 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
         </div>
 
         <div className={styles.field}>
-          <label>Account No. (Optional)</label>
+          <label>เลขบัญชี (ไม่จำเป็น)</label>
           <input
             type="text"
             value={formData.accountNo}
             onChange={(e) => setFormData({ ...formData, accountNo: e.target.value })}
-            placeholder="e.g. 123-xxx-xxx"
+            placeholder="เช่น 123-xxx-xxx"
             className={styles.input}
           />
         </div>
 
         {!initialData && (
              <div className={styles.field}>
-              <label>Starting Balance</label>
+              <label>ยอดเริ่มต้น</label>
               <input
                 type="number"
                 step="0.01"
@@ -198,7 +198,7 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
         )}
 
         <div className={styles.field}>
-          <label>Color</label>
+          <label>สี</label>
           <div className={styles.colors}>
             {COLORS.map((c) => (
               <button
@@ -213,22 +213,22 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
         </div>
 
         <div className={styles.field}>
-          <label>Alias (Optional)</label>
+          <label>ชื่อย่อ (ไม่จำเป็น)</label>
           <input
             type="text"
             value={formData.alias}
             onChange={(e) => setFormData({ ...formData, alias: e.target.value })}
-            placeholder="Short name"
+            placeholder="ชื่อย่อ"
             className={styles.input}
           />
         </div>
 
         <div className={styles.actions}>
             <button type="button" onClick={onClose} className={styles.cancelBtn}>
-              Cancel
+              ยกเลิก
             </button>
             <button type="submit" className={styles.submitBtn}>
-              Save
+              บันทึก
             </button>
         </div>
       </form>

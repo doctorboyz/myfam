@@ -102,7 +102,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
   }, [fetchReconciliations]);
 
   if (!account) {
-    return <div style={{ padding: 20 }}>Account not found or restricted.</div>;
+    return <div style={{ padding: 20 }}>ไม่พบบัญชี หรือไม่มีสิทธิ์เข้าถึง</div>;
   }
 
   const isOwner = currentUser?.name === account.owner || currentUser?.role === 'parent'; 
@@ -157,10 +157,10 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         background: 'var(--card-bg, #f0f0f0)', borderRadius: '10px', padding: '4px',
       }}>
         <button style={tabStyle('transactions')} onClick={() => setActiveTab('transactions')}>
-          Transactions
+          รายการ
         </button>
         <button style={tabStyle('reconcile')} onClick={() => setActiveTab('reconcile')}>
-          Reconcile ({reconciliations.length})
+          กระทบยอด ({reconciliations.length})
         </button>
       </div>
 
@@ -178,7 +178,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         <div style={{ margin: '0 16px' }}>
           {reconciliations.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary, #999)' }}>
-              No reconciliation history yet.
+              ยังไม่มีประวัติการกระทบยอด
             </div>
           ) : (
             <div style={{ background: 'var(--card-bg, #fff)', borderRadius: '12px', overflow: 'hidden' }}>
@@ -201,7 +201,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
                   </div>
                   <div style={{
                     fontSize: '15px', fontWeight: 700,
-                    color: r.difference >= 0 ? 'var(--success, #34C759)' : 'var(--danger, #FF3B30)',
+                    color: r.difference >= 0 ? 'var(--success)' : 'var(--danger)',
                   }}>
                     {r.difference >= 0 ? '+' : ''}<Money amount={r.difference} />
                   </div>

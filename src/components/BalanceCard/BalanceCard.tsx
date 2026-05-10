@@ -10,14 +10,14 @@ interface BalanceCardProps {
   icon?: React.ReactNode;
 }
 
-export default function BalanceCard({ title = "Total Balance", balance, onReconcile, onEdit, icon }: BalanceCardProps) {
+export default function BalanceCard({ title = "ยอดคงเหลือ", balance, onReconcile, onEdit, icon }: BalanceCardProps) {
   return (
     <div className={styles.card}>
       <div className={styles.header}>
         {icon && <div className={styles.icon}>{icon}</div>}
         <span className={styles.label}>{title}</span>
         {onEdit && (
-          <button onClick={onEdit} className={styles.editBtn} aria-label="Edit Account">
+          <button onClick={onEdit} className={styles.editBtn} aria-label="แก้ไขบัญชี">
             <Settings2 size={16} />
           </button>
         )}
@@ -27,7 +27,7 @@ export default function BalanceCard({ title = "Total Balance", balance, onReconc
       </div>
       {onReconcile && (
         <button className={styles.reconcileBtn} onClick={onReconcile}>
-          Reconcile
+          กระทบยอด
         </button>
       )}
     </div>

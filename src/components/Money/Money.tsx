@@ -36,7 +36,7 @@ export default function Money({
   });
 
   const finalStyle: React.CSSProperties = {
-      ...(colored && isNegative ? { color: '#FF3B30' } : {}),
+      ...(colored && isNegative ? { color: 'var(--danger)' } : {}),
       ...style
   };
 

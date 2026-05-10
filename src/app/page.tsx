@@ -67,14 +67,14 @@ export default function Home() {
     <div className={styles.container}>
       
       <div className={styles.header}>
-        <h1 className={styles.title}>Accounts</h1>
+        <h1 className={styles.title}>บัญชี</h1>
         <button 
           onClick={() => setIsAddAccountOpen(true)}
           className={styles.addBtn}
           style={{ background: 'var(--card-bg)', color: 'var(--foreground)' }}
         >
           <Plus size={18} />
-          New
+          สร้างใหม่
         </button>
       </div>
 

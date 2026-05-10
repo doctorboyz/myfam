@@ -8,7 +8,7 @@ import Money from "@/components/Money/Money";
 export default function Profile() {
   const { currentUser, accounts, updateUser, logout } = useFinance();
   
-  if (!currentUser) return <div style={{padding: 20}}>Loading profile...</div>;
+  if (!currentUser) return <div style={{padding: 20}}>กำลังโหลดโปรไฟล์...</div>;
 
   // Get user's accounts
   const myAccounts = accounts.filter(a => a.owner === currentUser.name);
@@ -53,15 +53,15 @@ export default function Profile() {
             marginTop: '8px'
         }}>
             {currentUser.role === 'parent' ? <Shield size={14} color="var(--primary)" /> : <User size={14} color="var(--primary)" />}
-            <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--secondary-text)', textTransform: 'capitalize' }}>
-                {currentUser.role} Account
+            <span style={{ fontSize: '13px', fontWeight: '500', color: 'var(--secondary-text)' }}>
+                {currentUser.role === 'parent' ? 'ผู้ปกครอง' : 'สมาชิก'}
             </span>
         </div>
       </div>
       
       {/* My Accounts Summary */}
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', paddingLeft: '4px' }}>My Accounts</h3>
+        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', paddingLeft: '4px' }}>บัญชีของฉัน</h3>
         <div style={{ display: 'grid', gap: '12px' }}>
             {myAccounts.length > 0 ? myAccounts.map(acc => (
                 <div key={acc.id} style={{
@@ -91,7 +91,7 @@ export default function Profile() {
                     </div>
                 </div>
             )) : (
-                <div style={{ color: 'var(--secondary-text)', textAlign: 'center', padding: '20px' }}>No accounts found.</div>
+                <div style={{ color: 'var(--secondary-text)', textAlign: 'center', padding: '20px' }}>ยังไม่มีบัญชี</div>
             )}
         </div>
       </div>
@@ -114,7 +114,7 @@ export default function Profile() {
         onClick={() => logout()}
         >
           <LogOut size={20} />
-          Log Out
+          ออกจากระบบ
         </button>
       </div>
 

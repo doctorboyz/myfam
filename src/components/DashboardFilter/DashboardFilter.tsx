@@ -29,9 +29,9 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
 
   // 2. Types
   const typeOptions = [
-    { id: 'income', label: 'Income' },
-    { id: 'expense', label: 'Expense' },
-    { id: 'transfer', label: 'Transfer' },
+    { id: 'income', label: 'รายรับ' },
+    { id: 'expense', label: 'รายจ่าย' },
+    { id: 'transfer', label: 'โอน' },
   ];
 
   // 3. Accounts
@@ -109,52 +109,52 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
       {/* 1. User Filter (Parent Only) */}
       {canFilterUsers && (
           <div className={styles.filterItem}>
-              <MultiSelect 
-                  label="User" 
-                  options={userOptions} 
-                  selected={filters.users} 
-                  onChange={handleUserChange} 
+              <MultiSelect
+                  label="สมาชิก"
+                  options={userOptions}
+                  selected={filters.users}
+                  onChange={handleUserChange}
               />
           </div>
       )}
 
       {/* 2. Account Filter */}
       <div className={styles.filterItem}>
-          <MultiSelect 
-              label="Account" 
-              options={accountOptions} 
-              selected={filters.accounts || []} 
-              onChange={handleAccountChange} 
+          <MultiSelect
+              label="บัญชี"
+              options={accountOptions}
+              selected={filters.accounts || []}
+              onChange={handleAccountChange}
           />
       </div>
 
       {/* 3. Type Filter */}
       <div className={styles.filterItem}>
-          <MultiSelect 
-              label="Type" 
-              options={typeOptions} 
-              selected={filters.types} 
-              onChange={handleTypeChange} 
+          <MultiSelect
+              label="ประเภท"
+              options={typeOptions}
+              selected={filters.types}
+              onChange={handleTypeChange}
           />
       </div>
 
       {/* 4. Category Filter */}
       <div className={styles.filterItem}>
-          <MultiSelect 
-              label="Category" 
-              options={categoryOptions} 
-              selected={filters.categories || []} 
-              onChange={handleCategoryChange} 
+          <MultiSelect
+              label="หมวดหมู่"
+              options={categoryOptions}
+              selected={filters.categories || []}
+              onChange={handleCategoryChange}
           />
       </div>
 
       {/* 5. Date Filter */}
       <div className={`${styles.filterItem} ${styles.dateFilter}`}>
           <div className={styles.datePresets}>
-              <button onClick={() => handlePresetDate('this_month')} className={styles.presetBtn}>This Month</button>
-              <button onClick={() => handlePresetDate('last_month')} className={styles.presetBtn}>Last Month</button>
-              <button onClick={() => handlePresetDate('this_year')} className={styles.presetBtn}>This Year</button>
-              <button onClick={() => handlePresetDate('all')} className={styles.presetBtn}>All</button>
+              <button onClick={() => handlePresetDate('this_month')} className={styles.presetBtn}>เดือนนี้</button>
+              <button onClick={() => handlePresetDate('last_month')} className={styles.presetBtn}>เดือนที่แล้ว</button>
+              <button onClick={() => handlePresetDate('this_year')} className={styles.presetBtn}>ปีนี้</button>
+              <button onClick={() => handlePresetDate('all')} className={styles.presetBtn}>ทั้งหมด</button>
           </div>
           <div className={styles.dateInputs}>
               <input 

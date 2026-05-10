@@ -23,8 +23,8 @@ export default function SettingsCategoriesPage() {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--secondary-text)' }}>
         <ShieldAlert size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>Access Denied</h2>
-        <p>Only administrators can manage categories.</p>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>ไม่มีสิทธิ์เข้าถึง</h2>
+        <p>เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการหมวดหมู่ได้</p>
       </div>
     );
   }
@@ -72,7 +72,7 @@ export default function SettingsCategoriesPage() {
                     className={`${styles.tab} ${activeTab === t ? styles.activeTab : ''} ${styles[t]}`}
                     onClick={() => setActiveTab(t)}
                 >
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                    {t === 'income' ? 'รายรับ' : t === 'expense' ? 'รายจ่าย' : 'โอน'}
                 </button>
             ))}
         </div>
@@ -109,7 +109,7 @@ export default function SettingsCategoriesPage() {
                                     <div key={cat.id} className={styles.categoryItem}>
                                         <span className={styles.categoryName}>
                                           {cat.name}
-                                          {cat.userId && <span style={{ fontSize: 11, color: 'var(--secondary-text)', marginLeft: 8 }}>user</span>}
+                                          {cat.userId && <span style={{ fontSize: 11, color: 'var(--secondary-text)', marginLeft: 8 }}>ผู้ใช้</span>}
                                         </span>
                                         <button
                                             className={styles.editBtn}
@@ -120,7 +120,7 @@ export default function SettingsCategoriesPage() {
                                     </div>
                                 ))}
                                 {groupCats.length === 0 && (
-                                    <div className={styles.emptyState}>No categories</div>
+                                    <div className={styles.emptyState}>ไม่มีหมวดหมู่</div>
                                 )}
                             </div>
                         )}
@@ -145,7 +145,7 @@ export default function SettingsCategoriesPage() {
       />
 
       <div className={styles.fabContainer}>
-          <button className={styles.fabSecondary} onClick={handleAddGroup} title="New Group">
+          <button className={styles.fabSecondary} onClick={handleAddGroup} title="สร้างกลุ่มใหม่">
               <FolderPlus size={20} color="var(--primary)" />
           </button>
           <button className={styles.fab} onClick={handleAdd}>

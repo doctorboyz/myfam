@@ -10,7 +10,7 @@ interface TransactionListProps {
 
 import Money from "@/components/Money/Money";
 
-export default function TransactionList({ transactions, title = "Recent Transactions", onTransactionClick }: TransactionListProps) {
+export default function TransactionList({ transactions, title = "รายการล่าสุด", onTransactionClick }: TransactionListProps) {
   
   const getIcon = (categoryGroup: string) => {
     switch (categoryGroup.toLowerCase()) {
@@ -27,7 +27,7 @@ export default function TransactionList({ transactions, title = "Recent Transact
     return (
       <div className={styles.container}>
         <h3 className={styles.sectionTitle}>{title}</h3>
-        <div className={styles.empty}>No transactions yet.</div>
+        <div className={styles.empty}>ยังไม่มีรายการ</div>
       </div>
     );
   }
