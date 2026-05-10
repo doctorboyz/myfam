@@ -188,12 +188,12 @@ export default function TransactionDetailModal({
 
           <div className={`${styles.viewAmount} ${styles[transaction.type + 'Text']}`}>
             {transaction.type === 'expense' ? '-' : transaction.type === 'income' ? '+' : ''}
-            ${Math.abs(transaction.amount).toLocaleString()}
+            ฿{Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
-          
+
            {transaction.fee && transaction.fee > 0 && (
               <div className={styles.viewFee}>
-                 ค่าธรรมเนียม: -฿{transaction.fee.toLocaleString()}
+                 ค่าธรรมเนียม: -฿{transaction.fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
            )}
 

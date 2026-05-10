@@ -35,7 +35,7 @@ export default function ReconcileModal({ isOpen, onClose, accountName, currentSy
         <div className={styles.stats}>
           <div className={styles.stat}>
             <span>ยอดในระบบ</span>
-            <strong>{currentSystemBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+            <strong>฿{currentSystemBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
           </div>
         </div>
 
@@ -57,7 +57,7 @@ export default function ReconcileModal({ isOpen, onClose, accountName, currentSy
           <div className={styles.difference}>
             <span>ผลต่าง: </span>
             <span style={{ color: diff >= 0 ? "var(--success)" : "var(--danger)" }}>
-              {diff >= 0 ? "+" : ""}{diff.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              {diff >= 0 ? "+" : ""}฿{diff.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </span>
           </div>
         )}
