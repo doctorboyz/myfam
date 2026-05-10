@@ -5,6 +5,7 @@ services:
       context: .
       args:
         NEXT_PUBLIC_LIFF_ID: ${NEXT_PUBLIC_LIFF_ID}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     container_name: myfam-app
     restart: unless-stopped
     ports:
@@ -21,8 +22,6 @@ services:
     depends_on:
       myfam-db:
         condition: service_healthy
-      ollama:
-        condition: service_started
     networks:
       - server-network
 
@@ -46,18 +45,8 @@ services:
     networks:
       - server-network
 
-  ollama:
-    image: ollama/ollama:latest
-    container_name: myfam-ollama
-    restart: unless-stopped
-    volumes:
-      - ollama-data:/root/.ollama
-    networks:
-      - server-network
-
 volumes:
   myfam-db-data:
-  ollama-data:
 
 networks:
   server-network:
