@@ -57,6 +57,7 @@ export interface BudgetTransaction {
   toAccountId?: string; // For transfers
   linkedTransactionId?: string; // ID of the real transaction when status is done
   tags?: string[];
+  tagIds?: string[];
   createdById?: string; // Who created this plan item
 }
 
@@ -73,6 +74,14 @@ export interface Budget {
   createdById?: string; // Creator
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  userId: string;
+  color?: string;
+  familyId: string;
+}
+
 export interface Transaction {
   id: string;
   accountId: string;
@@ -84,9 +93,10 @@ export interface Transaction {
   amount: number;
   fee?: number;
   type: TransactionType;
-  note?: string;
+  description?: string;
   slipImage?: string;
-  tags?: string[];
+  tags?: string[]; // Tag names (for display, resolved from TransactionTag)
+  tagIds?: string[]; // Tag IDs (for saving)
 }
 
 export interface DateRange {

@@ -1,7 +1,7 @@
 import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } from 'lucide-react';
 import styles from './TransactionList.module.css';
 import { Transaction } from '@/types';
-import { formatBangkokDate } from '@/lib/timezone';
+import { formatBangkokShortDate, formatBangkokTime } from '@/lib/timezone';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -53,7 +53,7 @@ export default function TransactionList({ transactions, title = "รายกา
 
               <div className={styles.details}>
                 <span className={styles.category}>{tx.category}</span>
-                <span className={styles.date}>{formatBangkokDate(tx.date)}</span>
+                <span className={styles.date}>{formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
               </div>
               <div className={`${styles.amount} ${styles[tx.type + 'Text']}`}>
                 {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> : 

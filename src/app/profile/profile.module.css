@@ -22,10 +22,102 @@
   margin-bottom: 16px;
 }
 
+/* Name with edit button */
+.nameRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .name {
   font-size: var(--font-3xl);
   font-weight: 800; /* Heavy — LDSM Heading 1 */
+  margin: 0;
+}
+
+.editIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.editIcon:active {
+  background: var(--border);
+}
+
+/* Edit name inline */
+.editNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 4px;
+}
+
+.editNameInput {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 12px;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--foreground);
+  max-width: 200px;
+  outline: none;
+}
+
+.editNameInput:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+.editBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.editBtn:active {
+  background: var(--primary-dark, #05a74a);
+}
+
+.cancelBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.cancelBtn:active {
+  background: var(--input-bg);
 }
 
 .roleBadge {
@@ -113,27 +205,4 @@
 .version {
   font-size: var(--font-xs); /* 12px — LDSM Body 4 minimum */
   color: var(--secondary-text);
-  margin-bottom: 20px;
-}
-
-.logout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px; /* LDSM touch target */
-  padding: 14px 16px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--card-bg);
-  color: var(--danger);
-  font-size: var(--font-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--transition-fast) var(--ease-out);
-}
-
-.logout:active {
-  background: var(--danger-bg);
 }

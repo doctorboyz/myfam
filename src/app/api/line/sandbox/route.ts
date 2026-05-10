@@ -196,8 +196,10 @@ async function createTransactionFromExtracted(
         accountId: account.id,
         categoryId: extracted.categoryId,
         createdById: user.id,
-        tags: ['line-bot'],
         fee: 0,
+        tagRecords: {
+          create: [{ tag: { connectOrCreate: { create: { name: 'line-bot', userId: user.id, familyId: user.familyId }, where: { name_userId: { name: 'line-bot', userId: user.id } } } } }],
+        },
       },
       include: {
         category: { include: { group: true } },

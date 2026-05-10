@@ -1,5 +1,20 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, pickFields } from '@/lib/api';
+import { apiSuccess, apiError, parseId } from '@/lib/api';
+
+const transactionInclude = {
+  category: { include: { group: true } },
+  account: true,
+  toAccount: true,
+  tagRecords: { include: { tag: true } },
+};
+
+function mapTagRecords(tx: { tagRecords: { tag: { name: string }; tagId: string }[] }) {
+  return {
+    ...tx,
+    tags: tx.tagRecords.map(tr => tr.tag.name),
+    tagIds: tx.tagRecords.map(tr => tr.tagId),
+  };
+}
 
 export async function DELETE(
   request: Request,
@@ -39,6 +54,7 @@ export async function DELETE(
         }
       }
 
+      // TransactionTag records are cascade-deleted automatically
       await tx.transaction.delete({ where: { id } });
     });
 
@@ -82,11 +98,7 @@ export async function PATCH(
             description: body.description ?? existing.description,
             date: body.date ? new Date(body.date) : existing.date,
           },
-          include: {
-            category: { include: { group: true } },
-            account: true,
-            toAccount: true,
-          },
+          include: transactionInclude,
         });
 
         // Adjust account balances
@@ -114,21 +126,41 @@ export async function PATCH(
         return updated;
       });
 
-      return apiSuccess(result);
+      return apiSuccess(mapTagRecords(result));
     }
 
     // Standard update (non-status-transition)
-    const data = pickFields(body, [
-      'description', 'tags', 'slipImage', 'status',
-      'categoryId', 'date', 'note', 'planAmount',
-    ]);
+    const updateData: Record<string, unknown> = {};
+    const allowedFields = ['description', 'slipImage', 'status', 'categoryId', 'date', 'planAmount', 'fee'];
+    for (const key of allowedFields) {
+      if (body[key] !== undefined) {
+        updateData[key] = body[key];
+      }
+    }
+
+    // Handle date conversion
+    if (updateData.date) {
+      updateData.date = new Date(updateData.date as string);
+    }
+
+    // Handle tagIds: replace tag records
+    if (body.tagIds !== undefined) {
+      // Delete existing tag records and create new ones
+      await prisma.transactionTag.deleteMany({ where: { transactionId: id } });
+      if (Array.isArray(body.tagIds) && body.tagIds.length > 0) {
+        updateData.tagRecords = {
+          create: (body.tagIds as string[]).map(tagId => ({ tagId })),
+        };
+      }
+    }
 
     const transaction = await prisma.transaction.update({
       where: { id },
-      data,
+      data: updateData,
+      include: transactionInclude,
     });
 
-    return apiSuccess(transaction);
+    return apiSuccess(mapTagRecords(transaction));
   } catch (error) {
     console.error('Failed to update transaction:', error);
     return apiError('Failed to update transaction');

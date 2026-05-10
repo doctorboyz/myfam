@@ -17,9 +17,9 @@ const COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#5856D6', '#AF52DE'
 const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 export default function VisualizationView({ transactions }: VisualizationViewProps) {
-    const { categories, groups, budgets } = useFinance();
+    const { categories, groups, budgets, tags } = useFinance();
     const [timeScale, setTimeScale] = useState<'daily' | 'weekly' | 'monthly'>('daily');
-    const [groupBy, setGroupBy] = useState<'category' | 'group'>('group');
+    const [groupBy, setGroupBy] = useState<'category' | 'group' | 'tag'>('group');
 
     // 1. Timeline Bar Chart
     const timelineData = useMemo(() => {
@@ -63,16 +63,22 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
             .sort((a, b) => a.date.localeCompare(b.date));
     }, [transactions, timeScale]);
 
-    // 2. Pie Chart (Category/Group)
+    // 2. Pie Chart (Category/Group/Tag)
     const pieData = useMemo(() => {
         const map = new Map<string, number>();
 
         transactions
             .filter(tx => tx.type === 'expense')
             .forEach(tx => {
-                let name = 'ไม่มีหมวดหมู่';
-
-                if (groupBy === 'group') {
+                if (groupBy === 'tag') {
+                    // Group by tag names
+                    const txTagNames = tx.tags && tx.tags.length > 0 ? tx.tags : ['ไม่มีแท็ก'];
+                    txTagNames.forEach(tagName => {
+                        const amount = Math.abs(Number(tx.amount)) + (Number(tx.fee) || 0);
+                        map.set(tagName, (map.get(tagName) || 0) + amount);
+                    });
+                } else if (groupBy === 'group') {
+                    let name = 'ไม่มีหมวดหมู่';
                     if (tx.categoryGroup && tx.categoryGroup !== 'Unknown') {
                         name = tx.categoryGroup;
                     } else {
@@ -84,18 +90,19 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                             if (groupObj) name = groupObj.name;
                         }
                     }
+                    const amount = Math.abs(Number(tx.amount)) + (Number(tx.fee) || 0);
+                    map.set(name, (map.get(name) || 0) + amount);
                 } else {
-                    name = tx.category || 'ไม่มีหมวดหมู่';
+                    const name = tx.category || 'ไม่มีหมวดหมู่';
+                    const amount = Math.abs(Number(tx.amount)) + (Number(tx.fee) || 0);
+                    map.set(name, (map.get(name) || 0) + amount);
                 }
-
-                const amount = Math.abs(Number(tx.amount)) + (Number(tx.fee) || 0);
-                map.set(name, (map.get(name) || 0) + amount);
             });
 
         return Array.from(map.entries())
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
-    }, [transactions, categories, groups, groupBy]);
+    }, [transactions, categories, groups, tags, groupBy]);
 
     // 3. Budget Progress
     const budgetProgress = useMemo(() => {
@@ -248,6 +255,12 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                             onClick={() => setGroupBy('category')}
                         >
                             ตามหมวด
+                        </button>
+                        <button
+                            className={`${styles.toggleBtn} ${groupBy === 'tag' ? styles.active : ''}`}
+                            onClick={() => setGroupBy('tag')}
+                        >
+                            ตามแท็ก
                         </button>
                     </div>
                 </div>

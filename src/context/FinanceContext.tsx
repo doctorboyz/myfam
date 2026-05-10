@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Account, Transaction, User, DashboardFilters, Category, CategoryGroup, TransactionType, Budget, BudgetTransaction } from '@/types';
+import { Account, Transaction, User, DashboardFilters, Category, CategoryGroup, TransactionType, Budget, BudgetTransaction, Tag } from '@/types';
 
 // API response types (before mapping to frontend types)
 interface ApiAccount {
@@ -30,6 +30,7 @@ interface ApiTransaction {
   fee?: string | number;
   slipImage?: string;
   tags?: string[];
+  tagIds?: string[];
   createdById?: string;
 }
 
@@ -72,6 +73,11 @@ interface FinanceContextType {
   getGroupsByType: (type: TransactionType) => CategoryGroup[];
   getCategoriesByGroup: (groupId: string) => Category[];
 
+  // Tags
+  tags: Tag[];
+  addTag: (name: string) => Promise<Tag | null>;
+  deleteTag: (id: string) => void;
+
   // Budget Features
   budgets: Budget[];
   addBudget: (budget: Omit<Budget, 'id'>) => void;
@@ -93,9 +99,10 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null); 
   const [isLoading, setIsLoading] = useState(true);
   
-  // Category State
+  // Category & Tag State
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
 
   // Fetch Data
   useEffect(() => {
@@ -164,6 +171,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             category: tx.category?.name || 'Unknown',
             amount: Number(tx.amount),
             tags: tx.tags || [],
+            tagIds: tx.tagIds || [],
         }));
         setTransactions(mappedTx);
 
@@ -172,6 +180,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         const catData = await catRes.json();
         if (catData.groups) setGroups(catData.groups);
         if (catData.categories) setCategories(catData.categories);
+
+        // 6. Fetch Tags
+        const tagsRes = await fetch('/api/tags');
+        if (tagsRes.ok) {
+          const tagsData = await tagsRes.json();
+          setTags(tagsData);
+        }
 
       } catch (error) {
         console.error("Failed to fetch data", error);
@@ -326,13 +341,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             amount: Number(txData.amount),
             date: txData.date,
             type: txData.type,
-            description: txData.note,
+            description: txData.description,
             accountId: txData.accountId,
             toAccountId: txData.toAccountId || null,
             categoryId: categoryId,
             createdById: createdById || currentUser.id,
             fee: txData.fee ? Number(txData.fee) : 0,
-            tags: txData.tags || [],
+            tagIds: txData.tagIds || [],
             slipImage: txData.slipImage || null,
         };
 
@@ -349,7 +364,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 category: txData.category,
                 categoryGroup: savedTx.category?.group?.name || txData.categoryGroup || 'Unknown',
                 amount: Number(savedTx.amount),
-                tags: savedTx.tags || []
+                tags: savedTx.tags || [],
+                tagIds: savedTx.tagIds || [],
             };
             
             setTransactions([newTx, ...transactions]);
@@ -548,6 +564,35 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return categories.filter(c => c.groupId === groupId);
   };
 
+  // Tag CRUD
+  const addTag = async (name: string): Promise<Tag | null> => {
+    try {
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const newTag = await res.json();
+        setTags([...tags, newTag]);
+        return newTag;
+      }
+      return null;
+    } catch (error) {
+      console.error("Failed to add tag", error);
+      return null;
+    }
+  };
+
+  const deleteTag = async (id: string) => {
+    try {
+      await fetch(`/api/tags/${id}`, { method: 'DELETE' });
+      setTags(tags.filter(t => t.id !== id));
+    } catch (error) {
+      console.error("Failed to delete tag", error);
+    }
+  };
+
   // Budget State
   const [budgets, setBudgets] = useState<Budget[]>([]);
 
@@ -649,7 +694,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           budgetId: budgetId,
           status: 'planned',
           description: item.name,
-          tags: item.tags || [],
+          tagIds: item.tagIds || [],
           createdById: currentUser.id,
       };
 
@@ -723,6 +768,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                   category: tx.category?.name || 'Unknown',
                   amount: Number(tx.amount),
                   tags: tx.tags || [],
+                  tagIds: tx.tagIds || [],
               }));
               setTransactions(mappedTx);
           }
@@ -776,6 +822,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       deleteGroup,
       getGroupsByType,
       getCategoriesByGroup,
+
+      // Tags
+      tags,
+      addTag,
+      deleteTag,
 
       // Budget
       budgets,

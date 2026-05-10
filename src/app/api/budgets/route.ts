@@ -12,7 +12,7 @@ export async function GET() {
         createdBy: { familyId: currentUser.familyId },
       },
       include: {
-        transactions: true,
+        transactions: { include: { tagRecords: { include: { tag: true } } } },
       },
     });
 
@@ -36,7 +36,8 @@ export async function GET() {
         categoryId: tx.categoryId ?? '',
         accountId: tx.accountId ?? undefined,
         toAccountId: tx.toAccountId ?? undefined,
-        tags: tx.tags ?? [],
+        tags: tx.tagRecords?.map((tr: { tag: { name: string } }) => tr.tag.name) ?? [],
+        tagIds: tx.tagRecords?.map((tr: { tagId: string }) => tr.tagId) ?? [],
         createdById: tx.createdById,
       })),
     }));

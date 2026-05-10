@@ -3,6 +3,7 @@ import Modal from "../Modal/Modal";
 import { Transaction, Account, TransactionType, User } from "@/types";
 import styles from "./TransactionDetailModal.module.css";
 import { Trash2, Edit2, Image, Users } from "lucide-react";
+import { formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
 import { useFinance } from "@/context/FinanceContext";
 import TagSelector from "../TagSelector";
 import CategorySelector from "../CategorySelector/CategorySelector";
@@ -33,7 +34,7 @@ export default function TransactionDetailModal({
   onDelete,
   availableAccounts = []
 }: TransactionDetailModalProps) {
-  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users } = useFinance();
+  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users, tags } = useFinance();
 
   // Member selector: only show when family has >1 member
   const showMemberSelector = users.length > 1;
@@ -54,12 +55,12 @@ export default function TransactionDetailModal({
     categoryGroup: "",
     date: new Date().toISOString().split('T')[0],
     type: "expense",
-    note: "",
+    description: "",
     accountId: accountId || "",
     toAccountId: "",
     fee: 0,
     slipImage: "",
-    tags: []
+    tagIds: []
   });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,15 +94,6 @@ export default function TransactionDetailModal({
 
   const getAccountLabel = (acc: Account) => `${acc.name} - ${acc.owner}`;
 
-  // Compute available tags from all transactions
-  const availableTags = useMemo(() => {
-    const tags = new Set<string>();
-    transactions.forEach(tx => {
-      tx.tags?.forEach(tag => tags.add(tag));
-    });
-    return Array.from(tags).sort();
-  }, [transactions]);
-
   useEffect(() => {
     if (isOpen) {
       // Reset member selector to current user when opening
@@ -115,8 +107,8 @@ export default function TransactionDetailModal({
             toAccountId: transaction.toAccountId || "",
             fee: transaction.fee || 0,
             slipImage: transaction.slipImage || "",
-            note: transaction.note || "",
-            tags: transaction.tags || []
+            description: transaction.description || "",
+            tagIds: transaction.tagIds || [],
         });
         setIsEditing(false);
       } else {
@@ -127,16 +119,16 @@ export default function TransactionDetailModal({
         
         setFormData({
             accountId: accountId || (availableAccounts.length > 0 ? availableAccounts[0].id : ""),
-            toAccountId: "", 
+            toAccountId: "",
             amount: 0,
             fee: 0,
             category: firstCats[0]?.name || "",
             categoryGroup: firstGroup?.name || "",
             date: new Date().toISOString().split('T')[0],
             type: initialType || "expense",
-            note: "",
+            description: "",
             slipImage: "",
-            tags: []
+            tagIds: []
         });
         setIsEditing(true);
       }
@@ -172,7 +164,8 @@ export default function TransactionDetailModal({
       accountId: formData.accountId || accountId, // Fallback
       fee: formData.fee ? Number(formData.fee) : 0,
       amount: Number(formData.amount),
-      tags: formData.tags || []
+      tagIds: formData.tagIds || [],
+      tags: formData.tagIds ? tags.filter(t => formData.tagIds!.includes(t.id)).map(t => t.name) : [],
     } as Omit<Transaction, "id">, selectedMemberId);
 
     onClose();
@@ -220,7 +213,7 @@ export default function TransactionDetailModal({
             <span className={`${styles.badge} ${styles[transaction.type]}`}>
               {transaction.type === 'income' ? 'รายรับ' : transaction.type === 'expense' ? 'รายจ่าย' : 'โอน'}
             </span>
-            <span className={styles.viewDate}>{transaction.date}</span>
+            <span className={styles.viewDate}>{formatBangkokShortDate(transaction.date)} {formatBangkokTime(transaction.date)}</span>
           </div>
 
           <div className={`${styles.viewAmount} ${styles[transaction.type + 'Text']}`}>
@@ -256,10 +249,10 @@ export default function TransactionDetailModal({
               <span className={styles.label}>หมวดหมู่</span>
               <span className={styles.value}>{transaction.category}</span>
             </div>
-            {transaction.note && (
+            {transaction.description && (
               <div className={styles.metaRow}>
                 <span className={styles.label}>หมายเหตุ</span>
-                <span className={styles.value}>{transaction.note}</span>
+                <span className={styles.value}>{transaction.description}</span>
               </div>
             )}
             {transaction.tags && transaction.tags.length > 0 && (
@@ -469,10 +462,9 @@ export default function TransactionDetailModal({
         </div>
 
         <div className={styles.field}>
-            <TagSelector 
-                selectedTags={formData.tags || []}
-                onChange={(tags) => setFormData({ ...formData, tags })}
-                availableTags={availableTags}
+            <TagSelector
+                selectedTagIds={formData.tagIds || []}
+                onChange={(tagIds) => setFormData({ ...formData, tagIds })}
             />
         </div>
 
@@ -480,8 +472,8 @@ export default function TransactionDetailModal({
           <label>หมายเหตุ</label>
           <input
             type="text"
-            value={formData.note || ""}
-            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+            value={formData.description || ""}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             placeholder="เพิ่มหมายเหตุ"
             className={styles.input}
           />

@@ -8,7 +8,7 @@ import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import ActionFab, { TransactionType as FabType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
-import { getBangkokDate } from "@/lib/timezone";
+import { getBangkokDate, formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
 import styles from "./history.module.css";
 
 export default function HistoryPage() {
@@ -129,7 +129,7 @@ export default function HistoryPage() {
                           </div>
                           <div className={styles.txDetails}>
                             <span className={styles.txCategory}>{tx.category}</span>
-                            <span className={styles.txDate}>{tx.date}</span>
+                            <span className={styles.txDate}>{formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
                           </div>
                           <div className={styles.txAmount} style={{ color: config.color }}>
                             {type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :

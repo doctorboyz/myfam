@@ -305,8 +305,10 @@ async function createTransactionFromExtracted(
         accountId: account.id,
         categoryId: extracted.categoryId,
         createdById: user.id,
-        tags: ['line-bot'],
         fee: 0,
+        tagRecords: {
+          create: [{ tag: { connectOrCreate: { create: { name: 'line-bot', userId: user.id, familyId: user.familyId }, where: { name_userId: { name: 'line-bot', userId: user.id } } } } }],
+        },
       },
       include: {
         category: { include: { group: true } },
@@ -343,7 +345,7 @@ async function confirmPendingTransaction(
   const scope = getDataScope(user);
 
   const pending = await prisma.transaction.findFirst({
-    where: { ...scope, status: 'pending', tags: { has: 'line-bot' } },
+    where: { ...scope, status: 'pending', tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
     include: { category: { include: { group: true } } },
   });
@@ -439,7 +441,7 @@ async function cancelPendingTransaction(
   const scope = getDataScope(user);
 
   const pending = await prisma.transaction.findFirst({
-    where: { ...scope, status: 'pending', tags: { has: 'line-bot' } },
+    where: { ...scope, status: 'pending', tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -464,7 +466,7 @@ async function handleSelectGroup(
   // Find the most recent completed transaction from line-bot for this user
   const scope = getDataScope(user);
   const transaction = await prisma.transaction.findFirst({
-    where: { ...scope, status: 'completed', tags: { has: 'line-bot' } },
+    where: { ...scope, status: 'completed', tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -493,7 +495,7 @@ async function handleSelectSubcategory(
   const scope = getDataScope(user);
 
   const transaction = await prisma.transaction.findFirst({
-    where: { ...scope, status: 'completed', tags: { has: 'line-bot' } },
+    where: { ...scope, status: 'completed', tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -528,7 +530,7 @@ async function handleDeleteLast(
     : { createdById: user.id };
 
   const lastTransaction = await prisma.transaction.findFirst({
-    where: { ...scope, tags: { has: 'line-bot' } },
+    where: { ...scope, tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
     include: { account: true },
   });

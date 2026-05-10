@@ -1,72 +1,93 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Tag } from '@/types';
+import { useFinance } from '@/context/FinanceContext';
 import styles from './TagSelector.module.css';
 
 interface TagSelectorProps {
-  selectedTags: string[];
-  onChange: (tags: string[]) => void;
-  availableTags: string[];
+  selectedTagIds: string[];
+  onChange: (tagIds: string[]) => void;
 }
 
-const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onChange, availableTags }) => {
+const TagSelector: React.FC<TagSelectorProps> = ({ selectedTagIds, onChange }) => {
+  const { tags, addTag } = useFinance();
   const [inputValue, setInputValue] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [wrapperRef]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  const handleAddTag = (tag: string) => {
-    const trimmedTag = tag.trim();
-    if (trimmedTag && !selectedTags.includes(trimmedTag)) {
-      onChange([...selectedTags, trimmedTag]);
-    }
+  const selectedTags = tags.filter(t => selectedTagIds.includes(t.id));
+
+  const availableTags = tags.filter(
+    t => !selectedTagIds.includes(t.id) && t.name.toLowerCase().includes(inputValue.toLowerCase())
+  );
+
+  const handleSelectTag = (tagId: string) => {
+    onChange([...selectedTagIds, tagId]);
     setInputValue('');
     setIsDropdownOpen(false);
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    onChange(selectedTags.filter(tag => tag !== tagToRemove));
+  const handleRemoveTag = (tagId: string) => {
+    onChange(selectedTagIds.filter(id => id !== tagId));
+  };
+
+  const handleCreateTag = async () => {
+    const name = inputValue.trim();
+    if (!name) return;
+
+    setIsCreating(true);
+    const newTag = await addTag(name);
+    if (newTag) {
+      onChange([...selectedTagIds, newTag.id]);
+    }
+    setInputValue('');
+    setIsDropdownOpen(false);
+    setIsCreating(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleAddTag(inputValue);
-    } else if (e.key === 'Backspace' && !inputValue && selectedTags.length > 0) {
-      // Remove last tag if input is empty
-      handleRemoveTag(selectedTags[selectedTags.length - 1]);
+      if (inputValue.trim() && !tags.some(t => t.name.toLowerCase() === inputValue.trim().toLowerCase())) {
+        handleCreateTag();
+      } else if (availableTags.length > 0) {
+        handleSelectTag(availableTags[0].id);
+      }
+    } else if (e.key === 'Backspace' && !inputValue && selectedTagIds.length > 0) {
+      handleRemoveTag(selectedTagIds[selectedTagIds.length - 1]);
     }
   };
 
-  const filteredTags = availableTags.filter(
-    tag => 
-      tag.toLowerCase().includes(inputValue.toLowerCase()) && 
-      !selectedTags.includes(tag)
-  );
+  const canCreate = inputValue.trim() &&
+    !tags.some(t => t.name.toLowerCase() === inputValue.trim().toLowerCase());
 
   return (
     <div className={styles.container} ref={wrapperRef}>
       <label className={styles.label}>แท็ก</label>
-      <div 
+      <div
         className={styles.inputWrapper}
         onClick={() => setIsDropdownOpen(true)}
       >
         {selectedTags.map(tag => (
-          <span key={tag} className={styles.tag}>
-            {tag}
-            <button 
+          <span
+            key={tag.id}
+            className={styles.tag}
+            style={tag.color ? { backgroundColor: tag.color + '20', color: tag.color } : undefined}
+          >
+            {tag.name}
+            <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); handleRemoveTag(tag); }}
+              onClick={(e) => { e.stopPropagation(); handleRemoveTag(tag.id); }}
               className={styles.removeBtn}
             >
               ×
@@ -77,35 +98,37 @@ const TagSelector: React.FC<TagSelectorProps> = ({ selectedTags, onChange, avail
           type="text"
           value={inputValue}
           onChange={(e) => {
-             setInputValue(e.target.value);
-             setIsDropdownOpen(true);
+            setInputValue(e.target.value);
+            setIsDropdownOpen(true);
           }}
           onKeyDown={handleKeyDown}
           onFocus={() => setIsDropdownOpen(true)}
-          placeholder={selectedTags.length === 0 ? "เพิ่มแท็ก..." : ""}
+          placeholder={selectedTagIds.length === 0 ? 'เพิ่มแท็ก...' : ''}
           className={styles.input}
+          disabled={isCreating}
         />
       </div>
 
-      {isDropdownOpen && (inputValue || filteredTags.length > 0) && (
+      {isDropdownOpen && (inputValue || availableTags.length > 0) && (
         <div className={styles.dropdown}>
-          {filteredTags.map(tag => (
+          {availableTags.map(tag => (
             <button
-              key={tag}
+              key={tag.id}
               type="button"
-              onClick={() => handleAddTag(tag)}
+              onClick={() => handleSelectTag(tag.id)}
               className={styles.option}
             >
-              <span>{tag}</span>
+              <span>{tag.name}</span>
             </button>
           ))}
-          {inputValue && !filteredTags.includes(inputValue) && !selectedTags.includes(inputValue) && (
+          {canCreate && (
             <button
-                type="button"
-                onClick={() => handleAddTag(inputValue)}
-                className={styles.createOption}
+              type="button"
+              onClick={handleCreateTag}
+              className={styles.createOption}
+              disabled={isCreating}
             >
-                สร้าง &quot;{inputValue}&quot;
+              {isCreating ? 'กำลังสร้าง...' : `สร้าง "${inputValue.trim()}"`}
             </button>
           )}
         </div>

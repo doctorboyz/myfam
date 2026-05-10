@@ -20,8 +20,8 @@ interface BudgetTransactionModalProps {
 
 export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit, canEditItem = true, isBudgetCreator = false }: BudgetTransactionModalProps) {
   const isReadonly = !!itemToEdit && !canEditItem;
-  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser, transactions } = useFinance();
-  
+  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser } = useFinance();
+
   const [name, setName] = useState("");
   const [plannedAmount, setPlannedAmount] = useState("");
   const [actualAmount, setActualAmount] = useState("");
@@ -32,17 +32,8 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
   const [accountId, setAccountId] = useState("");
   const [toAccountId, setToAccountId] = useState("");
   const [isCancelled, setIsCancelled] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
+  const [tagIds, setTagIds] = useState<string[]>([]);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
-
-  // Compute available tags from all transactions
-  const availableTags = useMemo(() => {
-    const uniqueTags = new Set<string>();
-    transactions.forEach(tx => {
-      tx.tags?.forEach(tag => uniqueTags.add(tag));
-    });
-    return Array.from(uniqueTags).sort();
-  }, [transactions]);
 
   useEffect(() => {
     if (isOpen) {
@@ -60,7 +51,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
         setAccountId(itemToEdit.accountId || "");
         setToAccountId(itemToEdit.toAccountId || "");
         setIsCancelled(itemToEdit.status === 'cancelled');
-        setTags(itemToEdit.tags || []);
+        setTagIds(itemToEdit.tagIds || []);
       } else {
         // Reset for new item
         setName("");
@@ -68,12 +59,13 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
         setActualAmount("");
         setDate(new Date().toISOString().split('T')[0]);
         setType("expense");
+        setTagIds([]);
         setCategoryId("");
         setCategoryName("");
         setAccountId("");
         setToAccountId("");
         setIsCancelled(false);
-        setTags([]);
+        setTagIds([]);
       }
     }
   }, [isOpen, itemToEdit, categories]);
@@ -120,7 +112,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
         accountId: status === 'done' ? accountId : undefined,
         toAccountId: (status === 'done' && type === 'transfer') ? toAccountId : undefined,
         status,
-        tags
+        tagIds
     };
 
     if (itemToEdit) {
@@ -252,10 +244,9 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
           
           {/* Tag Selector */}
           <div className={styles.formGroup}>
-             <TagSelector 
-                 selectedTags={tags}
-                 onChange={setTags}
-                 availableTags={availableTags}
+             <TagSelector
+                 selectedTagIds={tagIds}
+                 onChange={setTagIds}
              />
           </div>
           

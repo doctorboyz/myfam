@@ -2,6 +2,13 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
 
+const transactionInclude = {
+  category: { include: { group: true } },
+  account: true,
+  toAccount: true,
+  tagRecords: { include: { tag: true } },
+};
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const accountId = searchParams.get('accountId');
@@ -23,13 +30,17 @@ export async function GET(request: Request) {
     const transactions = await prisma.transaction.findMany({
       where,
       orderBy: { date: 'desc' },
-      include: {
-        category: { include: { group: true } },
-        account: true,
-        toAccount: true,
-      },
+      include: transactionInclude,
     });
-    return apiSuccess(transactions);
+
+    // Map to include tag names for frontend compatibility
+    const mapped = transactions.map(tx => ({
+      ...tx,
+      tags: tx.tagRecords.map((tr: { tag: { name: string } }) => tr.tag.name),
+      tagIds: tx.tagRecords.map((tr: { tagId: string }) => tr.tagId),
+    }));
+
+    return apiSuccess(mapped);
   } catch (error) {
     console.error('Failed to fetch transactions:', error);
     return apiError('Failed to fetch transactions');
@@ -43,6 +54,8 @@ export async function POST(request: Request) {
     const isPlanned = body.status === 'planned';
 
     const result = await prisma.$transaction(async (tx) => {
+      const tagIds: string[] = body.tagIds || [];
+
       const transaction = await tx.transaction.create({
         data: {
           amount: isPlanned ? 0 : body.amount,
@@ -56,15 +69,13 @@ export async function POST(request: Request) {
           categoryId: body.categoryId,
           budgetId: body.budgetId || null,
           createdById: body.createdById,
-          tags: body.tags || [],
           fee: body.fee || 0,
           slipImage: body.slipImage || null,
+          tagRecords: tagIds.length > 0 ? {
+            create: tagIds.map((tagId: string) => ({ tagId })),
+          } : undefined,
         },
-        include: {
-          category: { include: { group: true } },
-          account: true,
-          toAccount: true,
-        },
+        include: transactionInclude,
       });
 
       // Only adjust balances for completed transactions with an account
@@ -95,7 +106,14 @@ export async function POST(request: Request) {
       return transaction;
     });
 
-    return apiSuccess(result, 201);
+    // Map tag records for frontend
+    const mapped = {
+      ...result,
+      tags: result.tagRecords.map((tr: { tag: { name: string } }) => tr.tag.name),
+      tagIds: result.tagRecords.map((tr: { tagId: string }) => tr.tagId),
+    };
+
+    return apiSuccess(mapped, 201);
   } catch (error) {
     console.error('Failed to create transaction:', error);
     return apiError('Failed to create transaction');

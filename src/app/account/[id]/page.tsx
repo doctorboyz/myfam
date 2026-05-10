@@ -12,7 +12,7 @@ import { Transaction } from "@/types";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
 import { formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
-import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
+import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign, Trash2 } from 'lucide-react';
 import styles from "./accountDetail.module.css";
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
@@ -62,12 +62,18 @@ type HistoryTab = 'transactions' | 'reconcile';
 export default function AccountDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
-  const { accounts, getAccountTransactions, updateAccount, currentUser, addTransaction, deleteTransaction, fetchAccounts } = useFinance();
+  const { accounts, getAccountTransactions, updateAccount, deleteAccount, currentUser, addTransaction, deleteTransaction, fetchAccounts } = useFinance();
 
   const [isReconcileOpen, setIsReconcileOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
   const [activeTab, setActiveTab] = useState<HistoryTab>('transactions');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    await deleteAccount(id);
+    window.location.href = '/accounts';
+  };
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -183,6 +189,37 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {isOwner && (
+        <button
+          className={styles.deleteAccountBtn}
+          onClick={() => setShowDeleteConfirm(true)}
+        >
+          <Trash2 size={16} /> ลบบัญชี
+        </button>
+      )}
+
+      {showDeleteConfirm && (
+        <div className={styles.overlay} onClick={() => setShowDeleteConfirm(false)}>
+          <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.confirmTitle}>ลบบัญชี</h3>
+            <p className={styles.confirmText}>
+              คุณแน่ใจหรือไม่ที่จะลบบัญชี <strong>{account.name}</strong>?
+            </p>
+            <p className={styles.confirmWarning}>
+              การดำเนินการนี้จะลบบัญชีและรายการธุรกรรมทั้งหมดถาวร ไม่สามารถกู้คืนได้
+            </p>
+            <div className={styles.confirmActions}>
+              <button className={styles.cancelBtn} onClick={() => setShowDeleteConfirm(false)}>
+                ยกเลิก
+              </button>
+              <button className={styles.dangerBtn} onClick={handleDeleteAccount}>
+                ลบถาวร
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
