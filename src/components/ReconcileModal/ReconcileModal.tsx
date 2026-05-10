@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Modal from "../Modal/Modal";
+import { Account } from "@/types";
+import { parseReconcile } from "@/lib/reconcile-parser";
 import styles from "./ReconcileModal.module.css";
 
 interface ReconcileModalProps {
@@ -9,11 +11,13 @@ interface ReconcileModalProps {
   onClose: () => void;
   accountName: string;
   currentSystemBalance: number;
+  accounts?: Account[];
   onConfirm: (newBalance: number) => void;
 }
 
-export default function ReconcileModal({ isOpen, onClose, accountName, currentSystemBalance, onConfirm }: ReconcileModalProps) {
+export default function ReconcileModal({ isOpen, onClose, accountName, currentSystemBalance, accounts = [], onConfirm }: ReconcileModalProps) {
   const [actualBalance, setActualBalance] = useState<number | "">("");
+  const [quickParseText, setQuickParseText] = useState("");
 
   const diff = typeof actualBalance === "number" ? actualBalance - currentSystemBalance : 0;
 
@@ -25,9 +29,35 @@ export default function ReconcileModal({ isOpen, onClose, accountName, currentSy
     setActualBalance(""); // Reset
   };
 
+  const handleQuickParse = (text: string) => {
+    setQuickParseText(text);
+    if (!text.trim() || accounts.length === 0) return;
+
+    const parsed = parseReconcile(text, accounts);
+    if (!parsed || parsed.confidence < 0.5) return;
+
+    setActualBalance(parsed.newBalance);
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="กระทบยอด">
       <form onSubmit={handleSubmit} className={styles.form}>
+        {accounts.length > 0 && (
+          <div className={styles.quickParse}>
+            <div className={styles.quickParseLabel}>พิมพ์เร็ว</div>
+            <input
+              type="text"
+              className={styles.quickParseInput}
+              value={quickParseText}
+              onChange={(e) => handleQuickParse(e.target.value)}
+              placeholder='เช่น "ยอดจริง 15000 กรุงไทย"'
+            />
+            <div className={styles.quickParseHint}>
+              พิมพ์ข้อความ → กรอกยอดอัตโนมัติ
+            </div>
+          </div>
+        )}
+
         <p className={styles.description}>
           อัปเดต <strong>{accountName}</strong> ให้ตรงกับยอดจริง
         </p>

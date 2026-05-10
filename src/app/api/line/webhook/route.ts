@@ -29,6 +29,8 @@ import {
   buildSubcategoryReply,
   type ExtractedTransaction,
 } from '@/lib/ollama';
+import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
+import { sendLineFlexReply } from '@/lib/line';
 
 export const maxDuration = 300;
 
@@ -105,6 +107,7 @@ type CommandType =
   | 'balance'
   | 'recent'
   | 'summary'
+  | 'budget'
   | 'help'
   | 'confirm_expense'
   | 'confirm_income'
@@ -138,6 +141,7 @@ function detectCommand(text: string): CommandType {
   if (/^ลิงก์|^link/i.test(q)) return 'link';
   if (/ยกเลิกลิงก์|unlink/i.test(q)) return 'unlink';
   if (/ลบรายการล่าสุด|ลบล่าสุด|ลบรายการ/i.test(q)) return 'delete_last';
+  if (/^งบ$|งบประมาณ|budget/i.test(q)) return 'budget';
 
   return 'none';
 }
@@ -207,6 +211,75 @@ async function handleSummaryQuery(user: { id: string; role: string; familyId: st
   const monthName = today.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
   return `📊 สรุปยอดเดือน${monthName}\n🟢 รายรับ: ${fmt.format(totalIncome)} บาท\n🔴 รายจ่าย: ${fmt.format(totalExpense)} บาท\n💰 คงเหลือ: ${fmt.format(totalIncome - totalExpense)} บาท`;
+}
+
+async function handleSummaryFlex(
+  replyToken: string,
+  user: { id: string; role: string; familyId: string },
+): Promise<void> {
+  const scope = getDataScope(user);
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const monthName = today.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+  const [income, expense, topCategories] = await Promise.all([
+    prisma.transaction.aggregate({
+      where: { ...scope, type: 'income', date: { gte: startOfMonth } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.aggregate({
+      where: { ...scope, type: 'expense', date: { gte: startOfMonth } },
+      _sum: { amount: true },
+    }),
+    prisma.transaction.findMany({
+      where: { ...scope, type: 'expense', date: { gte: startOfMonth } },
+      include: { category: { include: { group: true } } },
+      orderBy: { amount: 'desc' },
+      take: 10,
+    }),
+  ]);
+
+  const totalIncome = Number(income._sum.amount ?? 0);
+  const totalExpense = Number(expense._sum.amount ?? 0);
+
+  // Aggregate top categories
+  const catMap = new Map<string, number>();
+  for (const tx of topCategories) {
+    const name = tx.category?.group?.name || tx.category?.name || 'อื่นๆ';
+    catMap.set(name, (catMap.get(name) || 0) + Number(tx.amount));
+  }
+  const topCats = Array.from(catMap.entries())
+    .map(([name, amount]) => ({ name, amount }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3);
+
+  const flex = buildMonthlySummaryFlex({
+    monthName,
+    totalIncome,
+    totalExpense,
+    balance: totalIncome - totalExpense,
+    topCategories: topCats,
+  });
+
+  await sendLineFlexReply(replyToken, `สรุปยอดเดือน${monthName}`, flex);
+}
+
+async function handleBudgetFlex(
+  replyToken: string,
+  user: { id: string; role: string; familyId: string },
+): Promise<void> {
+  const familyBudgets = await prisma.budget.findMany({
+    where: { createdBy: { familyId: user.familyId } },
+    include: { transactions: { where: { status: 'completed' } } },
+  });
+
+  const budgetData = familyBudgets.map((b) => {
+    const totalActual = b.transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+    return { title: b.title, used: totalActual, limit: Number(b.limit) };
+  });
+
+  const flex = buildBudgetProgressFlex(budgetData);
+  await sendLineFlexReply(replyToken, 'งบประมาณ', flex);
 }
 
 // ── Transaction Creation ─────────────────────────────────────────
@@ -637,15 +710,19 @@ async function handleTextMessage(
   }
 
   if (cmd === 'summary') {
-    const reply = await handleSummaryQuery(user);
-    await sendLineReply(replyToken, reply, menuQuickReply);
+    await handleSummaryFlex(replyToken, user);
+    return;
+  }
+
+  if (cmd === 'budget') {
+    await handleBudgetFlex(replyToken, user);
     return;
   }
 
   if (cmd === 'help') {
     await sendLineReply(
       replyToken,
-      `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"`,
+      `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"\n💸 งบประมาณ — พิมพ์ "งบ"`,
       menuQuickReply,
     );
     return;
@@ -720,10 +797,30 @@ async function handleTextMessage(
       return;
     }
 
+    if (intent === 'budget') {
+      const familyBudgets = await prisma.budget.findMany({
+        where: { createdBy: { familyId: user.familyId } },
+        include: { transactions: { where: { status: 'completed' } } },
+      });
+      const budgetData = familyBudgets.map((b) => {
+        const totalActual = b.transactions.reduce((sum, t) => sum + Number(t.amount), 0);
+        return { title: b.title, used: totalActual, limit: Number(b.limit) };
+      });
+      const localFmt = new Intl.NumberFormat('th-TH');
+      const reply = budgetData.length === 0
+        ? 'ยังไม่มีงบประมาณ'
+        : budgetData.map((b) => {
+            const pct = b.limit > 0 ? Math.round((b.used / b.limit) * 100) : 0;
+            return `📈 ${b.title}: ฿${localFmt.format(b.used)} / ฿${localFmt.format(b.limit)} (${pct}%)`;
+          }).join('\n');
+      await sendLinePush(lineUserId, reply, menuQuickReply);
+      return;
+    }
+
     if (intent === 'help') {
       await sendLinePush(
         lineUserId,
-        `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"`,
+        `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"\n💸 งบประมาณ — พิมพ์ "งบ"`,
         menuQuickReply,
       );
       return;

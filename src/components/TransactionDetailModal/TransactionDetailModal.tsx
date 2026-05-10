@@ -8,6 +8,7 @@ import TagSelector from "../TagSelector";
 import CategorySelector from "../CategorySelector/CategorySelector";
 import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
 import { compressImage } from "@/lib/compressImage";
+import { parseTransaction } from "@/lib/transaction-parser";
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export default function TransactionDetailModal({
   const [isEditing, setIsEditing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
+  const [quickParseText, setQuickParseText] = useState("");
   const [formData, setFormData] = useState<Partial<Transaction>>({
     amount: 0,
     category: "",
@@ -174,6 +176,28 @@ export default function TransactionDetailModal({
     if (isOwner) setIsEditing(!isEditing);
   };
 
+  const handleQuickParse = (text: string) => {
+    setQuickParseText(text);
+    if (!text.trim()) return;
+
+    const parsed = parseTransaction(text, allAccounts);
+    if (!parsed || parsed.confidence < 0.5) return;
+
+    const updates: Partial<Transaction> = {
+      type: parsed.type,
+      amount: parsed.amount,
+    };
+
+    if (parsed.fromAccount) {
+      updates.accountId = parsed.fromAccount.id;
+    }
+    if (parsed.toAccount) {
+      updates.toAccountId = parsed.toAccount.id;
+    }
+
+    setFormData((prev) => ({ ...prev, ...updates }));
+  };
+
   // View Mode
   if (!isEditing && transaction) {
     return (
@@ -264,6 +288,21 @@ export default function TransactionDetailModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={transaction ? "แก้ไขรายการ" : "รายการใหม่"}>
        <form onSubmit={handleSubmit} className={styles.form}>
+        {!transaction && (
+          <div className={styles.quickParse}>
+            <div className={styles.quickParseLabel}>พิมพ์เร็ว</div>
+            <input
+              type="text"
+              className={styles.quickParseInput}
+              value={quickParseText}
+              onChange={(e) => handleQuickParse(e.target.value)}
+              placeholder='เช่น "โอน 5000 จากกรุงไทยไปกสิกร"'
+            />
+            <div className={styles.quickParseHint}>
+              พิมพ์ข้อความ → กรอกฟอร์มอัตโนมัติ
+            </div>
+          </div>
+        )}
         <div className={styles.typeSelector}>
            {['income', 'expense', 'transfer'].map(t => (
              <button

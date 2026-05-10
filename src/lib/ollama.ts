@@ -411,7 +411,7 @@ export { OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL };
 /**
  * Intent types the LLM can detect from user messages.
  */
-export type UserIntent = 'create_transaction' | 'balance' | 'recent' | 'summary' | 'help';
+export type UserIntent = 'create_transaction' | 'balance' | 'recent' | 'summary' | 'budget' | 'help';
 
 /**
  * Use LLM to detect the user's intent from a Thai text message.
@@ -464,6 +464,7 @@ function detectIntentByKeywords(text: string): UserIntent {
   if (/(ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|เหลือเท่าไหร่|balance)/i.test(q)) return 'balance';
   if (/(รายการล่าสุด|ล่าสุด|รายการวันนี้|วันนี้|recent|last)/i.test(q)) return 'recent';
   if (/(สรุป|สรุปยอด|รวม|รวมรายจ่าย|รวมรายรับ|summary|total)/i.test(q)) return 'summary';
+  if (/(^งบ$|งบประมาณ|budget)/i.test(q)) return 'budget';
   if (/(ช่วย|ใช้ยังไง|ทำอะไรได้|help|บอททำอะไร)/i.test(q)) return 'help';
 
   return 'create_transaction';
@@ -477,6 +478,7 @@ export const QUICK_REPLY_ITEMS = [
   { label: '📊 ดูยอด', action: 'ดูยอด' },
   { label: '📋 รายการล่าสุด', action: 'รายการล่าสุด' },
   { label: '📈 สรุปยอด', action: 'สรุปยอด' },
+  { label: '💸 งบ', action: 'งบ' },
   { label: '❓ ช่วยเหลือ', action: 'ช่วยเหลือ' },
 ] as const;
 

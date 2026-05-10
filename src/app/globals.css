@@ -1,15 +1,15 @@
-/* Global Styles - Force Reload */
+/* Global Styles — LIFF-first (compact mobile sizing) */
 :root {
   /* Color Palette — LINE Green primary + Apple finance accents */
   --background: #f7f8fa;
   --foreground: #1d1d1f;
   --card-bg: #ffffff;
-  --primary: #06c755; /* LINE Green — buttons, active tab, main actions */
+  --primary: #06c755;
   --primary-dark: #05a34a;
   --primary-light: #e8f9ef;
-  --success: #34c759; /* Apple Green — income */
-  --danger: #ff3b30; /* Apple Red — expense */
-  --warning: #ff9500; /* Orange — pending */
+  --success: #34c759;
+  --danger: #ff3b30;
+  --warning: #ff9500;
   --secondary-text: #8e8e93;
   --border: #e5e5ea;
 
@@ -22,15 +22,19 @@
   --success-bg: rgba(52, 199, 89, 0.1);
   --primary-bg: rgba(6, 199, 85, 0.1);
 
+  /* Interactive / Links (LDSM) */
+  --interactive: #007aff;
+
   /* Transaction Type Colors */
   --income: var(--success);
   --expense: var(--danger);
-  --transfer: #007aff; /* Apple Blue for transfer type only */
+  --transfer: var(--interactive);
 
   /* Spacing & Radius */
   --radius-lg: 20px;
   --radius-md: 12px;
   --radius-sm: 8px;
+  --radius-xs: 4px;
 
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
@@ -41,12 +45,49 @@
   --font-number: 'Inter', 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --font-sans: var(--font-thai);
 
-  /* LIFF Layout */
-  --topbar-height: 60px;
-  --bottomnav-height: 80px;
-  --fab-bottom: 90px;
+  /* Typography Scale — compact for mobile */
+  --font-xs: 12px;
+  --font-sm: 12px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 16px;
+  --font-xl: 18px;
+  --font-2xl: 20px;
+  --font-3xl: 26px;
+  --font-hero: 28px;
+
+  /* Spacing Scale — compact for mobile */
+  --space-xs: 4px;
+  --space-sm: 6px;
+  --space-md: 10px;
+  --space-lg: 14px;
+  --space-xl: 16px;
+  --space-2xl: 20px;
+
+  /* Layout — mobile-first */
+  --bottomnav-height: 64px;
+  --fab-bottom: 72px;
+  --fab-size: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --card-padding: 14px;
+  --card-gap: 10px;
+  --card-margin: 12px;
+  --card-radius: var(--radius-md);
+  --amount-size: 24px;
+  --icon-size: 32px;
+  --section-margin: 14px;
+  --container-max-width: 100%;
+  --main-font-size: 14px;
+  --bottom-sheet-radius: 16px;
+  --chart-bar-height: 160px;
+  --chart-pie-height: 220px;
+
+  /* Transitions & Easing (LDSM micro-interactions) */
+  --transition-fast: 150ms;
+  --transition-normal: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -65,21 +106,6 @@
   }
 }
 
-/* LIFF Mode — hide TopBar, adjust layout for LINE in-app browser */
-.liff-mode .topBar {
-  display: none;
-}
-
-.liff-mode main {
-  padding-top: var(--safe-top);
-  max-width: 100%;
-  box-shadow: none;
-}
-
-.liff-mode .bottomNav {
-  padding-bottom: var(--safe-bottom);
-}
-
 * {
   box-sizing: border-box;
   padding: 0;
@@ -92,22 +118,27 @@ body {
   font-family: var(--font-sarabun), var(--font-thai);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  display: flex;
-  justify-content: center;
   min-height: 100vh;
-  font-size: 15px;
+  font-size: var(--font-base);
   line-height: 1.6;
 }
 
-/* Mobile Container Simulation */
+/* Prevent iOS zoom on form inputs */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+}
+
+/* Mobile Container */
 main {
   width: 100%;
-  max-width: 480px; /* Mobile width constraint */
+  max-width: var(--container-max-width);
   background: var(--background);
   min-height: 100vh;
   position: relative;
-  padding-bottom: 80px; /* Space for FAB/Nav */
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.05); /* Subtle separation on desktop */
+  padding-top: var(--safe-top);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px);
 }
 
 a {

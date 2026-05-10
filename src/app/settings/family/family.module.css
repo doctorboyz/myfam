@@ -1,0 +1,209 @@
+/* Family Management — LDSM Redesign */
+
+.page {
+  padding: var(--space-2xl);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* Access denied */
+.denied {
+  padding: var(--space-2xl);
+  text-align: center;
+}
+
+.denied h2 {
+  font-size: var(--font-xl);
+  margin-bottom: 8px;
+}
+
+.denied p {
+  font-size: var(--font-base);
+  color: var(--secondary-text);
+  margin-bottom: 20px;
+}
+
+.deniedBtn {
+  min-height: 44px;
+  padding: 12px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  cursor: pointer;
+  font-size: var(--font-base);
+}
+
+/* Member list */
+.memberList {
+  display: grid;
+  gap: 16px;
+}
+
+.memberCard {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: var(--card-padding);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  border: 1px solid var(--border);
+  transition: border-color var(--transition-fast) var(--ease-out);
+}
+
+.memberCardEditing {
+  composes: memberCard;
+  border: 2px solid var(--primary);
+}
+
+.memberInfo {
+  flex: 1;
+}
+
+.memberName {
+  font-size: var(--font-lg);
+  font-weight: 600;
+}
+
+.memberRole {
+  font-size: var(--font-sm);
+  color: var(--secondary-text);
+}
+
+/* Form inputs */
+.nameInput {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: var(--font-md);
+  margin-bottom: 4px;
+}
+
+.roleRadios {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.roleLabel {
+  font-size: var(--font-sm);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Action buttons */
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actionBtn {
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: opacity var(--transition-fast) var(--ease-out);
+}
+
+.actionBtn:active {
+  opacity: 0.7;
+}
+
+.saveBtn {
+  composes: actionBtn;
+  background: var(--primary);
+  color: white;
+}
+
+.cancelBtn {
+  composes: actionBtn;
+  background: var(--input-bg);
+  color: var(--secondary-text);
+}
+
+.deleteBtn {
+  composes: actionBtn;
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.editBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: var(--font-sm);
+  cursor: pointer;
+  min-height: 36px;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.editBtn:active {
+  background: var(--input-bg);
+}
+
+/* Add member card */
+.addCard {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: var(--card-padding);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 2px solid var(--primary);
+  margin-top: 16px;
+}
+
+/* Add button */
+.addBtn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 2px dashed var(--border);
+  background: none;
+  color: var(--secondary-text);
+  font-size: var(--font-md);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  min-height: 44px; /* LDSM touch target */
+  transition: border-color var(--transition-fast) var(--ease-out);
+}
+
+.addBtn:active {
+  border-color: var(--primary);
+}

@@ -1,0 +1,139 @@
+/* Profile Page — LDSM Redesign */
+
+.page {
+  padding: var(--space-2xl);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+}
+
+/* Profile Card */
+.profileCard {
+  background: var(--card-bg);
+  padding: 32px 20px;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  margin-bottom: var(--space-2xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.avatarWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.name {
+  font-size: var(--font-3xl);
+  font-weight: 800; /* Heavy — LDSM Heading 1 */
+  margin-bottom: 4px;
+}
+
+.roleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-light);
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+
+.roleText {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--secondary-text);
+}
+
+/* Menu Section */
+.menuSection {
+  margin-bottom: 20px;
+}
+
+.menuLabel {
+  font-size: var(--font-sm);
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.menuCard {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  min-height: 44px; /* LDSM touch target */
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-md);
+  color: var(--foreground);
+  transition: background var(--transition-fast) var(--ease-out);
+  text-decoration: none;
+}
+
+.menuItem:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.menuItem:active {
+  background: var(--input-bg);
+}
+
+.menuItemIcon {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.menuItemLabel {
+  flex: 1;
+  text-align: left;
+}
+
+.menuItemChevron {
+  color: var(--secondary-text);
+  flex-shrink: 0;
+}
+
+/* Footer */
+.footer {
+  margin-top: 32px;
+  text-align: center;
+}
+
+.version {
+  font-size: var(--font-xs); /* 12px — LDSM Body 4 minimum */
+  color: var(--secondary-text);
+  margin-bottom: 20px;
+}
+
+.logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px; /* LDSM touch target */
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--card-bg);
+  color: var(--danger);
+  font-size: var(--font-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.logout:active {
+  background: var(--danger-bg);
+}

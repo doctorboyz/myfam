@@ -1,14 +1,14 @@
 .container {
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    padding-bottom: 20px;
+    gap: var(--space-lg);
+    padding-bottom: var(--space-xl);
 }
 
 .chartCard {
     background: var(--card-bg);
     border-radius: var(--radius-md);
-    padding: 16px;
+    padding: var(--space-lg);
     box-shadow: var(--shadow-sm);
 }
 
@@ -16,17 +16,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: var(--space-lg);
 }
 
 .chartTitle {
-    font-size: 1rem;
+    font-size: var(--font-base);
     font-weight: 600;
     color: var(--foreground);
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 .toggleGroup {
@@ -39,9 +39,9 @@
 .toggleBtn {
     border: none;
     background: transparent;
-    padding: 4px 12px;
+    padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-sm);
-    font-size: 12px;
+    font-size: var(--font-xs);
     color: var(--secondary-text);
     font-weight: 500;
     cursor: pointer;
@@ -56,10 +56,89 @@
 
 .chartWrapper {
     width: 100%;
-    height: 200px;
+    height: var(--chart-bar-height);
 }
 
 .pieWrapper {
     width: 100%;
-    height: 240px;
+    height: 180px;
+}
+
+.legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm) var(--space-lg);
+    padding-top: var(--space-sm);
+}
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-width: 0;
+}
+
+.legendDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legendLabel {
+    font-size: var(--font-xs);
+    color: var(--foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
+}
+
+/* Budget Progress */
+.budgetList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+}
+
+.budgetItem {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.budgetItemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.budgetItemTitle {
+    font-size: var(--font-sm);
+    font-weight: 500;
+    color: var(--foreground);
+}
+
+.budgetItemAmount {
+    font-size: var(--font-xs);
+    color: var(--secondary-text);
+}
+
+.budgetBar {
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.budgetBarFill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width var(--transition-normal) var(--ease-out);
+}
+
+/* Monthly Trend */
+.trendWrapper {
+    width: 100%;
+    height: var(--chart-bar-height);
 }
