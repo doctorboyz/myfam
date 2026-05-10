@@ -5,12 +5,18 @@ FROM base AS builder
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Build-time env vars (NEXT_PUBLIC_ vars are inlined into JS at build time)
+ARG NEXT_PUBLIC_LIFF_ID
+ARG NEXT_PUBLIC_APP_URL
+
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL="postgresql://x:x@localhost/x"
+ENV NEXT_PUBLIC_LIFF_ID=$NEXT_PUBLIC_LIFF_ID
+ENV NEXT_PUBLIC_APP_URL=$NEXT_PUBLIC_APP_URL
 RUN npx prisma generate
 RUN npm run build
 

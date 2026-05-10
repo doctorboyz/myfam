@@ -58,7 +58,7 @@ interface FinanceContextType {
   addAccount: (account: Omit<Account, "id" | "balance" | "owner">) => void;
   updateAccount: (id: string, updates: Partial<Account>) => void;
   deleteAccount: (id: string) => void;
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
+  addTransaction: (transaction: Omit<Transaction, "id">, createdById?: string) => void;
   deleteTransaction: (id: string) => void;
   getFilteredTransactions: (filters: DashboardFilters) => Transaction[];
   
@@ -101,6 +101,20 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
+
+      // In LIFF mode, wait for LIFF auth to complete before checking session
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+      if (liffId && typeof window !== 'undefined') {
+        // Give LIFF auth up to 3 seconds to complete
+        const maxWait = 3000;
+        const start = Date.now();
+        while (Date.now() - start < maxWait) {
+          const hasCookie = document.cookie.includes('userId=');
+          if (hasCookie) break;
+          await new Promise(r => setTimeout(r, 200));
+        }
+      }
+
       try {
         // 1. Fetch Current User
         try {
@@ -110,7 +124,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 setCurrentUser(userData);
             } else {
                 // Not authenticated - redirect and stop fetching
-                const isPublicRoute = window.location.pathname === '/login';
+                const isPublicRoute = window.location.pathname === '/login' || window.location.pathname === '/link';
                 if (!isPublicRoute) router.push('/login');
                 setIsLoading(false);
                 return;
@@ -301,7 +315,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         }
     };
 
-  const addTransaction = async (txData: Omit<Transaction, "id">) => {
+  const addTransaction = async (txData: Omit<Transaction, "id">, createdById?: string) => {
     if (!currentUser) return;
     try {
         // Resolve category name to categoryId
@@ -316,7 +330,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             accountId: txData.accountId,
             toAccountId: txData.toAccountId || null,
             categoryId: categoryId,
-            createdById: currentUser.id,
+            createdById: createdById || currentUser.id,
             fee: txData.fee ? Number(txData.fee) : 0,
             tags: txData.tags || [],
             slipImage: txData.slipImage || null,

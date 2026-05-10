@@ -5,34 +5,43 @@ import styles from "./dashboard.module.css";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Transaction, DashboardFilters as FilterType } from "@/types";
+import { getBangkokHour, formatBangkokDate, getBangkokDate } from "@/lib/timezone";
 
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
 
 import Money from "@/components/Money/Money";
 
-export default function Dashboard() {
+function DashboardContent() {
   const { globalBalance, currentUser, addTransaction, deleteTransaction, accounts, users, getFilteredTransactions } = useFinance();
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
-  // Initial filters with Default Date Range (This Month)
+  const searchParams = useSearchParams();
+
+  // Handle ?action=add from Rich Menu links — auto-open the add modal
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'add') {
+      setInitialType('expense');
+      setSelectedTransaction(null);
+      setIsTxModalOpen(true);
+    }
+  }, [searchParams]);
+
+  // Initial filters with Default Date Range (This Month) in Bangkok timezone
   const [filters, setFilters] = useState<FilterType>(() => {
-      const now = new Date();
+      const now = getBangkokDate();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
       const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      
-      // Fix: DateRange type expects Date | null, but we were passing strings.
-      // However, the previous code initialized with null.
-      // Let's check FilterType definition in types/index.ts.
-      // It says: dateRange: { start: Date | null, end: Date | null }
-      
+
       return {
         users: [],
-        dateRange: { 
-            start: startOfMonth, 
-            end: endOfMonth 
+        dateRange: {
+            start: startOfMonth,
+            end: endOfMonth
         },
         types: [],
         categories: [],
@@ -42,7 +51,7 @@ export default function Dashboard() {
 
 
   const displayedTransactions = getFilteredTransactions(filters);
-  
+
   // Calculate specific balance for the filtered view
   const dashboardBalance = useMemo(() => {
      if (filters.users.length > 0) {
@@ -54,7 +63,7 @@ export default function Dashboard() {
   }, [accounts, filters.users, globalBalance]);
 
   const getGreeting = () => {
-    const hour = new Date().getHours();
+    const hour = getBangkokHour();
     if (hour < 12) return "สวัสดีตอนเช้า";
     if (hour < 18) return "สวัสดีตอนบ่าย";
     return "สวัสดีตอนเย็น";
@@ -66,9 +75,6 @@ export default function Dashboard() {
       setIsTxModalOpen(true);
   };
 
-  // Removed User Switcher
-
-
   if (!currentUser) return <div className={styles.loading}>กำลังโหลด...</div>;
 
   return (
@@ -76,14 +82,14 @@ export default function Dashboard() {
       <header className={styles.header}>
         <div className={styles.greeting}>{getGreeting()}</div>
         <h1 className={styles.title}>{currentUser.name} <span style={{fontSize: 12, opacity: 0.7}}>({currentUser.role})</span></h1>
-        <div className={styles.date}>{new Date().toLocaleDateString('th-TH', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        <div className={styles.date}>{formatBangkokDate(new Date())}</div>
       </header>
 
-      <DashboardFilter 
-        users={users} 
-        currentUser={currentUser} 
-        filters={filters} 
-        onFilterChange={setFilters} 
+      <DashboardFilter
+        users={users}
+        currentUser={currentUser}
+        filters={filters}
+        onFilterChange={setFilters}
       />
 
 
@@ -98,26 +104,34 @@ export default function Dashboard() {
       <div className={styles.section}>
         <VisualizationView transactions={displayedTransactions} />
       </div>
-      
+
       <ActionFab onTypeSelect={handleTypeSelect} />
 
-      <TransactionDetailModal 
+      <TransactionDetailModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
         transaction={selectedTransaction}
         initialType={initialType}
-        accountId="" 
-        availableAccounts={accounts} // accounts is already filtered by context for availability
-        isOwner={true} // Allow edits for now if visible
-        onSave={(txData) => {
+        accountId=""
+        availableAccounts={accounts}
+        isOwner={true}
+        onSave={(txData, createdById) => {
            if (selectedTransaction) {
                deleteTransaction(selectedTransaction.id);
            }
-           addTransaction(txData);
+           addTransaction(txData, createdById);
            setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}
       />
     </div>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<div className={styles.loading}>กำลังโหลด...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }

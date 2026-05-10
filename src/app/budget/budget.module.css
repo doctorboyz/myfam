@@ -1,6 +1,6 @@
 .container {
-  padding: 20px;
-  padding-bottom: 80px;
+  padding: var(--section-margin);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
   min-height: 100vh;
   background-color: var(--background);
 }
@@ -9,11 +9,30 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-2xl);
+}
+
+.addBtn {
+  background: var(--card-bg);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.addBtn:active {
+  transform: scale(0.96);
 }
 
 .title {
-  font-size: 24px;
+  font-size: var(--font-2xl);
   font-weight: 700;
   color: var(--foreground);
 }
@@ -21,13 +40,13 @@
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
+  gap: var(--card-gap);
 }
 
 .card {
   background: var(--card-bg);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
   box-shadow: var(--shadow-sm);
   transition: transform 0.2s;
   text-decoration: none;
@@ -42,23 +61,23 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .cardTitle {
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .cardDescription {
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: var(--secondary-text);
 }
 
 .progressSection {
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
 }
 
 .progressBar {
@@ -66,7 +85,7 @@
   background: var(--border);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .progressFill {
@@ -79,43 +98,20 @@
 .stats {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: var(--font-sm);
 }
 
 .statItem {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .label {
-    font-size: 12px;
-    color: var(--secondary-text);
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
 }
 
 .amount {
-    font-weight: 600;
-    color: var(--foreground);
-}
-
-.fab {
-  position: fixed;
-  bottom: 80px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
-  background: var(--primary);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
-  border: none;
-  cursor: pointer;
-  z-index: 10;
-  transition: transform 0.2s;
-}
-
-.fab:active {
-    transform: scale(0.95);
+  font-weight: 600;
+  color: var(--foreground);
 }

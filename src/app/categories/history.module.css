@@ -1,12 +1,26 @@
 .container {
-  padding-bottom: 80px;
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
+}
+
+.header {
+  padding: 0 var(--space-lg) var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0;
 }
 
 .content {
-  padding: 16px;
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--card-gap);
 }
 
 .group {
@@ -17,7 +31,7 @@
 }
 
 .groupHeader {
-  padding: 16px;
+  padding: var(--space-lg);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -39,11 +53,11 @@
 
 .groupTitle {
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--font-md);
 }
 
 .groupCount {
-  font-size: 12px;
+  font-size: var(--font-xs);
   background: var(--card-bg);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
@@ -53,13 +67,13 @@
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--card-gap);
   color: var(--secondary-text);
 }
 
 .groupTotal {
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-base);
 }
 
 .txList {
@@ -69,7 +83,7 @@
 .txItem {
   display: flex;
   align-items: center;
-  padding: 14px 16px;
+  padding: var(--space-md) var(--space-lg);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.2s;
@@ -84,13 +98,13 @@
 }
 
 .iconBox {
-  width: 40px;
-  height: 40px;
+  width: var(--icon-size);
+  height: var(--icon-size);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 14px;
+  margin-right: var(--space-md);
 }
 
 .expense {
@@ -116,24 +130,24 @@
 
 .txCategory {
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--font-base);
   color: var(--foreground);
 }
 
 .txDate {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--secondary-text);
   margin-top: 2px;
 }
 
 .txAmount {
   font-weight: 600;
-  font-size: 15px;
+  font-size: var(--font-base);
 }
 
 .empty {
   text-align: center;
   color: var(--secondary-text);
-  padding: 24px;
-  font-size: 14px;
+  padding: var(--space-2xl);
+  font-size: var(--font-sm);
 }

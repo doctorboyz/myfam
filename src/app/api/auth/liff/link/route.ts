@@ -72,7 +72,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'รหัสผ่านไม่ถูกต้อง' }, { status: 401 });
     }
 
-    // Create LineLink
+    // Create LineLink and update user avatar from LINE profile
+    const linePicture = payload.picture;
+    const updateData: { avatar?: string } = {};
+    if (linePicture && linePicture !== user.avatar) {
+      updateData.avatar = linePicture;
+    }
+
+    const updatedUser = Object.keys(updateData).length > 0
+      ? await prisma.user.update({
+          where: { id: user.id },
+          data: updateData,
+          select: { id: true, name: true, role: true, isAdmin: true, avatar: true, color: true, familyId: true },
+        })
+      : await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { id: true, name: true, role: true, isAdmin: true, avatar: true, color: true, familyId: true },
+        });
+
     await prisma.lineLink.create({
       data: {
         lineUserId,
@@ -91,11 +108,9 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 30,
     });
 
-    // Return user data (exclude password)
-    const { password: _, ...userData } = user;
     return NextResponse.json({
       success: true,
-      user: userData,
+      user: updatedUser,
     });
   } catch (err) {
     console.error('[liff-link] Error:', err);

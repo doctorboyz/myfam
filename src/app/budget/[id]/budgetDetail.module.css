@@ -1,35 +1,35 @@
 .container {
   padding: 0;
-  padding-bottom: 80px;
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
   min-height: 100vh;
   background-color: var(--background);
 }
 
 .header {
   background: var(--card-bg);
-  padding: 20px;
-  padding-top: 80px; /* Space for TopBar */
-  margin-bottom: 20px;
+  padding: var(--section-margin);
+  padding-top: var(--topbar-height); /* Space for TopBar */
+  margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--border);
 }
 
 .title {
-  font-size: 28px;
+  font-size: var(--font-3xl);
   font-weight: 700;
   color: var(--foreground);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .description {
   color: var(--secondary-text);
-  font-size: 14px;
-  margin-bottom: 20px;
+  font-size: var(--font-sm);
+  margin-bottom: var(--space-xl);
 }
 
 .summaryCard {
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: var(--space-lg);
   display: flex;
   justify-content: space-between;
 }
@@ -40,27 +40,27 @@
 }
 
 .summaryLabel {
-  font-size: 12px;
+  font-size: var(--font-xs);
   color: var(--secondary-text);
   margin-bottom: 4px;
 }
 
 .summaryValue {
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
   color: var(--foreground);
 }
 
 .section {
-  padding: 0 20px;
-  margin-bottom: 24px;
+  padding: 0 var(--section-margin);
+  margin-bottom: var(--space-2xl);
 }
 
 .sectionTitle {
-  font-size: 16px;
+  font-size: var(--font-md);
   font-weight: 600;
   color: var(--secondary-text);
-  margin-bottom: 12px;
+  margin-bottom: var(--space-md);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -68,8 +68,8 @@
 .itemCard {
   background: var(--card-bg);
   border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
   box-shadow: var(--shadow-sm);
   display: flex;
   justify-content: space-between;
@@ -81,13 +81,13 @@
 }
 
 .itemName {
-    font-size: 16px;
+    font-size: var(--font-md);
     font-weight: 500;
     color: var(--foreground);
 }
 
 .itemMeta {
-    font-size: 12px;
+    font-size: var(--font-xs);
     color: var(--secondary-text);
     margin-top: 4px;
 }
@@ -97,26 +97,26 @@
 }
 
 .planAmount {
-    font-size: 16px;
+    font-size: var(--font-md);
     font-weight: 600;
     color: var(--foreground);
 }
 
 .actualAmount {
-    font-size: 14px;
+    font-size: var(--font-sm);
     color: var(--success);
 }
 
 .actions {
-    margin-top: 12px;
+    margin-top: var(--space-md);
     display: flex;
-    gap: 8px;
+    gap: var(--space-sm);
 }
 
 .actionBtn {
-    padding: 6px 12px;
+    padding: 6px var(--space-md);
     border-radius: var(--radius-md);
-    font-size: 12px;
+    font-size: var(--font-xs);
     font-weight: 500;
     cursor: pointer;
     border: none;
@@ -139,11 +139,11 @@
 
 .fab {
   position: fixed; /* Should match standard FAB style */
-  bottom: 80px;
-  right: 20px;
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
+  bottom: var(--fab-bottom);
+  right: var(--space-xl);
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: calc(var(--fab-size) / 2);
   background: var(--primary);
   color: white;
   display: flex;

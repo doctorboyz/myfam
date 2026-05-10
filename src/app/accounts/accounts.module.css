@@ -1,0 +1,113 @@
+.container {
+  padding: var(--section-margin);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
+  min-height: 100vh;
+  background-color: var(--background);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.title {
+  font-size: var(--font-2xl);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.addBtn {
+  background: var(--card-bg);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.addBtn:active {
+  transform: scale(0.96);
+}
+
+.grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--card-padding);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-decoration: none;
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 72px;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-left-width: 6px;
+  border-left-style: solid;
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.iconBox {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  min-width: var(--icon-size);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+
+.name {
+  font-size: var(--font-base);
+  font-weight: 600;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.typeLabel {
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+}
+
+.balance {
+  font-size: var(--font-md);
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+}

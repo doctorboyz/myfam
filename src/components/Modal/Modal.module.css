@@ -10,13 +10,13 @@
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
-  padding: 20px;
+  padding: var(--space-xl);
 }
 
 .container {
   background: var(--card-bg);
   width: 100%;
-  max-width: 440px;
+  max-width: var(--container-max-width, 440px);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   display: flex;
@@ -31,7 +31,7 @@
 }
 
 .header {
-  padding: 16px 20px;
+  padding: var(--space-lg) var(--space-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -39,7 +39,7 @@
 }
 
 .title {
-  font-size: 18px;
+  font-size: var(--font-lg);
   font-weight: 600;
 }
 
@@ -48,11 +48,11 @@
   border: none;
   cursor: pointer;
   color: var(--secondary-text);
-  padding: 4px;
+  padding: var(--space-xs);
 }
 
 .content {
-  padding: 20px;
+  padding: var(--space-xl);
   overflow-y: auto;
 }
 

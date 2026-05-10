@@ -1,8 +1,8 @@
 .card {
   background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  margin: 16px;
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  margin: var(--card-margin);
   box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
@@ -49,7 +49,7 @@
 }
 
 .amount {
-  font-size: 40px;
+  font-size: var(--amount-size);
   font-weight: 700;
   color: var(--foreground);
   margin-bottom: 16px;

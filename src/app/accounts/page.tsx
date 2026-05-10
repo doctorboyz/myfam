@@ -1,0 +1,131 @@
+"use client";
+
+import { useFinance } from "@/context/FinanceContext";
+import styles from "./accounts.module.css";
+import Link from "next/link";
+import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
+import { useState } from "react";
+import AccountFormModal from "@/components/AccountFormModal/AccountFormModal";
+import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
+import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
+import Money from "@/components/Money/Money";
+import { Plus } from "lucide-react";
+
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  bank: 'บัญชีธนาคาร',
+  cash: 'เงินสด',
+  credit: 'บัตรเครดิต',
+  wallet: 'กระเป๋าเงิน',
+  loan: 'เงินกู้',
+  invest: 'การลงทุน',
+};
+
+const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+  'Wallet': Wallet,
+  'CreditCard': CreditCard,
+  'PiggyBank': PiggyBank,
+  'TrendingUp': TrendingUp,
+  'UtensilsCrossed': Utensils,
+  'Dumbbell': Building2,
+  'ShoppingCart': ShoppingCart,
+  'Gamepad2': Gamepad2,
+  'Gift': Gift,
+  'Home': HomeIcon,
+  'Car': Car,
+  'Zap': Zap,
+  'Droplet': Droplet,
+  'Heart': Heart,
+  'Music': Music,
+  'Book': Book,
+  'Map': Map,
+  'DollarSign': DollarSign,
+};
+
+export default function AccountsPage() {
+  const { accounts, addAccount, addTransaction, deleteTransaction, currentUser } = useFinance();
+  const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
+  const [initialType, setInitialType] = useState<TransactionType>('expense');
+
+  const myAccounts = accounts.filter(a => a.owner === currentUser?.name);
+
+  const getIcon = (iconName?: string, type?: string) => {
+    if (iconName && ICON_MAP[iconName]) return ICON_MAP[iconName];
+    switch (type) {
+      case 'bank': return Building2;
+      case 'cash': return Wallet;
+      case 'credit': return CreditCard;
+      default: return Wallet;
+    }
+  };
+
+  const handleTypeSelect = (type: TransactionType) => {
+    setInitialType(type);
+    setIsTxModalOpen(true);
+  };
+
+  return (
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>บัญชี</h1>
+        <button
+          onClick={() => setIsAddAccountOpen(true)}
+          className={styles.addBtn}
+        >
+          <Plus size={18} />
+          สร้างใหม่
+        </button>
+      </div>
+
+      <div className={styles.grid}>
+        {myAccounts.length === 0 ? (
+          <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+        ) : (
+          myAccounts.map((account) => {
+            const Icon = getIcon(account.icon, account.type);
+            return (
+              <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={{ borderLeftColor: account.color }}>
+                <div className={styles.iconBox} style={{ backgroundColor: account.color }}>
+                  <Icon size={24} color="white" />
+                </div>
+                <div className={styles.info}>
+                  <div className={styles.name}>{account.name}</div>
+                  <div className={styles.typeLabel}>{ACCOUNT_TYPE_LABELS[account.type] || account.type}</div>
+                  <div className={styles.balance}>
+                    <Money amount={account.balance} />
+                  </div>
+                </div>
+              </Link>
+            );
+          })
+        )}
+      </div>
+
+      <ActionFab onTypeSelect={handleTypeSelect} />
+
+      <AccountFormModal
+        isOpen={isAddAccountOpen}
+        onClose={() => setIsAddAccountOpen(false)}
+        onSave={(data) => {
+          addAccount(data);
+          setIsAddAccountOpen(false);
+        }}
+      />
+
+      <TransactionDetailModal
+        isOpen={isTxModalOpen}
+        onClose={() => setIsTxModalOpen(false)}
+        transaction={null}
+        initialType={initialType}
+        accountId=""
+        availableAccounts={myAccounts}
+        isOwner={true}
+        onSave={(txData, createdById) => {
+          addTransaction(txData, createdById);
+          setIsTxModalOpen(false);
+        }}
+        onDelete={deleteTransaction}
+      />
+    </div>
+  );
+}

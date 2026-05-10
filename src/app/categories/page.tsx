@@ -8,6 +8,7 @@ import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import ActionFab, { TransactionType as FabType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
+import { getBangkokDate } from "@/lib/timezone";
 import styles from "./history.module.css";
 
 export default function HistoryPage() {
@@ -18,7 +19,7 @@ export default function HistoryPage() {
   const [initialType, setInitialType] = useState<FabType>('expense');
 
   const [filters, setFilters] = useState<FilterType>(() => {
-    const now = new Date();
+    const now = getBangkokDate();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return {
@@ -76,6 +77,10 @@ export default function HistoryPage() {
 
   return (
     <div className={styles.container}>
+      <header className={styles.header}>
+        <h1 className={styles.title}>รายการ</h1>
+      </header>
+
       <DashboardFilter
         users={users}
         currentUser={currentUser}
@@ -156,9 +161,9 @@ export default function HistoryPage() {
         accountId=""
         availableAccounts={accounts}
         isOwner={true}
-        onSave={(txData) => {
+        onSave={(txData, createdById) => {
           if (selectedTransaction) deleteTransaction(selectedTransaction.id);
-          addTransaction(txData);
+          addTransaction(txData, createdById);
           setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}

@@ -31,8 +31,14 @@ export default function BudgetPage() {
 
   return (
     <div className={styles.container}>
+      <div className={styles.header}>
+        <h1 className={styles.title}>งบประมาณ</h1>
+        <button className={styles.addBtn} onClick={() => setIsModalOpen(true)}>
+          <Plus size={18} />
+          สร้างใหม่
+        </button>
+      </div>
 
-      
       <div className={styles.grid}>
         {budgets.map((budget) => {
             const { planned, actual, percent } = calculateProgress(budget);
@@ -74,9 +80,6 @@ export default function BudgetPage() {
         })}
       </div>
 
-      <button className={styles.fab} onClick={() => setIsModalOpen(true)}>
-        <Plus size={24} />
-      </button>
 
       {isModalOpen && <BudgetFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />}
     </div>

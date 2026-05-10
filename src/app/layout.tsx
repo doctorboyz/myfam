@@ -3,7 +3,6 @@ import { Sarabun } from "next/font/google";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav/BottomNav";
-import TopBar from "@/components/TopBar/TopBar";
 import { FinanceProvider } from "@/context/FinanceContext";
 import { LiffProvider } from "@/context/LiffContext";
 
@@ -41,7 +40,6 @@ export default function RootLayout({
         <LiffProvider>
           <FinanceProvider>
             <main>
-              <TopBar />
               {children}
               <BottomNav />
             </main>

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import Modal from "../Modal/Modal";
-import { Transaction, Account, TransactionType } from "@/types";
+import { Transaction, Account, TransactionType, User } from "@/types";
 import styles from "./TransactionDetailModal.module.css";
-import { Trash2, Edit2, Image } from "lucide-react";
+import { Trash2, Edit2, Image, Users } from "lucide-react";
 import { useFinance } from "@/context/FinanceContext";
 import TagSelector from "../TagSelector";
 import CategorySelector from "../CategorySelector/CategorySelector";
@@ -17,15 +17,15 @@ interface TransactionDetailModalProps {
   accountId?: string; // Optional: If provided, pre-selects/fixes account
   initialType?: Transaction['type'];
   isOwner: boolean;
-  onSave: (transaction: Omit<Transaction, "id">) => void;
+  onSave: (transaction: Omit<Transaction, "id">, createdById?: string) => void;
   onDelete?: (id: string) => void;
   availableAccounts?: Account[]; // For selecting account
 }
 
-export default function TransactionDetailModal({ 
-  isOpen, 
-  onClose, 
-  transaction, 
+export default function TransactionDetailModal({
+  isOpen,
+  onClose,
+  transaction,
   accountId,
   initialType,
   isOwner,
@@ -33,7 +33,17 @@ export default function TransactionDetailModal({
   onDelete,
   availableAccounts = []
 }: TransactionDetailModalProps) {
-  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions } = useFinance();
+  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users } = useFinance();
+
+  // Member selector: only show when family has >1 member
+  const showMemberSelector = users.length > 1;
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUser?.id || '');
+
+  // Derived: selected member name (for filtering accounts)
+  const selectedMemberName = useMemo(() => {
+    const member = users.find(u => u.id === selectedMemberId);
+    return member?.name || currentUser?.name || '';
+  }, [users, selectedMemberId, currentUser]);
   const [isEditing, setIsEditing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
@@ -70,14 +80,14 @@ export default function TransactionDetailModal({
         }
   };
 
-  // Filter From Accounts: Must be Own + Active (or currently selected)
-  const fromAccounts = availableAccounts.filter(a => 
-    (a.status === 'active' || a.id === formData.accountId) && 
-    (a.owner === currentUser?.name)
+  // Filter From Accounts: Must be selected member's + Active (or currently selected)
+  const fromAccounts = availableAccounts.filter(a =>
+    (a.status === 'active' || a.id === formData.accountId) &&
+    (a.owner === selectedMemberName)
   );
 
   // Filter To Accounts: Any Active (or currently selected)
-  const toAccounts = allAccounts.filter(a => 
+  const toAccounts = allAccounts.filter(a =>
      (a.status === 'active' || a.id === formData.toAccountId)
   );
 
@@ -94,6 +104,9 @@ export default function TransactionDetailModal({
 
   useEffect(() => {
     if (isOpen) {
+      // Reset member selector to current user when opening
+      setSelectedMemberId(currentUser?.id || '');
+
       if (transaction) {
         // View existing
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -160,8 +173,8 @@ export default function TransactionDetailModal({
       fee: formData.fee ? Number(formData.fee) : 0,
       amount: Number(formData.amount),
       tags: formData.tags || []
-    } as Omit<Transaction, "id">);
-    
+    } as Omit<Transaction, "id">, selectedMemberId);
+
     onClose();
   };
 
@@ -315,6 +328,34 @@ export default function TransactionDetailModal({
              </button>
            ))}
         </div>
+
+        {/* Member selector: only when family has >1 member */}
+        {showMemberSelector && (
+          <div className={styles.memberSelector}>
+            <label className={styles.memberLabel}>
+              <Users size={16} />
+              สมาชิก
+            </label>
+            <div className={styles.memberList}>
+              {users.map(user => (
+                <button
+                  key={user.id}
+                  type="button"
+                  className={`${styles.memberBtn} ${selectedMemberId === user.id ? styles.memberBtnActive : ''}`}
+                  onClick={() => setSelectedMemberId(user.id)}
+                >
+                  {user.avatar ? (
+                    <img src={user.avatar} alt="" className={styles.memberAvatar} />
+                  ) : (
+                    <span className={styles.memberInitial}>{user.name.charAt(0)}</span>
+                  )}
+                  <span>{user.name}</span>
+                  {user.role === 'parent' && <span className={styles.memberBadge}>ผู้ปกครอง</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Account Section */}
         <div className={styles.sectionHeader}>บัญชี</div>

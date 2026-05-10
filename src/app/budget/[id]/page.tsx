@@ -9,6 +9,7 @@ import { BudgetTransaction } from "@/types";
 import BudgetTransactionModal from "@/components/BudgetTransactionModal/BudgetTransactionModal";
 import BudgetFormModal from "@/components/BudgetFormModal/BudgetFormModal";
 import Money from "@/components/Money/Money";
+import { formatBangkokDate } from "@/lib/timezone";
 
 export default function BudgetDetailPage() {
   const { id } = useParams();
@@ -162,7 +163,7 @@ export default function BudgetDetailPage() {
                        <div className={styles.itemInfo}>
                            <div className={styles.itemName}>{item.name}</div>
                            <CreatorBadge item={item} />
-                           <div className={styles.itemMeta}>{new Date(item.date).toLocaleDateString('th-TH')}</div>
+                           <div className={styles.itemMeta}>{formatBangkokDate(item.date)}</div>
                        </div>
                        <div className={styles.itemAmount}>
                             <div className={styles.planAmount}>
@@ -202,7 +203,7 @@ export default function BudgetDetailPage() {
                        <div className={styles.itemInfo}>
                            <div className={styles.itemName}>{item.name}</div>
                            <CreatorBadge item={item} />
-                           <div className={styles.itemMeta}>จ่ายเมื่อ {new Date(item.date).toLocaleDateString('th-TH')}</div>
+                           <div className={styles.itemMeta}>จ่ายเมื่อ {formatBangkokDate(item.date)}</div>
                        </div>
                        <div className={styles.itemAmount}>
                             <div className={styles.actualAmount}>

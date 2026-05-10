@@ -1,42 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useLiff } from "@/context/LiffContext";
 import styles from "./page.module.css";
+import Image from "next/image";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (res.ok) {
-        router.push("/");
-        router.refresh();
-      } else {
-        const data = await res.json();
-        setError(data.error || "เข้าสู่ระบบไม่สำเร็จ");
-      }
-    } catch {
-      setError("การเชื่อมต่อผิดพลาด กรุณาลองใหม่");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { liffLogin, isLiffReady } = useLiff();
 
   return (
     <div className={styles.container}>
@@ -47,44 +16,17 @@ export default function LoginPage() {
           <p className={styles.subtitle}>จัดการการเงินครอบครัว</p>
         </div>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          <div className={styles.field}>
-            <label className={styles.label}>ชื่อผู้ใช้</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className={styles.input}
-              placeholder="กรอกชื่อผู้ใช้"
-              autoComplete="username"
-              autoFocus
-              required
-            />
-          </div>
+        <button
+          className={styles.lineButton}
+          onClick={liffLogin}
+          disabled={!isLiffReady}
+        >
+          เข้าสู่ระบบด้วย LINE
+        </button>
 
-          <div className={styles.field}>
-            <label className={styles.label}>รหัสผ่าน</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className={styles.input}
-              placeholder="••••"
-              autoComplete="current-password"
-              required
-            />
-          </div>
-
-          {error && <div className={styles.error}>{error}</div>}
-
-          <button
-            type="submit"
-            className={styles.button}
-            disabled={isLoading}
-          >
-            {isLoading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-          </button>
-        </form>
+        <p className={styles.hint}>
+          กรุณาเปิดแอปผ่าน LINE เพื่อใช้งาน
+        </p>
       </div>
     </div>
   );

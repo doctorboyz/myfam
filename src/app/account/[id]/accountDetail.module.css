@@ -1,0 +1,97 @@
+.container {
+  padding-top: var(--section-margin);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
+}
+
+.tabBar {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0 var(--space-lg);
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
+}
+
+.tabBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: var(--secondary-text);
+}
+
+.tabBtn.active {
+  background: var(--primary);
+  color: white;
+}
+
+.reconcileList {
+  margin: 0 var(--space-lg);
+}
+
+.emptyReconcile {
+  text-align: center;
+  padding: var(--space-2xl) var(--space-lg);
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+}
+
+.reconcileCard {
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.reconcileItem {
+  padding: var(--space-md) var(--space-lg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.reconcileItem:last-child {
+  border-bottom: none;
+}
+
+.reconcileInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.reconcileDate {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  color: var(--foreground);
+}
+
+.reconcileTime {
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+  margin-left: var(--space-sm);
+}
+
+.reconcileBalances {
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+  margin-top: var(--space-xs);
+}
+
+.reconcileDiff {
+  font-size: var(--font-md);
+  font-weight: 700;
+}
+
+.reconcileDiff.positive {
+  color: var(--success);
+}
+
+.reconcileDiff.negative {
+  color: var(--danger);
+}

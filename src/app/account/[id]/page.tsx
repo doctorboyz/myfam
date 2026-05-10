@@ -11,9 +11,10 @@ import TransactionDetailModal from "@/components/TransactionDetailModal/Transact
 import { Transaction } from "@/types";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
+import { formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
 import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign } from 'lucide-react';
+import styles from "./accountDetail.module.css";
 
-// Icon mapping
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
   'Wallet': Wallet,
   'CreditCard': CreditCard,
@@ -36,11 +37,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: stri
 };
 
 const getIcon = (iconName?: string, type?: string) => {
-  // Use account's icon if available
-  if (iconName && ICON_MAP[iconName]) {
-    return ICON_MAP[iconName];
-  }
-  // Fall back to type-based icon
+  if (iconName && ICON_MAP[iconName]) return ICON_MAP[iconName];
   switch (type) {
     case 'bank': return Building2;
     case 'cash': return Wallet;
@@ -66,12 +63,12 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const { accounts, getAccountTransactions, updateAccount, currentUser, addTransaction, deleteTransaction, fetchAccounts } = useFinance();
-  
+
   const [isReconcileOpen, setIsReconcileOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
   const [activeTab, setActiveTab] = useState<HistoryTab>('transactions');
-  
+
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
@@ -105,7 +102,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     return <div style={{ padding: 20 }}>ไม่พบบัญชี หรือไม่มีสิทธิ์เข้าถึง</div>;
   }
 
-  const isOwner = currentUser?.name === account.owner || currentUser?.role === 'parent'; 
+  const isOwner = currentUser?.name === account.owner || currentUser?.role === 'parent';
 
   const handleReconcile = async (newBalance: number) => {
     if (!currentUser) return;
@@ -128,81 +125,58 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     }
   };
 
-  const tabStyle = (tab: HistoryTab): React.CSSProperties => ({
-    flex: 1,
-    padding: '10px 16px',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    background: activeTab === tab ? 'var(--primary, #6C5CE7)' : 'transparent',
-    color: activeTab === tab ? '#fff' : 'var(--text-secondary, #666)',
-  });
-
   return (
-    <div style={{ paddingBottom: '80px', paddingTop: '20px' }}>
+    <div className={styles.container}>
       <BalanceCard
         title={account.name}
         icon={React.createElement(getIcon(account.icon, account.type), { size: 24 })}
         balance={account.balance}
-        onReconcile={() => setIsReconcileOpen(true)}
-        onEdit={() => setIsEditOpen(true)}
+        onReconcile={isOwner ? () => setIsReconcileOpen(true) : undefined}
+        onEdit={isOwner ? () => setIsEditOpen(true) : undefined}
       />
 
-      {/* Tab Switcher */}
-      <div style={{
-        display: 'flex', gap: '4px', margin: '16px',
-        background: 'var(--card-bg, #f0f0f0)', borderRadius: '10px', padding: '4px',
-      }}>
-        <button style={tabStyle('transactions')} onClick={() => setActiveTab('transactions')}>
+      <div className={styles.tabBar}>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'transactions' ? styles.active : ''}`}
+          onClick={() => setActiveTab('transactions')}
+        >
           รายการ
         </button>
-        <button style={tabStyle('reconcile')} onClick={() => setActiveTab('reconcile')}>
+        <button
+          className={`${styles.tabBtn} ${activeTab === 'reconcile' ? styles.active : ''}`}
+          onClick={() => setActiveTab('reconcile')}
+        >
           กระทบยอด ({reconciliations.length})
         </button>
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'transactions' ? (
-        <TransactionList 
-          transactions={transactions} 
-          title="" 
+        <TransactionList
+          transactions={transactions}
+          title=""
           onTransactionClick={(tx) => {
             setSelectedTransaction(tx);
             setIsTxModalOpen(true);
           }}
         />
       ) : (
-        <div style={{ margin: '0 16px' }}>
+        <div className={styles.reconcileList}>
           {reconciliations.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-secondary, #999)' }}>
-              ยังไม่มีประวัติการกระทบยอด
-            </div>
+            <div className={styles.emptyReconcile}>ยังไม่มีประวัติการกระทบยอด</div>
           ) : (
-            <div style={{ background: 'var(--card-bg, #fff)', borderRadius: '12px', overflow: 'hidden' }}>
-              {reconciliations.map((r, i) => (
-                <div key={r.id} style={{
-                  padding: '14px 16px',
-                  borderBottom: i < reconciliations.length - 1 ? '1px solid var(--border, #eee)' : 'none',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                }}>
-                  <div>
-                    <div style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary, #1a1a2e)' }}>
-                      {new Date(r.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: '2-digit' })}
-                      <span style={{ marginLeft: 8, fontSize: '12px', color: 'var(--text-tertiary, #999)' }}>
-                        {new Date(r.createdAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+            <div className={styles.reconcileCard}>
+              {reconciliations.map((r) => (
+                <div key={r.id} className={styles.reconcileItem}>
+                  <div className={styles.reconcileInfo}>
+                    <div className={styles.reconcileDate}>
+                      {formatBangkokShortDate(r.createdAt)}
+                      <span className={styles.reconcileTime}>{formatBangkokTime(r.createdAt)}</span>
                     </div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-tertiary, #999)', marginTop: 4 }}>
+                    <div className={styles.reconcileBalances}>
                       <Money amount={r.previousBalance} /> → <Money amount={r.newBalance} />
                     </div>
                   </div>
-                  <div style={{
-                    fontSize: '15px', fontWeight: 700,
-                    color: r.difference >= 0 ? 'var(--success)' : 'var(--danger)',
-                  }}>
+                  <div className={`${styles.reconcileDiff} ${r.difference >= 0 ? styles.positive : styles.negative}`}>
                     {r.difference >= 0 ? '+' : ''}<Money amount={r.difference} />
                   </div>
                 </div>
@@ -211,7 +185,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
           )}
         </div>
       )}
-      
+
       {isOwner && (
         <ActionFab onTypeSelect={(type) => {
           setInitialType(type);
@@ -220,7 +194,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         }} />
       )}
 
-      <ReconcileModal 
+      <ReconcileModal
         isOpen={isReconcileOpen}
         onClose={() => setIsReconcileOpen(false)}
         accountName={account.name}
@@ -228,7 +202,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         onConfirm={handleReconcile}
       />
 
-      <AccountFormModal 
+      <AccountFormModal
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
         initialData={account}
@@ -238,7 +212,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         }}
       />
 
-      <TransactionDetailModal 
+      <TransactionDetailModal
         isOpen={isTxModalOpen}
         onClose={() => setIsTxModalOpen(false)}
         transaction={selectedTransaction}
@@ -246,11 +220,11 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         accountId={id}
         availableAccounts={accounts}
         isOwner={isOwner}
-        onSave={(txData) => {
+        onSave={(txData, createdById) => {
            if (selectedTransaction) {
                deleteTransaction(selectedTransaction.id);
            }
-           addTransaction(txData);
+           addTransaction(txData, createdById);
            setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}

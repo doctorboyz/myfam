@@ -3,6 +3,7 @@
 import { User, DashboardFilters as FilterType, TransactionType } from '@/types';
 import styles from './DashboardFilter.module.css';
 import { useFinance } from "@/context/FinanceContext";
+import { getBangkokDate, getBangkokDateString } from '@/lib/timezone';
 
 interface DashboardFilterProps {
   users: User[];
@@ -75,7 +76,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
 
   // Date Logic
   const handlePresetDate = (preset: 'this_month' | 'last_month' | 'this_year' | 'all') => {
-      const now = new Date();
+      const now = getBangkokDate();
       let start: Date | null = null;
       let end: Date | null = null;
 
@@ -101,7 +102,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
 
   const formatDateVal = (date: Date | null) => {
       if (!date) return '';
-      return date.toISOString().split('T')[0];
+      return getBangkokDateString(date);
   };
 
   return (

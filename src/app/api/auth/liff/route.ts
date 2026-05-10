@@ -80,6 +80,27 @@ export async function POST(request: Request) {
     });
 
     if (link) {
+      // Update user name and avatar from LINE profile if missing or outdated
+      const lineName = payload.name;
+      const linePicture = payload.picture;
+      const updateData: { name?: string; avatar?: string } = {};
+
+      if (lineName && lineName !== link.user.name) {
+        updateData.name = lineName;
+      }
+      if (linePicture && linePicture !== link.user.avatar) {
+        updateData.avatar = linePicture;
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const updatedUser = await prisma.user.update({
+          where: { id: link.userId },
+          data: updateData,
+          select: { id: true, name: true, role: true, isAdmin: true, avatar: true, color: true, familyId: true },
+        });
+        link.user = updatedUser;
+      }
+
       // User is linked — set cookie and return user data
       const cookieStore = await cookies();
       cookieStore.set('userId', link.userId, {
