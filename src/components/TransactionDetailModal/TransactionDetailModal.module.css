@@ -393,3 +393,58 @@
   color: var(--primary);
   font-weight: 600;
 }
+
+/* Slip thumbnail */
+.slipThumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  transition: transform var(--transition-fast) var(--ease-out);
+}
+
+.slipThumb:active {
+  transform: scale(0.95);
+}
+
+/* Image lightbox */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: var(--space-lg);
+}
+
+.lightboxImg {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+.lightboxClose {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.lightboxClose:active {
+  background: rgba(255, 255, 255, 0.4);
+}

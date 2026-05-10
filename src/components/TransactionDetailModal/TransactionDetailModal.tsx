@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import Modal from "../Modal/Modal";
 import { Transaction, Account, TransactionType, User } from "@/types";
 import styles from "./TransactionDetailModal.module.css";
-import { Trash2, Edit2, Image, Users } from "lucide-react";
+import { Trash2, Edit2, Image, Users, X } from "lucide-react";
 import { formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
 import { useFinance } from "@/context/FinanceContext";
 import TagSelector from "../TagSelector";
@@ -49,6 +49,7 @@ export default function TransactionDetailModal({
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [quickParseText, setQuickParseText] = useState("");
+  const [showLightbox, setShowLightbox] = useState(false);
   const [formData, setFormData] = useState<Partial<Transaction>>({
     amount: 0,
     category: "",
@@ -270,7 +271,12 @@ export default function TransactionDetailModal({
              {transaction.slipImage && (
               <div className={styles.metaRow}>
                 <span className={styles.label}>สลิป</span>
-                <a href={transaction.slipImage} target="_blank" className={styles.link}>ดูรูป</a>
+                <img
+                  src={transaction.slipImage}
+                  alt="สลิป"
+                  className={styles.slipThumb}
+                  onClick={() => setShowLightbox(true)}
+                />
               </div>
             )}
           </div>
@@ -286,6 +292,16 @@ export default function TransactionDetailModal({
             </div>
           )}
         </div>
+
+        {/* Image lightbox */}
+        {showLightbox && transaction.slipImage && (
+          <div className={styles.lightbox} onClick={() => setShowLightbox(false)}>
+            <img src={transaction.slipImage} alt="สลิป" className={styles.lightboxImg} />
+            <button className={styles.lightboxClose} onClick={() => setShowLightbox(false)} aria-label="ปิด">
+              <X size={24} />
+            </button>
+          </div>
+        )}
       </Modal>
     );
   }
