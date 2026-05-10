@@ -24,10 +24,10 @@
 
 /* Name with edit button */
 .nameRow {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  margin-bottom: 4px;
 }
 
 .name {
@@ -206,4 +206,147 @@
 .version {
   font-size: var(--font-xs); /* 12px — LDSM Body 4 minimum */
   color: var(--secondary-text);
+}
+
+/* Danger Zone */
+.dangerSection {
+  margin-top: 32px;
+}
+
+.dangerLabel {
+  font-size: var(--font-sm);
+  color: var(--danger);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  padding-left: 4px;
+}
+
+.dangerCard {
+  background: var(--card-bg);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dangerItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  min-height: 44px;
+}
+
+.dangerItem:not(:last-child) {
+  border-bottom: 1px solid var(--border);
+}
+
+.dangerItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dangerItemName {
+  font-size: var(--font-md);
+  font-weight: 500;
+}
+
+.dangerItemBalance {
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+}
+
+.deleteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--danger);
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.15s;
+}
+
+.deleteBtn:active {
+  background: var(--danger);
+  color: white;
+}
+
+/* Delete confirmation overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-lg);
+}
+
+.confirmDialog {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 340px;
+  width: 100%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.confirmTitle {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  margin: 0 0 var(--space-md);
+  color: var(--foreground);
+}
+
+.confirmText {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.5;
+}
+
+.confirmWarning {
+  font-size: var(--font-xs);
+  color: var(--danger);
+  margin: 0 0 var(--space-lg);
+  line-height: 1.4;
+}
+
+.confirmActions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.cancelBtnOverlay {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.dangerBtnOverlay {
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--danger);
+  color: white;
+  font-size: var(--font-sm);
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
 }
