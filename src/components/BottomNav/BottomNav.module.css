@@ -18,6 +18,11 @@
   -webkit-backdrop-filter: blur(20px);
 }
 
+/* LIFF Browser: extra bottom padding for Android navigation bar */
+:global([data-in-liff="true"]) .nav {
+  padding-bottom: calc(var(--safe-bottom, 0px) + 12px);
+}
+
 .item {
   display: flex;
   flex-direction: column;

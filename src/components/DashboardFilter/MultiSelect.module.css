@@ -75,6 +75,15 @@
     padding: 4px;
 }
 
+/* LIFF: smaller dropdown to avoid screen edge overflow */
+:global([data-in-liff="true"]) .dropdown {
+    z-index: 9999;
+}
+
+:global([data-in-liff="true"]) .scrollArea {
+    max-height: 220px;
+}
+
 .group {
     margin-bottom: 4px;
 }

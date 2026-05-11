@@ -44,6 +44,12 @@ export function LiffProvider({ children }: { children: ReactNode }) {
       }
 
       const loggedIn = await isLoggedIn();
+      const inClient = await isInClient();
+
+      // Mark LIFF environment for CSS adjustments
+      if (inClient) {
+        document.documentElement.setAttribute('data-in-liff', 'true');
+      }
 
       if (loggedIn) {
         const idToken = await getIDToken();
@@ -60,7 +66,6 @@ export function LiffProvider({ children }: { children: ReactNode }) {
           }
         }
       } else {
-        const inClient = await isInClient();
         if (inClient) {
           liffLogin();
         }
