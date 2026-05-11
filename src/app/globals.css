@@ -131,6 +131,9 @@ body {
   font-size: var(--font-base);
   font-weight: var(--weight-regular);
   line-height: 1.5;
+  /* Prevent browser from auto-scaling text (especially in LIFF WebView) */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 /* Prevent iOS zoom on form inputs */

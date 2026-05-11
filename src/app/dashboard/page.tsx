@@ -7,6 +7,7 @@ import TransactionDetailModal from "@/components/TransactionDetailModal/Transact
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Transaction, DashboardFilters as FilterType } from "@/types";
 import { getBangkokHour, formatBangkokDate, getBangkokDate } from "@/lib/timezone";
 
@@ -80,9 +81,27 @@ function DashboardContent() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.greeting}>{getGreeting()}</div>
-        <h1 className={styles.title}>{currentUser.name} <span style={{fontSize: 12, opacity: 0.7}}>({currentUser.role})</span></h1>
-        <div className={styles.date}>{formatBangkokDate(new Date())}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div className={styles.greeting}>{getGreeting()}</div>
+            <h1 className={styles.title}>{currentUser.name} <span style={{fontSize: 12, opacity: 0.7}}>({currentUser.role})</span></h1>
+            <div className={styles.date}>{formatBangkokDate(new Date())}</div>
+          </div>
+          <Link
+            href="/debug/ui"
+            style={{
+              fontSize: 11,
+              color: 'var(--secondary-text)',
+              padding: '4px 8px',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              background: 'var(--card-bg)',
+              textDecoration: 'none',
+            }}
+          >
+            Debug
+          </Link>
+        </div>
       </header>
 
       <DashboardFilter
