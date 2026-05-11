@@ -6,6 +6,7 @@ services:
       args:
         NEXT_PUBLIC_LIFF_ID: ${NEXT_PUBLIC_LIFF_ID}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
+        NEXT_PUBLIC_LINE_BASIC_ID: ${NEXT_PUBLIC_LINE_BASIC_ID}
     container_name: myfam-app
     restart: unless-stopped
     ports:
