@@ -1,7 +1,7 @@
 .fab {
   position: fixed;
   bottom: var(--fab-bottom);
-  right: var(--space-xl);
+  right: calc(50% - var(--container-max-width) / 2 + var(--space-xl));
   width: var(--fab-size);
   height: var(--fab-size);
   border-radius: 50%;
@@ -11,12 +11,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 4px 16px rgba(0, 179, 134, 0.35);
   cursor: pointer;
-  transition: transform 0.15s, background-color 0.2s;
+  transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
   z-index: 100;
+}
+
+@media (max-width: 480px) {
+  .fab {
+    right: var(--space-xl);
+  }
 }
 
 .fab:active {
   transform: scale(0.93);
+  box-shadow: 0 2px 8px rgba(0, 179, 134, 0.25);
 }

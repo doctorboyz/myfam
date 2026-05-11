@@ -11,6 +11,7 @@ export async function GET(request: Request) {
     if (!currentUser) return apiError('Not authenticated', 401);
 
     const where: Prisma.AccountWhereInput = {
+      deletedAt: null,
       owner: { familyId: currentUser.familyId },
     };
     if (userId) {

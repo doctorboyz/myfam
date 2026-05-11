@@ -8,14 +8,14 @@
 .header {
   background: var(--card-bg);
   padding: var(--section-margin);
-  padding-top: var(--topbar-height); /* Space for TopBar */
+  padding-top: var(--topbar-height);
   margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--border);
 }
 
 .title {
-  font-size: var(--font-3xl);
-  font-weight: 700;
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-bold);
   color: var(--foreground);
   margin-bottom: var(--space-sm);
 }
@@ -23,15 +23,17 @@
 .description {
   color: var(--secondary-text);
   font-size: var(--font-sm);
+  font-weight: var(--weight-regular);
   margin-bottom: var(--space-xl);
 }
 
 .summaryCard {
-  background: var(--bg-secondary);
+  background: var(--input-bg);
   border-radius: var(--radius-md);
   padding: var(--space-lg);
   display: flex;
   justify-content: space-between;
+  border: 1px solid var(--border);
 }
 
 .summaryItem {
@@ -42,13 +44,15 @@
 .summaryLabel {
   font-size: var(--font-xs);
   color: var(--secondary-text);
+  font-weight: var(--weight-regular);
   margin-bottom: 4px;
 }
 
 .summaryValue {
   font-size: var(--font-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--foreground);
+  font-family: var(--font-number);
 }
 
 .section {
@@ -57,8 +61,8 @@
 }
 
 .sectionTitle {
-  font-size: var(--font-md);
-  font-weight: 600;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
   color: var(--secondary-text);
   margin-bottom: var(--space-md);
   text-transform: uppercase;
@@ -71,76 +75,82 @@
   padding: var(--space-lg);
   margin-bottom: var(--space-md);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .itemInfo {
-    flex: 1;
+  flex: 1;
 }
 
 .itemName {
-    font-size: var(--font-md);
-    font-weight: 500;
-    color: var(--foreground);
+  font-size: var(--font-md);
+  font-weight: var(--weight-medium);
+  color: var(--foreground);
 }
 
 .itemMeta {
-    font-size: var(--font-xs);
-    color: var(--secondary-text);
-    margin-top: 4px;
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+  margin-top: 4px;
 }
 
 .itemAmount {
-    text-align: right;
+  text-align: right;
 }
 
 .planAmount {
-    font-size: var(--font-md);
-    font-weight: 600;
-    color: var(--foreground);
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  color: var(--foreground);
+  font-family: var(--font-number);
 }
 
 .actualAmount {
-    font-size: var(--font-sm);
-    color: var(--success);
+  font-size: var(--font-sm);
+  color: var(--success);
+  font-weight: var(--weight-medium);
 }
 
 .actions {
-    margin-top: var(--space-md);
-    display: flex;
-    gap: var(--space-sm);
+  margin-top: var(--space-md);
+  display: flex;
+  gap: var(--space-sm);
 }
 
 .actionBtn {
-    padding: 6px var(--space-md);
-    border-radius: var(--radius-md);
-    font-size: var(--font-xs);
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
+  padding: 6px var(--space-md);
+  border-radius: 20px;
+  font-size: var(--font-xs);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border: none;
+  min-height: 36px;
+  transition: all var(--transition-fast) var(--ease-out);
 }
 
 .btnDone {
-    background: var(--success);
-    color: white;
+  background: var(--success);
+  color: white;
 }
 
 .btnCancel {
-    background: var(--danger-bg);
-    color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
 }
 
 .btnEdit {
-    background: var(--bg-secondary);
-    color: var(--foreground);
+  background: var(--input-bg);
+  color: var(--foreground);
 }
 
 .fab {
-  position: fixed; /* Should match standard FAB style */
+  position: fixed;
   bottom: var(--fab-bottom);
-  right: var(--space-xl);
+  right: calc(50% - var(--container-max-width) / 2 + var(--space-xl));
   width: var(--fab-size);
   height: var(--fab-size);
   border-radius: calc(var(--fab-size) / 2);
@@ -149,8 +159,19 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 179, 134, 0.35);
   border: none;
   cursor: pointer;
   z-index: 10;
+  transition: transform 0.15s var(--ease-out);
+}
+
+@media (max-width: 480px) {
+  .fab {
+    right: var(--space-xl);
+  }
+}
+
+.fab:active {
+  transform: scale(0.95);
 }

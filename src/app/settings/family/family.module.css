@@ -1,7 +1,7 @@
-/* Family Management — LDSM Redesign */
+/* Family Management — MAKE-inspired */
 
 .page {
-  padding: var(--space-2xl);
+  padding: var(--section-margin);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
 }
 
@@ -21,11 +21,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--foreground);
 }
 
 .title {
   font-size: var(--font-2xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   margin: 0;
 }
 
@@ -37,6 +38,7 @@
 
 .denied h2 {
   font-size: var(--font-xl);
+  font-weight: var(--weight-semibold);
   margin-bottom: 8px;
 }
 
@@ -54,6 +56,12 @@
   background: var(--card-bg);
   cursor: pointer;
   font-size: var(--font-base);
+  font-family: var(--font-sans);
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.deniedBtn:active {
+  background: var(--input-bg);
 }
 
 /* Member list */
@@ -85,12 +93,13 @@
 
 .memberName {
   font-size: var(--font-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .memberRole {
   font-size: var(--font-sm);
   color: var(--secondary-text);
+  font-weight: var(--weight-regular);
 }
 
 /* Form inputs */
@@ -100,7 +109,16 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   font-size: var(--font-md);
+  font-family: var(--font-sans);
   margin-bottom: 4px;
+  background: var(--card-bg);
+  color: var(--foreground);
+}
+
+.nameInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
 }
 
 .roleRadios {
@@ -114,6 +132,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  font-weight: var(--weight-medium);
 }
 
 /* Action buttons */
@@ -163,6 +182,7 @@
   border-radius: var(--radius-sm);
   padding: 6px 12px;
   font-size: var(--font-sm);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 36px;
   transition: background var(--transition-fast) var(--ease-out);
@@ -194,16 +214,18 @@
   background: none;
   color: var(--secondary-text);
   font-size: var(--font-md);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   cursor: pointer;
-  min-height: 44px; /* LDSM touch target */
+  min-height: 44px;
   transition: border-color var(--transition-fast) var(--ease-out);
 }
 
 .addBtn:active {
   border-color: var(--primary);
+  color: var(--primary);
 }

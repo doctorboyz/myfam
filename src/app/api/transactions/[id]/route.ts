@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId } from '@/lib/api';
+import { apiSuccess, apiError, parseId, getAuthUserId } from '@/lib/api';
 
 const transactionInclude = {
   category: { include: { group: true } },
@@ -22,6 +22,7 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
+    const userId = await getAuthUserId();
 
     await prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({ where: { id } });
@@ -32,7 +33,6 @@ export async function DELETE(
         const amount = Number(transaction.amount);
         const fee = transaction.fee ? Number(transaction.fee) : 0;
 
-        // Revert source account balance (mirror of create logic)
         if (transaction.type === 'income') {
           await tx.account.update({
             where: { id: transaction.accountId },
@@ -45,7 +45,6 @@ export async function DELETE(
           });
         }
 
-        // Revert destination account (transfer)
         if (transaction.type === 'transfer' && transaction.toAccountId) {
           await tx.account.update({
             where: { id: transaction.toAccountId },
@@ -54,8 +53,14 @@ export async function DELETE(
         }
       }
 
-      // TransactionTag records are cascade-deleted automatically
-      await tx.transaction.delete({ where: { id } });
+      // Soft delete
+      await tx.transaction.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: userId,
+        },
+      });
     });
 
     return apiSuccess({ success: true });

@@ -88,6 +88,24 @@ interface FinanceContextType {
   updateBudgetTransaction: (budgetId: string, itemId: string, updates: Partial<BudgetTransaction>) => void;
   deleteBudgetTransaction: (budgetId: string, itemId: string) => void;
   fetchAccounts: () => Promise<void>;
+
+  // Soft Delete & Trash
+  trashedAccounts: Account[];
+  trashedTransactions: Transaction[];
+  trashedBudgets: Budget[];
+  trashedTags: Tag[];
+  fetchTrashedAccounts: () => Promise<void>;
+  fetchTrashedTransactions: () => Promise<void>;
+  fetchTrashedBudgets: () => Promise<void>;
+  fetchTrashedTags: () => Promise<void>;
+  restoreAccount: (id: string) => Promise<void>;
+  restoreTransaction: (id: string) => Promise<void>;
+  restoreBudget: (id: string) => Promise<void>;
+  restoreTag: (id: string) => Promise<void>;
+  permanentDeleteAccount: (id: string) => Promise<void>;
+  permanentDeleteTransaction: (id: string) => Promise<void>;
+  permanentDeleteBudget: (id: string) => Promise<void>;
+  permanentDeleteTag: (id: string) => Promise<void>;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -808,6 +826,118 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Trash state
+  const [trashedAccounts, setTrashedAccounts] = useState<Account[]>([]);
+  const [trashedTransactions, setTrashedTransactions] = useState<Transaction[]>([]);
+  const [trashedBudgets, setTrashedBudgets] = useState<Budget[]>([]);
+  const [trashedTags, setTrashedTags] = useState<Tag[]>([]);
+
+  const fetchTrashedAccounts = async () => {
+    try {
+      const res = await fetch('/api/accounts/trash');
+      if (res.ok) {
+        const data = await res.json();
+        setTrashedAccounts(data.map((acc: ApiAccount) => ({
+          ...acc,
+          owner: acc.owner?.name || 'Unknown',
+          status: acc.status || 'active',
+          balance: Number(acc.balance),
+        })));
+      }
+    } catch (error) { console.error('Failed to fetch trashed accounts', error); }
+  };
+
+  const fetchTrashedTransactions = async () => {
+    try {
+      const res = await fetch('/api/transactions/trash');
+      if (res.ok) {
+        const data = await res.json();
+        setTrashedTransactions(data.map((tx: ApiTransaction) => ({
+          ...tx,
+          categoryGroup: tx.category?.group?.name || 'Unknown',
+          categoryId: tx.categoryId || tx.category?.id || null,
+          category: tx.category?.name || 'Unknown',
+          amount: Number(tx.amount),
+          tags: tx.tags || [],
+          tagIds: tx.tagIds || [],
+        })));
+      }
+    } catch (error) { console.error('Failed to fetch trashed transactions', error); }
+  };
+
+  const fetchTrashedBudgets = async () => {
+    try {
+      const res = await fetch('/api/budgets/trash');
+      if (res.ok) setTrashedBudgets(await res.json());
+    } catch (error) { console.error('Failed to fetch trashed budgets', error); }
+  };
+
+  const fetchTrashedTags = async () => {
+    try {
+      const res = await fetch('/api/tags/trash');
+      if (res.ok) setTrashedTags(await res.json());
+    } catch (error) { console.error('Failed to fetch trashed tags', error); }
+  };
+
+  const restoreAccount = async (id: string) => {
+    await fetch(`/api/accounts/${id}/restore`, { method: 'PATCH' });
+    setTrashedAccounts(prev => prev.filter(a => a.id !== id));
+    await fetchAccounts();
+  };
+
+  const restoreTransaction = async (id: string) => {
+    await fetch(`/api/transactions/${id}/restore`, { method: 'PATCH' });
+    setTrashedTransactions(prev => prev.filter(t => t.id !== id));
+    const txRes = await fetch('/api/transactions');
+    if (txRes.ok) {
+      const txData = await txRes.json();
+      setTransactions(txData.map((tx: ApiTransaction) => ({
+        ...tx,
+        categoryGroup: tx.category?.group?.name || 'Unknown',
+        categoryId: tx.categoryId || tx.category?.id || null,
+        category: tx.category?.name || 'Unknown',
+        amount: Number(tx.amount),
+        tags: tx.tags || [],
+        tagIds: tx.tagIds || [],
+      })));
+    }
+    await fetchAccounts();
+  };
+
+  const restoreBudget = async (id: string) => {
+    await fetch(`/api/budgets/${id}/restore`, { method: 'PATCH' });
+    setTrashedBudgets(prev => prev.filter(b => b.id !== id));
+    const res = await fetch('/api/budgets');
+    if (res.ok) setBudgets(await res.json());
+  };
+
+  const restoreTag = async (id: string) => {
+    await fetch(`/api/tags/${id}/restore`, { method: 'PATCH' });
+    setTrashedTags(prev => prev.filter(t => t.id !== id));
+    const res = await fetch('/api/tags');
+    if (res.ok) setTags(await res.json());
+  };
+
+  const permanentDeleteAccount = async (id: string) => {
+    await fetch(`/api/accounts/${id}/permanent`, { method: 'DELETE' });
+    setTrashedAccounts(prev => prev.filter(a => a.id !== id));
+  };
+
+  const permanentDeleteTransaction = async (id: string) => {
+    await fetch(`/api/transactions/${id}/permanent`, { method: 'DELETE' });
+    setTrashedTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const permanentDeleteBudget = async (id: string) => {
+    await fetch(`/api/budgets/${id}/permanent`, { method: 'DELETE' });
+    setTrashedBudgets(prev => prev.filter(b => b.id !== id));
+  };
+
+  const permanentDeleteTag = async (id: string) => {
+    await fetch(`/api/tags/${id}/permanent`, { method: 'DELETE' });
+    setTrashedTags(prev => prev.filter(t => t.id !== id));
+  };
+
   return (
     <FinanceContext.Provider value={{
       accounts: accountsForUser, 
@@ -855,6 +985,24 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       updateBudgetTransaction,
       deleteBudgetTransaction,
       fetchAccounts,
+
+      // Soft Delete & Trash
+      trashedAccounts,
+      trashedTransactions,
+      trashedBudgets,
+      trashedTags,
+      fetchTrashedAccounts,
+      fetchTrashedTransactions,
+      fetchTrashedBudgets,
+      fetchTrashedTags,
+      restoreAccount,
+      restoreTransaction,
+      restoreBudget,
+      restoreTag,
+      permanentDeleteAccount,
+      permanentDeleteTransaction,
+      permanentDeleteBudget,
+      permanentDeleteTag,
     }}>
       {children}
     </FinanceContext.Provider>

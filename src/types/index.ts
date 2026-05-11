@@ -18,11 +18,15 @@ export interface Account {
   type: AccountType;
   balance: number;
   color: string;
-  icon?: string; // Icon name from lucide-react
-  owner: string; // User.name
+  icon?: string;
+  owner: string;
   accountNo?: string;
   alias?: string;
   status: 'active' | 'archived';
+  createdById?: string;
+  updatedById?: string;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export type TransactionType = 'income' | 'expense' | 'transfer';
@@ -31,15 +35,19 @@ export interface CategoryGroup {
   id: string;
   name: string;
   type: TransactionType;
-  isCustom?: boolean; // User defined group?
+  isCustom?: boolean;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export interface Category {
   id: string;
   name: string;
   groupId: string;
-  isCustom?: boolean; // User defined category
-  userId?: string | null; // Null for system categories
+  isCustom?: boolean;
+  userId?: string | null;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export type BudgetStatus = 'pending' | 'done' | 'cancelled';
@@ -49,16 +57,16 @@ export interface BudgetTransaction {
   name: string;
   plannedAmount: number;
   actualAmount?: number;
-  date: string; // Target date or Completion date
+  date: string;
   status: BudgetStatus;
   type: TransactionType;
   categoryId: string;
-  accountId?: string; // Account used for actual payment
-  toAccountId?: string; // For transfers
-  linkedTransactionId?: string; // ID of the real transaction when status is done
+  accountId?: string;
+  toAccountId?: string;
+  linkedTransactionId?: string;
   tags?: string[];
   tagIds?: string[];
-  createdById?: string; // Who created this plan item
+  createdById?: string;
 }
 
 export interface Budget {
@@ -71,7 +79,10 @@ export interface Budget {
   startDate: string;
   endDate?: string;
   items: BudgetTransaction[];
-  createdById?: string; // Creator
+  createdById?: string;
+  updatedById?: string;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export interface Tag {
@@ -80,23 +91,29 @@ export interface Tag {
   userId: string;
   color?: string;
   familyId: string;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export interface Transaction {
   id: string;
   accountId: string;
-  toAccountId?: string; // For transfers
+  toAccountId?: string;
   category: string;
   categoryId?: string;
   categoryGroup: string;
-  date: string; // ISO String
+  date: string;
   amount: number;
   fee?: number;
   type: TransactionType;
   description?: string;
   slipImage?: string;
-  tags?: string[]; // Tag names (for display, resolved from TransactionTag)
-  tagIds?: string[]; // Tag IDs (for saving)
+  tags?: string[];
+  tagIds?: string[];
+  createdById: string;
+  updatedById?: string;
+  deletedById?: string;
+  deletedAt?: string | null;
 }
 
 export interface DateRange {

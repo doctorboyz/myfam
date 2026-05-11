@@ -50,8 +50,16 @@ export async function DELETE(request: Request, props: { params: Promise<{ id: st
       return apiError('Not authorized', 403);
     }
 
-    await prisma.tag.delete({ where: { id } });
-    return apiSuccess({ deleted: true });
+    // Soft delete
+    await prisma.tag.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedById: currentUser.id,
+      },
+    });
+
+    return apiSuccess({ success: true });
   } catch (error) {
     console.error('Failed to delete tag:', error);
     return apiError('Failed to delete tag');

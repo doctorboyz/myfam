@@ -11,7 +11,7 @@
 
 .title {
   font-size: var(--font-2xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--foreground);
   margin: 0;
 }
@@ -31,12 +31,13 @@
 }
 
 .groupHeader {
-  padding: var(--space-lg);
+  padding: var(--card-padding);
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  background: var(--bg-secondary);
+  background: var(--input-bg);
+  min-height: 48px;
 }
 
 .headerLeft {
@@ -52,7 +53,7 @@
 }
 
 .groupTitle {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-size: var(--font-md);
 }
 
@@ -60,8 +61,9 @@
   font-size: var(--font-xs);
   background: var(--card-bg);
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   color: var(--secondary-text);
+  font-weight: var(--weight-medium);
 }
 
 .headerRight {
@@ -72,8 +74,9 @@
 }
 
 .groupTotal {
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   font-size: var(--font-base);
+  font-family: var(--font-number);
 }
 
 .txList {
@@ -83,18 +86,19 @@
 .txItem {
   display: flex;
   align-items: center;
-  padding: var(--space-md) var(--space-lg);
+  padding: var(--space-md) var(--card-padding);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s var(--ease-out);
+  min-height: 56px;
 }
 
 .txItem:last-child {
   border-bottom: none;
 }
 
-.txItem:hover {
-  background: rgba(0, 0, 0, 0.02);
+.txItem:active {
+  background: var(--input-bg);
 }
 
 .iconBox {
@@ -129,7 +133,7 @@
 }
 
 .txCategory {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-size: var(--font-base);
   color: var(--foreground);
 }
@@ -141,8 +145,9 @@
 }
 
 .txAmount {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   font-size: var(--font-base);
+  font-family: var(--font-number);
 }
 
 .empty {

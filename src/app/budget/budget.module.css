@@ -13,27 +13,31 @@
 }
 
 .addBtn {
-  background: var(--card-bg);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 20px;
   padding: var(--space-sm) var(--space-lg);
   font-size: var(--font-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   display: flex;
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 44px;
+  box-shadow: 0 2px 8px rgba(0, 179, 134, 0.25);
+  transition: all var(--transition-fast) var(--ease-out);
 }
 
 .addBtn:active {
   transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(0, 179, 134, 0.2);
 }
 
 .title {
   font-size: var(--font-2xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--foreground);
 }
 
@@ -48,7 +52,8 @@
   border-radius: var(--card-radius);
   padding: var(--card-padding);
   box-shadow: var(--shadow-sm);
-  transition: transform 0.2s;
+  border: 1px solid var(--border);
+  transition: transform 0.2s var(--ease-out);
   text-decoration: none;
   display: block;
 }
@@ -66,7 +71,7 @@
 
 .cardTitle {
   font-size: var(--font-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--foreground);
   margin-bottom: var(--space-xs);
 }
@@ -74,6 +79,7 @@
 .cardDescription {
   font-size: var(--font-sm);
   color: var(--secondary-text);
+  font-weight: var(--weight-regular);
 }
 
 .progressSection {
@@ -90,9 +96,9 @@
 
 .progressFill {
   height: 100%;
-  background: var(--primary);
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
   border-radius: 4px;
-  transition: width 0.3s ease;
+  transition: width 0.3s var(--ease-out);
 }
 
 .stats {
@@ -109,9 +115,11 @@
 .label {
   font-size: var(--font-xs);
   color: var(--secondary-text);
+  font-weight: var(--weight-regular);
 }
 
 .amount {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--foreground);
+  font-family: var(--font-number);
 }

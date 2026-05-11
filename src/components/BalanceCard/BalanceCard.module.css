@@ -4,6 +4,7 @@
   padding: var(--card-padding);
   margin: var(--card-margin);
   box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -28,9 +29,9 @@
 }
 
 .label {
-  font-size: 14px;
+  font-size: var(--font-sm);
   color: var(--secondary-text);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .editBtn {
@@ -40,6 +41,11 @@
   cursor: pointer;
   padding: 4px;
   border-radius: 50%;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.2s, background 0.2s;
 }
 
@@ -50,24 +56,28 @@
 
 .amount {
   font-size: var(--amount-size);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--foreground);
   margin-bottom: 16px;
-  letter-spacing: -1px;
+  letter-spacing: -0.5px;
+  font-family: var(--font-number);
 }
 
 .reconcileBtn {
-  background: var(--bg-secondary);
+  background: var(--input-bg);
   border: none;
-  padding: 8px 16px;
-  border-radius: var(--radius-lg);
-  font-size: 13px;
-  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   color: var(--foreground);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all var(--transition-fast) var(--ease-out);
+  min-height: 44px;
 }
 
-.reconcileBtn:hover {
+.reconcileBtn:active {
   background: var(--bg-secondary);
+  transform: scale(0.97);
 }

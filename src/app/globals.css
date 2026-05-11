@@ -1,26 +1,26 @@
-/* Global Styles — LIFF-first (compact mobile sizing) */
+/* Global Styles — MAKE by KBank inspired, LIFF-first */
 :root {
-  /* Color Palette — LINE Green primary + Apple finance accents */
-  --background: #f7f8fa;
-  --foreground: #1d1d1f;
+  /* Color Palette — Warmer green primary, modern accents */
+  --background: #f5f5f7;
+  --foreground: #1a1a2e;
   --card-bg: #ffffff;
-  --primary: #06c755;
-  --primary-dark: #05a34a;
-  --primary-light: #e8f9ef;
-  --success: #34c759;
-  --danger: #ff3b30;
-  --warning: #ff9500;
-  --secondary-text: #8e8e93;
-  --border: #e5e5ea;
+  --primary: #00b386;
+  --primary-dark: #009975;
+  --primary-light: #e6f7f2;
+  --success: #00b386;
+  --danger: #ff4757;
+  --warning: #ffa502;
+  --secondary-text: #8c8c9a;
+  --border: #e8e8ed;
 
   /* Background Variants */
-  --bg-secondary: #e5e5ea;
-  --input-bg: #f2f2f7;
+  --bg-secondary: #ebebf0;
+  --input-bg: #f0f0f5;
 
   /* Semantic Color Backgrounds */
-  --danger-bg: rgba(255, 59, 48, 0.1);
-  --success-bg: rgba(52, 199, 89, 0.1);
-  --primary-bg: rgba(6, 199, 85, 0.1);
+  --danger-bg: rgba(255, 71, 87, 0.1);
+  --success-bg: rgba(0, 179, 134, 0.1);
+  --primary-bg: rgba(0, 179, 134, 0.1);
 
   /* Interactive / Links (LDSM) */
   --interactive: #007aff;
@@ -30,31 +30,37 @@
   --expense: var(--danger);
   --transfer: var(--interactive);
 
-  /* Spacing & Radius */
-  --radius-lg: 20px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-  --radius-xs: 4px;
+  /* Spacing & Radius — larger radius for modern feel */
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-sm: 10px;
+  --radius-xs: 6px;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
 
-  /* Typography — Thai-first */
-  --font-thai: 'Sarabun', 'Noto Sans Thai', 'Thonburi', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Typography — Prompt (modern Thai font by Cadson Demak) */
+  --font-thai: 'Prompt', 'Noto Sans Thai', 'Thonburi', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-number: 'Inter', 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --font-sans: var(--font-thai);
 
-  /* Typography Scale — compact for mobile */
-  --font-xs: 12px;
+  /* Font Weights */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Typography Scale — refined for mobile */
+  --font-xs: 11px;
   --font-sm: 12px;
   --font-base: 14px;
   --font-md: 15px;
   --font-lg: 16px;
   --font-xl: 18px;
-  --font-2xl: 20px;
-  --font-3xl: 26px;
-  --font-hero: 28px;
+  --font-2xl: 22px;
+  --font-3xl: 28px;
+  --font-hero: 34px;
 
   /* Spacing Scale — compact for mobile */
   --space-xs: 4px;
@@ -64,23 +70,23 @@
   --space-xl: 16px;
   --space-2xl: 20px;
 
-  /* Layout — mobile-first */
+  /* Layout — mobile-first, max-width for desktop */
   --bottomnav-height: 64px;
   --fab-bottom: 72px;
   --fab-size: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  --card-padding: 14px;
-  --card-gap: 10px;
+  --card-padding: 16px;
+  --card-gap: 12px;
   --card-margin: 12px;
-  --card-radius: var(--radius-md);
+  --card-radius: 16px;
   --amount-size: 24px;
-  --icon-size: 32px;
-  --section-margin: 14px;
-  --container-max-width: 100%;
+  --icon-size: 36px;
+  --section-margin: 16px;
+  --container-max-width: 480px;
   --main-font-size: 14px;
-  --bottom-sheet-radius: 16px;
+  --bottom-sheet-radius: 20px;
   --chart-bar-height: 160px;
   --chart-pie-height: 220px;
 
@@ -99,9 +105,9 @@
     --secondary-text: #98989d;
     --bg-secondary: #2c2c2e;
     --input-bg: #2c2c2e;
-    --danger-bg: rgba(255, 59, 48, 0.15);
-    --success-bg: rgba(52, 199, 89, 0.15);
-    --primary-bg: rgba(6, 199, 85, 0.15);
+    --danger-bg: rgba(255, 71, 87, 0.15);
+    --success-bg: rgba(0, 179, 134, 0.15);
+    --primary-bg: rgba(0, 179, 134, 0.15);
     --primary-light: #1a3a2a;
   }
 }
@@ -115,12 +121,13 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-sarabun), var(--font-thai);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;
   font-size: var(--font-base);
-  line-height: 1.6;
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
 }
 
 /* Prevent iOS zoom on form inputs */
@@ -130,10 +137,11 @@ textarea {
   font-size: 16px !important;
 }
 
-/* Mobile Container */
+/* Mobile Container — centered on desktop */
 main {
   width: 100%;
   max-width: var(--container-max-width);
+  margin: 0 auto;
   background: var(--background);
   min-height: 100vh;
   position: relative;

@@ -8,7 +8,7 @@ export async function GET() {
 
     const budgets = await prisma.budget.findMany({
       where: {
-        status: { not: 'archived' },
+        deletedAt: null,
         createdBy: { familyId: currentUser.familyId },
       },
       include: {

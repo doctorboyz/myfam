@@ -1,7 +1,7 @@
-/* Profile Page — LDSM Redesign */
+/* Profile Page — MAKE-inspired */
 
 .page {
-  padding: var(--space-2xl);
+  padding: var(--section-margin);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
 }
 
@@ -31,8 +31,8 @@
 }
 
 .name {
-  font-size: var(--font-3xl);
-  font-weight: 800; /* Heavy — LDSM Heading 1 */
+  font-size: var(--font-2xl);
+  font-weight: var(--weight-bold);
   margin: 0;
 }
 
@@ -66,7 +66,8 @@
 
 .editNameInput {
   font-size: var(--font-xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-sans);
   text-align: center;
   padding: 8px 12px;
   border: 2px solid var(--primary);
@@ -98,7 +99,7 @@
 }
 
 .editBtn:active {
-  background: var(--primary-dark, #05a74a);
+  background: var(--primary-dark);
 }
 
 .cancelBtn {
@@ -133,8 +134,8 @@
 
 .roleText {
   font-size: var(--font-sm);
-  font-weight: 500;
-  color: var(--secondary-text);
+  font-weight: var(--weight-medium);
+  color: var(--primary-dark);
 }
 
 /* Menu Section */
@@ -143,8 +144,9 @@
 }
 
 .menuLabel {
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   color: var(--secondary-text);
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -164,11 +166,12 @@
   gap: 12px;
   width: 100%;
   padding: 14px 16px;
-  min-height: 44px; /* LDSM touch target */
+  min-height: 44px;
   border: none;
   background: none;
   cursor: pointer;
   font-size: var(--font-md);
+  font-family: var(--font-sans);
   color: var(--foreground);
   transition: background var(--transition-fast) var(--ease-out);
   text-decoration: none;
@@ -190,11 +193,13 @@
 .menuItemLabel {
   flex: 1;
   text-align: left;
+  font-weight: var(--weight-medium);
 }
 
 .menuItemChevron {
   color: var(--secondary-text);
   flex-shrink: 0;
+  font-size: 18px;
 }
 
 /* Footer */
@@ -204,7 +209,7 @@
 }
 
 .version {
-  font-size: var(--font-xs); /* 12px — LDSM Body 4 minimum */
+  font-size: var(--font-xs);
   color: var(--secondary-text);
 }
 
@@ -214,9 +219,9 @@
 }
 
 .dangerLabel {
-  font-size: var(--font-sm);
+  font-size: var(--font-xs);
   color: var(--danger);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 12px;
@@ -250,7 +255,7 @@
 
 .dangerItemName {
   font-size: var(--font-md);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .dangerItemBalance {
@@ -269,7 +274,8 @@
   background: transparent;
   color: var(--danger);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
   transition: all 0.15s;
@@ -290,6 +296,7 @@
   justify-content: center;
   z-index: 100;
   padding: var(--space-lg);
+  backdrop-filter: blur(4px);
 }
 
 .confirmDialog {
@@ -298,12 +305,12 @@
   padding: var(--space-xl);
   max-width: 340px;
   width: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirmTitle {
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   margin: 0 0 var(--space-md);
   color: var(--foreground);
 }
@@ -335,6 +342,7 @@
   background: transparent;
   color: var(--secondary-text);
   font-size: var(--font-sm);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
 }
@@ -346,7 +354,8 @@
   background: var(--danger);
   color: white;
   font-size: var(--font-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
 }

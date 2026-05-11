@@ -7,7 +7,7 @@ export async function GET() {
     if (!currentUser) return apiError('Not authenticated', 401);
 
     const tags = await prisma.tag.findMany({
-      where: { familyId: currentUser.familyId },
+      where: { deletedAt: null, familyId: currentUser.familyId },
       orderBy: { name: 'asc' },
     });
 

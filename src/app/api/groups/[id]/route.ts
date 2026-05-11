@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId } from '@/lib/api';
+import { apiSuccess, apiError, parseId, getAuthUserId } from '@/lib/api';
 
 export async function PATCH(
   request: Request,
@@ -27,11 +27,25 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
+    const userId = await getAuthUserId();
 
-    // Delete categories first, then group (atomic)
+    // Soft delete group and its categories
     await prisma.$transaction(async (tx) => {
-      await tx.category.deleteMany({ where: { groupId: id } });
-      await tx.categoryGroup.delete({ where: { id } });
+      await tx.category.updateMany({
+        where: { groupId: id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: userId,
+        },
+      });
+
+      await tx.categoryGroup.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedById: userId,
+        },
+      });
     });
 
     return apiSuccess({ success: true });

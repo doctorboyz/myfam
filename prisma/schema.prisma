@@ -74,10 +74,24 @@ model User {
   family       Family        @relation(fields: [familyId], references: [id])
   accounts     Account[]
   transactions Transaction[]
-  categories   Category[] // User defined categories
+  categories   Category[]
   budgets      Budget[]
   lineLink     LineLink?
   tags         Tag[]
+
+  // Audit trail relations
+  createdAccounts      Account[]         @relation("AccountCreator")
+  updatedAccounts      Account[]         @relation("AccountUpdater")
+  deletedAccounts      Account[]         @relation("AccountDeleter")
+  deletedReconciliations Reconciliation[] @relation("ReconciliationDeleter")
+  deletedCategoryGroups CategoryGroup[]  @relation("CategoryGroupDeleter")
+  deletedCategories    Category[]        @relation("CategoryDeleter")
+  updatedTransactions  Transaction[]     @relation("TransactionUpdater")
+  deletedTransactions  Transaction[]     @relation("TransactionDeleter")
+  deletedTags          Tag[]             @relation("TagDeleter")
+  deletedTransactionTags TransactionTag[] @relation("TransactionTagDeleter")
+  updatedBudgets       Budget[]          @relation("BudgetUpdater")
+  deletedBudgets       Budget[]          @relation("BudgetDeleter")
 }
 
 model Account {
@@ -97,6 +111,14 @@ model Account {
   outgoingTransactions Transaction[]    @relation("Outgoing")
   reconciliations      Reconciliation[]
 
+  createdById String?  @map("created_by_id")
+  createdBy   User?    @relation("AccountCreator", fields: [createdById], references: [id])
+  updatedById String?  @map("updated_by_id")
+  updatedBy   User?    @relation("AccountUpdater", fields: [updatedById], references: [id])
+  deletedById String?  @map("deleted_by_id")
+  deletedBy   User?    @relation("AccountDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
@@ -111,6 +133,10 @@ model Reconciliation {
   note            String?
   performedById   String  @map("performed_by_id")
 
+  deletedById String?   @map("deleted_by_id")
+  deletedBy   User?    @relation("ReconciliationDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+
   createdAt DateTime @default(now()) @map("created_at")
 }
 
@@ -120,6 +146,10 @@ model CategoryGroup {
   type       String
   isCustom   Boolean    @default(false)
   categories Category[]
+
+  deletedById String?   @map("deleted_by_id")
+  deletedBy   User?     @relation("CategoryGroupDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -135,6 +165,10 @@ model Category {
   user   User?   @relation(fields: [userId], references: [id])
 
   transactions Transaction[]
+
+  deletedById String?   @map("deleted_by_id")
+  deletedBy   User?     @relation("CategoryDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -172,6 +206,12 @@ model Transaction {
   // Tags (many-to-many via TransactionTag)
   tagRecords TransactionTag[]
 
+  updatedById String?  @map("updated_by_id")
+  updatedBy   User?    @relation("TransactionUpdater", fields: [updatedById], references: [id])
+  deletedById String?  @map("deleted_by_id")
+  deletedBy   User?    @relation("TransactionDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 }
@@ -180,7 +220,7 @@ model Tag {
   id       String  @id @default(uuid())
   name     String
   userId   String  @map("user_id")
-  color    String? // Optional tag color
+  color    String?
   familyId String  @map("family_id")
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -188,7 +228,11 @@ model Tag {
 
   transactions TransactionTag[]
 
-  @@unique([name, userId]) // Same user can't have duplicate tags
+  deletedById String?   @map("deleted_by_id")
+  deletedBy   User?     @relation("TagDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([name, userId])
   @@map("tags")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -203,7 +247,11 @@ model TransactionTag {
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   tag         Tag         @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
-  @@unique([transactionId, tagId]) // No duplicate tag on same transaction
+  deletedById String?   @map("deleted_by_id")
+  deletedBy   User?     @relation("TransactionTagDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
+
+  @@unique([transactionId, tagId])
   @@map("transaction_tags")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -238,6 +286,12 @@ model Budget {
 
   createdById String @map("created_by_id")
   createdBy   User   @relation(fields: [createdById], references: [id])
+
+  updatedById String?  @map("updated_by_id")
+  updatedBy   User?    @relation("BudgetUpdater", fields: [updatedById], references: [id])
+  deletedById String?  @map("deleted_by_id")
+  deletedBy   User?    @relation("BudgetDeleter", fields: [deletedById], references: [id])
+  deletedAt   DateTime? @map("deleted_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

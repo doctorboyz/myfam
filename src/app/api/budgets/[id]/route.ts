@@ -20,6 +20,10 @@ export async function PATCH(
 
     const data = pickFields(body, ['title', 'description', 'limit', 'period', 'startDate', 'endDate', 'icon', 'color']);
 
+    if (userId) {
+      (data as Record<string, unknown>).updatedById = userId;
+    }
+
     const updatedBudget = await prisma.budget.update({
       where: { id },
       data,
@@ -38,12 +42,16 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
+    const userId = await getAuthUserId();
 
-    // Archive budget and void pending transactions
+    // Soft delete budget and void pending transactions
     await prisma.$transaction(async (tx) => {
       await tx.budget.update({
         where: { id },
-        data: { status: 'archived' },
+        data: {
+          deletedAt: new Date(),
+          deletedById: userId,
+        },
       });
 
       await tx.transaction.updateMany({

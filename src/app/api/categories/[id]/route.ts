@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, pickFields } from '@/lib/api';
+import { apiSuccess, apiError, parseId, pickFields, getAuthUserId } from '@/lib/api';
 
 export async function PATCH(
   request: Request,
@@ -9,6 +9,11 @@ export async function PATCH(
     const id = await parseId(props);
     const body = await request.json();
     const data = pickFields(body, ['name', 'groupId']);
+
+    const userId = await getAuthUserId();
+    if (userId) {
+      (data as Record<string, unknown>).updatedById = userId;
+    }
 
     const updatedCategory = await prisma.category.update({
       where: { id },
@@ -28,21 +33,15 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
+    const userId = await getAuthUserId();
 
-    // Check if category is used in any transactions
-    const usedCount = await prisma.transaction.count({
-      where: { categoryId: id },
-    });
-
-    if (usedCount > 0) {
-      return apiError(
-        `Cannot delete this category because it is used in ${usedCount} transaction(s). You can rename it instead.`,
-        409
-      );
-    }
-
-    await prisma.category.delete({
+    // Soft delete category
+    await prisma.category.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedById: userId,
+      },
     });
 
     return apiSuccess({ success: true });

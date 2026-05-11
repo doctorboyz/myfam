@@ -4,8 +4,8 @@ import { apiSuccess, apiError } from '@/lib/api';
 export async function GET() {
   try {
     const [groups, categories] = await Promise.all([
-      prisma.categoryGroup.findMany({ orderBy: { type: 'asc' } }),
-      prisma.category.findMany({ orderBy: { name: 'asc' } }),
+      prisma.categoryGroup.findMany({ where: { deletedAt: null }, orderBy: { type: 'asc' } }),
+      prisma.category.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } }),
     ]);
 
     return apiSuccess({ groups, categories });

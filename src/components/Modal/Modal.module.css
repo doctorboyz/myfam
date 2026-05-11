@@ -6,7 +6,7 @@
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-end; /* Bottom sheet on mobile / centered on desktop? Let's go centered for now or bottom for mobile feel */
+  align-items: flex-end;
   justify-content: center;
   z-index: 1000;
   backdrop-filter: blur(4px);
@@ -17,11 +17,13 @@
   background: var(--card-bg);
   width: 100%;
   max-width: var(--container-max-width, 440px);
-  border-radius: var(--radius-lg);
+  border-radius: var(--bottom-sheet-radius);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  max-height: 90vh; /* Allow scrolling content */
+  max-height: 90vh;
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -40,7 +42,7 @@
 
 .title {
   font-size: var(--font-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .closeBtn {
@@ -49,6 +51,17 @@
   cursor: pointer;
   color: var(--secondary-text);
   padding: var(--space-xs);
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.closeBtn:active {
+  background: var(--input-bg);
 }
 
 .content {
@@ -58,9 +71,10 @@
 
 @media (min-width: 481px) {
   .overlay {
-    align-items: center; /* Center on desktop */
+    align-items: center;
   }
   .container {
+    border-radius: var(--radius-lg);
     animation: fadeIn 0.2s ease-out;
   }
   @keyframes fadeIn {

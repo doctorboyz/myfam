@@ -7,7 +7,7 @@
   display: flex;
   gap: var(--space-xs);
   margin: 0 var(--space-lg);
-  background: var(--card-bg);
+  background: var(--input-bg);
   border-radius: var(--radius-md);
   padding: var(--space-xs);
 }
@@ -18,16 +18,19 @@
   border: none;
   border-radius: var(--radius-sm);
   font-size: var(--font-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s var(--ease-out);
   background: transparent;
   color: var(--secondary-text);
+  min-height: 40px;
 }
 
 .tabBtn.active {
   background: var(--primary);
   color: white;
+  box-shadow: 0 2px 8px rgba(0, 179, 134, 0.25);
 }
 
 .reconcileList {
@@ -45,6 +48,7 @@
   background: var(--card-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
+  border: 1px solid var(--border);
 }
 
 .reconcileItem {
@@ -53,6 +57,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
+  min-height: 56px;
 }
 
 .reconcileItem:last-child {
@@ -67,7 +72,7 @@
 
 .reconcileDate {
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   color: var(--foreground);
 }
 
@@ -85,7 +90,8 @@
 
 .reconcileDiff {
   font-size: var(--font-md);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
+  font-family: var(--font-number);
 }
 
 .reconcileDiff.positive {
@@ -104,17 +110,18 @@
   margin: var(--space-lg) auto;
   padding: var(--space-sm) var(--space-lg);
   border: 1px solid var(--danger);
-  border-radius: var(--radius-sm);
+  border-radius: 20px;
   background: transparent;
   color: var(--danger);
   font-size: var(--font-sm);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
+  font-family: var(--font-sans);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s var(--ease-out);
   min-height: 44px;
 }
 
-.deleteAccountBtn:hover {
+.deleteAccountBtn:active {
   background: var(--danger);
   color: white;
 }
@@ -128,6 +135,7 @@
   justify-content: center;
   z-index: 100;
   padding: var(--space-lg);
+  backdrop-filter: blur(4px);
 }
 
 .confirmDialog {
@@ -136,12 +144,12 @@
   padding: var(--space-xl);
   max-width: 340px;
   width: 100%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-lg);
 }
 
 .confirmTitle {
   font-size: var(--font-lg);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   margin: 0 0 var(--space-md);
   color: var(--foreground);
 }
@@ -173,6 +181,7 @@
   background: transparent;
   color: var(--secondary-text);
   font-size: var(--font-sm);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
 }
@@ -184,7 +193,8 @@
   background: var(--danger);
   color: white;
   font-size: var(--font-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
 }

@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Sarabun } from "next/font/google";
+import { Prompt } from "next/font/google";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav/BottomNav";
 import { FinanceProvider } from "@/context/FinanceContext";
 import { LiffProvider } from "@/context/LiffContext";
 
-const sarabun = Sarabun({
+const prompt = Prompt({
   subsets: ["thai", "latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-sarabun",
+  variable: "--font-prompt",
 });
 
 const inter = Inter({
@@ -36,7 +36,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body className={`${sarabun.variable} ${inter.variable}`}>
+      <body className={`${prompt.variable} ${inter.variable}`}>
         <LiffProvider>
           <FinanceProvider>
             <main>

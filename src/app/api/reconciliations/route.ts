@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   try {
     const reconciliations = await prisma.reconciliation.findMany({
-      where: { accountId },
+      where: { deletedAt: null, accountId },
       orderBy: { createdAt: 'desc' },
     });
 
