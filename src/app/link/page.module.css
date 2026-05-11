@@ -5,6 +5,8 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-lg);
+  padding-top: calc(var(--safe-top, 0px) + var(--space-lg));
+  padding-bottom: calc(var(--safe-bottom, 0px) + var(--space-lg));
   background: var(--background);
 }
 

@@ -124,7 +124,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
+  min-height: 100dvh;
   font-size: var(--font-base);
   font-weight: var(--weight-regular);
   line-height: 1.5;
@@ -143,7 +143,7 @@ main {
   max-width: var(--container-max-width);
   margin: 0 auto;
   background: var(--background);
-  min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   padding-top: var(--safe-top);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px);

@@ -1,7 +1,7 @@
 .container {
   padding: var(--section-margin);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: var(--background);
 }
 
