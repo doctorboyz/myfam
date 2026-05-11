@@ -37,10 +37,17 @@
     font-weight: 500;
 }
 
+.label {
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
+}
+
 .labelText {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: block;
 }
 
 .arrow {

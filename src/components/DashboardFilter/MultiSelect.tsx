@@ -47,8 +47,8 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
     };
 
     const getLabelClass = (label: string) => {
-        if (label.length > 14) return styles.optionLabelTiny;
-        if (label.length > 10) return styles.optionLabelSmall;
+        if (label.length > 12) return styles.optionLabelTiny;
+        if (label.length > 8) return styles.optionLabelSmall;
         return '';
     };
 
