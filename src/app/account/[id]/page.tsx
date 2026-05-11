@@ -212,13 +212,13 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
             <p className={styles.confirmWarning}>
               การดำเนินการนี้จะลบบัญชีและรายการธุรกรรมทั้งหมดถาวร ไม่สามารถกู้คืนได้
             </p>
-            <p className={styles.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+            <p className={styles.confirmHint}>พิมพ์ <strong>ไม่ต้องการบริหารเงิน</strong> เพื่อยืนยัน</p>
             <input
               className={styles.confirmInput}
               type="text"
               value={deleteConfirmInput}
               onChange={(e) => setDeleteConfirmInput(e.target.value)}
-              placeholder="ลบ"
+              placeholder="ไม่ต้องการบริหารเงิน"
               autoFocus
             />
             <div className={styles.confirmActions}>
@@ -227,7 +227,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
               </button>
               <button
                 className={styles.dangerBtn}
-                disabled={deleteConfirmInput !== 'ลบ'}
+                disabled={deleteConfirmInput !== 'ไม่ต้องการบริหารเงิน'}
                 onClick={handleDeleteAccount}
               >
                 ลบถาวร

@@ -177,13 +177,13 @@ export default function AccountsPage() {
               <p className={styles.confirmWarning}>
                 การดำเนินการนี้ไม่สามารถกู้คืนได้
               </p>
-              <p className={styles.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+              <p className={styles.confirmHint}>พิมพ์ <strong>ไม่ต้องการบริหารเงิน</strong> เพื่อยืนยัน</p>
               <input
                 className={styles.confirmInput}
                 type="text"
                 value={confirmInput}
                 onChange={(e) => setConfirmInput(e.target.value)}
-                placeholder="ลบ"
+                placeholder="ไม่ต้องการบริหารเงิน"
                 autoFocus
               />
               <div className={styles.confirmActions}>
@@ -192,7 +192,7 @@ export default function AccountsPage() {
                 </button>
                 <button
                   className={styles.dangerBtnOverlay}
-                  disabled={confirmInput !== 'ลบ'}
+                  disabled={confirmInput !== 'ไม่ต้องการบริหารเงิน'}
                   onClick={async () => {
                     await permanentDeleteAccount(confirmDelete);
                     setConfirmDelete(null);

@@ -168,13 +168,13 @@ export default function Profile() {
                 <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                 การดำเนินการนี้จะลบบัญชี ธุรกรรม งบประมาณ และแท็กทั้งหมดของผู้ใช้นี้ถาวร ไม่สามารถกู้คืนได้
               </p>
-              <p className={s.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+              <p className={s.confirmHint}>พิมพ์ <strong>ไม่ต้องการบริหารเงิน</strong> เพื่อยืนยัน</p>
               <input
                 className={s.confirmInput}
                 type="text"
                 value={deleteConfirmInput}
                 onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                placeholder="ลบ"
+                placeholder="ไม่ต้องการบริหารเงิน"
                 autoFocus
               />
               <div className={s.confirmActions}>
@@ -183,7 +183,7 @@ export default function Profile() {
                 </button>
                 <button
                   className={s.dangerBtnOverlay}
-                  disabled={deleteConfirmInput !== 'ลบ'}
+                  disabled={deleteConfirmInput !== 'ไม่ต้องการบริหารเงิน'}
                   onClick={async () => {
                     await removeUser(showDeleteUser);
                     setShowDeleteUser(null);

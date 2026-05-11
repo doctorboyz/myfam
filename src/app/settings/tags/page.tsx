@@ -39,7 +39,7 @@ export default function SettingsTagsPage() {
   };
 
   const confirmDelete = () => {
-    if (deleteTarget && deleteConfirmInput === 'ลบ') {
+    if (deleteTarget && deleteConfirmInput === 'ไม่ต้องการบริหารเงิน') {
       deleteTag(deleteTarget.id);
       setDeleteTarget(null);
       setDeleteConfirmInput('');
@@ -153,13 +153,13 @@ export default function SettingsTagsPage() {
             <p className={s.confirmWarning}>
               รายการธุรกรรมที่ใช้แท็กนี้จะไม่ถูกลบ แต่แท็กจะถูกนำออก
             </p>
-            <p className={s.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+            <p className={s.confirmHint}>พิมพ์ <strong>ไม่ต้องการบริหารเงิน</strong> เพื่อยืนยัน</p>
             <input
               className={s.confirmInput}
               type="text"
               value={deleteConfirmInput}
               onChange={(e) => setDeleteConfirmInput(e.target.value)}
-              placeholder="ลบ"
+              placeholder="ไม่ต้องการบริหารเงิน"
               autoFocus
               onKeyDown={(e) => { if (e.key === 'Enter') confirmDelete(); }}
             />
@@ -167,7 +167,7 @@ export default function SettingsTagsPage() {
               <button className={s.cancelBtn} onClick={() => { setDeleteTarget(null); setDeleteConfirmInput(''); }}>
                 ยกเลิก
               </button>
-              <button className={s.dangerBtn} disabled={deleteConfirmInput !== 'ลบ'} onClick={confirmDelete}>
+              <button className={s.dangerBtn} disabled={deleteConfirmInput !== 'ไม่ต้องการบริหารเงิน'} onClick={confirmDelete}>
                 ลบถาวร
               </button>
             </div>
