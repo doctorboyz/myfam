@@ -41,7 +41,7 @@
     background: transparent;
     padding: var(--space-xs) var(--space-md);
     border-radius: var(--radius-sm);
-    font-size: var(--font-xs);
+    font-size: 9px;
     color: var(--secondary-text);
     font-weight: 500;
     cursor: pointer;

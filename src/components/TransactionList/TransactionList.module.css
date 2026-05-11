@@ -65,7 +65,7 @@
 
 .category {
   font-weight: 600;
-  font-size: var(--font-base);
+  font-size: 9px;
   color: var(--foreground);
 }
 

@@ -89,10 +89,18 @@ export default function FamilyManagement() {
     setInviteLoading(null);
   };
 
+  const getInviteLink = () => {
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+    if (liffId) {
+      return `https://liff.line.me/${liffId}/link?code=${inviteState!.code}`;
+    }
+    const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
+    return `${baseUrl}/link?code=${inviteState!.code}`;
+  };
+
   const handleCopyLink = () => {
     if (!inviteState) return;
-    const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
-    const link = `${baseUrl}/link?code=${inviteState.code}`;
+    const link = getInviteLink();
     navigator.clipboard.writeText(link).then(() => {
       setInviteState({ ...inviteState, copied: true });
       setTimeout(() => {
@@ -106,8 +114,7 @@ export default function FamilyManagement() {
     try {
       const liffModule = await import('@line/liff');
       const liff = liffModule.default || liffModule;
-      const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
-      const link = `${baseUrl}/link?code=${inviteState.code}`;
+      const link = getInviteLink();
       const userName = users.find(u => u.id === inviteState.userId)?.name || '';
       await liff.sendMessages([
         {
