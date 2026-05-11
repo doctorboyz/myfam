@@ -5,7 +5,7 @@
   transform: translateX(-50%);
   width: 100%;
   max-width: var(--container-max-width);
-  height: var(--bottomnav-height);
+  height: calc(var(--bottomnav-height) + var(--liff-extra-bottom, 0px));
   background: var(--card-bg);
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -13,14 +13,9 @@
   border-top: 1px solid var(--border);
   z-index: 100;
   box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
-  padding-bottom: var(--safe-bottom, 0px);
+  padding-bottom: calc(var(--safe-bottom, 0px) + var(--liff-extra-bottom, 0px));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-}
-
-/* LIFF Browser: extra bottom padding for Android navigation bar */
-:global([data-in-liff="true"]) .nav {
-  padding-bottom: calc(var(--safe-bottom, 0px) + 12px);
 }
 
 .item {

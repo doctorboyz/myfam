@@ -46,9 +46,10 @@ export function LiffProvider({ children }: { children: ReactNode }) {
       const loggedIn = await isLoggedIn();
       const inClient = await isInClient();
 
-      // Mark LIFF environment for CSS adjustments
+      // Mark LIFF environment via CSS variables (works in production build)
       if (inClient) {
-        document.documentElement.setAttribute('data-in-liff', 'true');
+        document.documentElement.style.setProperty('--liff-header-height', '64px');
+        document.documentElement.style.setProperty('--liff-extra-bottom', '16px');
       }
 
       if (loggedIn) {

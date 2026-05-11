@@ -54,34 +54,36 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    width: 220px; /* Slightly wider */
+    width: 220px;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
-    z-index: 1000;
+    z-index: 9999;
     overflow: hidden;
-    animation: fadeIn 0.15s ease-out;
+    animation: fadeInDown 0.15s ease-out;
 }
 
-@keyframes fadeIn {
+.dropUp {
+    top: auto;
+    bottom: calc(100% + 4px);
+    animation: fadeInUp 0.15s ease-out;
+}
+
+@keyframes fadeInDown {
     from { opacity: 0; transform: translateY(-4px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .scrollArea {
-    max-height: 280px;
+    max-height: 220px;
     overflow-y: auto;
     padding: 4px;
-}
-
-/* LIFF: smaller dropdown to avoid screen edge overflow */
-:global([data-in-liff="true"]) .dropdown {
-    z-index: 9999;
-}
-
-:global([data-in-liff="true"]) .scrollArea {
-    max-height: 220px;
 }
 
 .group {

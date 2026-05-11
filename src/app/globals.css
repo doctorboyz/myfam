@@ -76,6 +76,9 @@
   --fab-size: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* LIFF overrides — set via JS in LiffContext */
+  --liff-header-height: 0px;
+  --liff-extra-bottom: 0px;
 
   --card-padding: 16px;
   --card-gap: 12px;
@@ -145,14 +148,8 @@ main {
   background: var(--background);
   min-height: 100dvh;
   position: relative;
-  padding-top: var(--safe-top);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px);
-}
-
-/* LIFF Browser: extra padding for LINE header + status bar */
-[data-in-liff="true"] main {
-  padding-top: calc(var(--safe-top) + 52px);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 16px);
+  padding-top: calc(var(--safe-top) + var(--liff-header-height));
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px + var(--liff-extra-bottom));
 }
 
 a {

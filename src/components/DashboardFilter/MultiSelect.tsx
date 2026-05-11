@@ -20,6 +20,7 @@ interface MultiSelectProps {
 
 export default function MultiSelect({ label, options, selected, onChange, disabled = false }: MultiSelectProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [dropUp, setDropUp] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Close on click outside
@@ -34,6 +35,16 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
     }, []);
 
     if (disabled) return null;
+
+    const handleToggle = () => {
+        if (!isOpen && containerRef.current) {
+            const rect = containerRef.current.getBoundingClientRect();
+            const spaceBelow = window.innerHeight - rect.bottom - 120; // 120px buffer for bottom nav + safe area
+            const spaceAbove = rect.top - 80; // 80px buffer for header
+            setDropUp(spaceBelow < 200 && spaceAbove > 200);
+        }
+        setIsOpen(!isOpen);
+    };
 
     const toggleOption = (id: string) => {
         const newSelected = selected.includes(id)
@@ -61,7 +72,7 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
         <div className={styles.container} ref={containerRef}>
             <div 
                 className={`${styles.trigger} ${isOpen ? styles.active : ''} ${selected.length > 0 ? styles.hasSelection : ''}`}
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleToggle}
             >
                 <div className={styles.label}>
                     <span className={styles.labelText}>{displayText}</span>
@@ -70,7 +81,7 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
             </div>
 
             {isOpen && (
-                <div className={styles.dropdown}>
+                <div className={`${styles.dropdown} ${dropUp ? styles.dropUp : ''}`}>
                     <div className={styles.scrollArea}>
                     {hasGroups ? (
                         groupedOptions.map(([groupName, groupOptions]) => (
