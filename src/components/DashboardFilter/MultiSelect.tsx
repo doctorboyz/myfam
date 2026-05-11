@@ -46,6 +46,12 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
         setIsOpen(!isOpen);
     };
 
+    const getLabelClass = (label: string) => {
+        if (label.length > 14) return styles.optionLabelTiny;
+        if (label.length > 10) return styles.optionLabelSmall;
+        return '';
+    };
+
     const toggleOption = (id: string) => {
         const newSelected = selected.includes(id)
             ? selected.filter(s => s !== id)
@@ -96,22 +102,22 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
                                         <div className={styles.checkbox}>
                                             {selected.includes(opt.id) && <Check size={10} color="white" />}
                                         </div>
-                                        <span className={styles.optionLabel}>{opt.label}</span>
+                                        <span className={`${styles.optionLabel} ${getLabelClass(opt.label)}`}>{opt.label}</span>
                                     </div>
                                 ))}
                             </div>
                         ))
                     ) : (
                         options.map(opt => (
-                            <div 
-                                key={opt.id} 
+                            <div
+                                key={opt.id}
                                 className={`${styles.option} ${selected.includes(opt.id) ? styles.selected : ''}`}
                                 onClick={() => toggleOption(opt.id)}
                             >
                                 <div className={styles.checkbox}>
                                     {selected.includes(opt.id) && <Check size={10} color="white" />}
                                 </div>
-                                <span className={styles.optionLabel}>{opt.label}</span>
+                                <span className={`${styles.optionLabel} ${getLabelClass(opt.label)}`}>{opt.label}</span>
                             </div>
                         ))
                     )}

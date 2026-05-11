@@ -139,8 +139,18 @@
 .optionLabel {
     font-size: 13px;
     color: var(--foreground);
-    overflow-wrap: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     min-width: 0;
+}
+
+.optionLabelSmall {
+    font-size: 11px;
+}
+
+.optionLabelTiny {
+    font-size: 10px;
 }
 
 .footer {
