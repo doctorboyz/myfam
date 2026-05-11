@@ -20,6 +20,10 @@ export default function BottomNav() {
 
   const isActive = (path: string) => pathname === path || pathname.startsWith(path + '/');
 
+  // Uniform font size: shrink all labels if any label is too long
+  const maxLabelLen = Math.max(...navItems.map(i => i.name.length));
+  const labelClass = maxLabelLen > 6 ? styles.labelSmall : styles.label;
+
   return (
     <nav className={styles.nav}>
       {navItems.map((item) => (
@@ -29,7 +33,7 @@ export default function BottomNav() {
           className={`${styles.item} ${isActive(item.path) ? styles.active : ''}`}
         >
           <item.icon size={22} strokeWidth={isActive(item.path) ? 2.5 : 1.5} />
-          <span className={styles.label}>{item.name}</span>
+          <span className={labelClass}>{item.name}</span>
         </Link>
       ))}
     </nav>

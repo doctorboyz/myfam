@@ -48,7 +48,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
 
       // Mark LIFF environment via CSS variables (works in production build)
       if (inClient) {
-        document.documentElement.style.setProperty('--liff-header-height', '64px');
+        document.documentElement.style.setProperty('--liff-header-height', '48px');
         document.documentElement.style.setProperty('--liff-extra-bottom', '16px');
       }
 
