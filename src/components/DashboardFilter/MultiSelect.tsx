@@ -46,11 +46,8 @@ export default function MultiSelect({ label, options, selected, onChange, disabl
         setIsOpen(!isOpen);
     };
 
-    const getLabelClass = (label: string) => {
-        if (label.length > 10) return styles.optionLabelTiny;
-        if (label.length > 6) return styles.optionLabelSmall;
-        return '';
-    };
+    const getLabelClass = (_label: string) => '';
+    // All option labels now use uniform 9px size
 
     const toggleOption = (id: string) => {
         const newSelected = selected.includes(id)

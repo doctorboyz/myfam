@@ -51,12 +51,6 @@
 
 .label {
   font-weight: var(--weight-medium);
-  font-size: var(--font-xs);
-  line-height: 1.2;
-}
-
-.labelSmall {
-  font-weight: var(--weight-medium);
   font-size: 10px;
   line-height: 1.2;
 }
