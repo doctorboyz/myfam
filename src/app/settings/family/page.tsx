@@ -3,7 +3,7 @@
 import { useFinance } from '@/context/FinanceContext';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Check, Trash2, X } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, X, Link2, Copy, CheckCircle } from 'lucide-react';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
 import { User, UserRole } from '@/types';
 import s from './family.module.css';
@@ -15,6 +15,8 @@ export default function FamilyManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState<Partial<User>>({});
+  const [inviteState, setInviteState] = useState<{ userId: string; code: string; copied: boolean } | null>(null);
+  const [inviteLoading, setInviteLoading] = useState<string | null>(null);
 
   if (!currentUser) return <div className={s.page}>กำลังโหลด...</div>;
 
@@ -67,6 +69,59 @@ export default function FamilyManagement() {
     }
   };
 
+  const handleCreateInvite = async (userId: string) => {
+    setInviteLoading(userId);
+    try {
+      const res = await fetch('/api/invites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInviteState({ userId, code: data.invite.code, copied: false });
+      } else {
+        alert(data.error || 'ไม่สามารถสร้างลิงก์เชิญได้');
+      }
+    } catch {
+      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+    setInviteLoading(null);
+  };
+
+  const handleCopyLink = () => {
+    if (!inviteState) return;
+    const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
+    const link = `${baseUrl}/link?code=${inviteState.code}`;
+    navigator.clipboard.writeText(link).then(() => {
+      setInviteState({ ...inviteState, copied: true });
+      setTimeout(() => {
+        if (inviteState) setInviteState({ ...inviteState, copied: false });
+      }, 2000);
+    });
+  };
+
+  const handleSendLine = async () => {
+    if (!inviteState) return;
+    try {
+      const liffModule = await import('@line/liff');
+      const liff = liffModule.default || liffModule;
+      const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
+      const link = `${baseUrl}/link?code=${inviteState.code}`;
+      const userName = users.find(u => u.id === inviteState.userId)?.name || '';
+      await liff.sendMessages([
+        {
+          type: 'text',
+          text: `${currentUser.name} เชิญคุณเข้าร่วม MyFam! 🏠💰\n\nคลิกลิงก์ด้านล่างเพื่อเชื่อมบัญชี LINE กับ ${userName || 'สมาชิก'}\n\n${link}`,
+        },
+      ]);
+      alert('ส่งข้อความเรียบร้อยแล้ว!');
+    } catch {
+      // Fallback to copy if sendMessages fails
+      handleCopyLink();
+    }
+  };
+
   return (
     <div className={s.page}>
       <header className={s.header}>
@@ -79,6 +134,8 @@ export default function FamilyManagement() {
       <div className={s.memberList}>
         {users.map((user) => {
           const isEditing = editingId === user.id;
+          const isLinked = !!(user as User & { lineLink?: { lineUserId: string } | null }).lineLink;
+          const isInviteOpen = inviteState?.userId === user.id;
 
           return (
             <div key={user.id} className={isEditing ? s.memberCardEditing : s.memberCard}>
@@ -125,6 +182,7 @@ export default function FamilyManagement() {
                 ) : (
                   <div className={s.memberRole}>
                     {user.role === 'parent' ? 'ผู้ปกครอง' : 'ลูก'}
+                    {isLinked && <span style={{ marginLeft: 6, color: 'var(--success, #00b386)' }}>● เชื่อมแล้ว</span>}
                   </div>
                 )}
               </div>
@@ -143,15 +201,52 @@ export default function FamilyManagement() {
                     </button>
                   </>
                 ) : (
-                  <button className={s.editBtn} onClick={() => handleEdit(user)}>
-                    แก้ไข
-                  </button>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    {!isLinked && user.id !== currentUser.id && (
+                      <button
+                        className={s.inviteBtn}
+                        onClick={() => handleCreateInvite(user.id)}
+                        disabled={inviteLoading === user.id}
+                        aria-label="ส่งคำเชิญ"
+                        title="ส่งลิงก์เชื่อม LINE"
+                      >
+                        <Link2 size={14} />
+                      </button>
+                    )}
+                    <button className={s.editBtn} onClick={() => handleEdit(user)}>
+                      แก้ไข
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {/* Invite link display */}
+      {inviteState && (
+        <div className={s.inviteOverlay} onClick={() => setInviteState(null)}>
+          <div className={s.inviteCard} onClick={(e) => e.stopPropagation()}>
+            <h3 className={s.inviteTitle}>ลิงก์เชิญพร้อมใช้งาน</h3>
+            <p className={s.inviteText}>
+              ส่งลิงก์นี้ให้ <strong>{users.find(u => u.id === inviteState.userId)?.name}</strong> เพื่อเชื่อมบัญชี LINE
+            </p>
+            <div className={s.inviteCodeBox}>
+              <code className={s.inviteCode}>{inviteState.code}</code>
+            </div>
+            <div className={s.inviteActions}>
+              <button className={s.copyBtn} onClick={handleCopyLink}>
+                {inviteState.copied ? <CheckCircle size={16} /> : <Copy size={16} />}
+                {inviteState.copied ? 'คัดลอกแล้ว!' : 'คัดลอกลิงก์'}
+              </button>
+              <button className={s.sendLineBtn} onClick={handleSendLine}>
+                ส่งผ่าน LINE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isAdding && (
         <div className={s.addCard}>

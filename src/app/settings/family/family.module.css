@@ -229,3 +229,141 @@
   border-color: var(--primary);
   color: var(--primary);
 }
+
+/* Invite button */
+.inviteBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.inviteBtn:hover {
+  background: var(--primary-light);
+}
+
+.inviteBtn:active {
+  transform: scale(0.95);
+}
+
+.inviteBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Invite overlay */
+.inviteOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-lg);
+  backdrop-filter: blur(4px);
+}
+
+.inviteCard {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  max-width: 340px;
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.inviteTitle {
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  margin: 0 0 var(--space-sm);
+}
+
+.inviteText {
+  font-size: var(--font-sm);
+  color: var(--secondary-text);
+  margin: 0 0 var(--space-lg);
+  line-height: 1.5;
+}
+
+.inviteCodeBox {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.inviteCode {
+  font-size: var(--font-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.1em;
+  color: var(--primary);
+  font-family: var(--font-sans);
+}
+
+.inviteActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: white;
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  min-height: 44px;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.copyBtn:hover {
+  background: var(--primary-dark);
+}
+
+.copyBtn:active {
+  transform: scale(0.98);
+}
+
+.sendLineBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--primary);
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  min-height: 44px;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.sendLineBtn:hover {
+  background: var(--primary-light);
+}
+
+.sendLineBtn:active {
+  transform: scale(0.98);
+}

@@ -8,6 +8,7 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       where: { familyId: currentUser.familyId },
+      include: { lineLink: { select: { lineUserId: true } } },
     });
     return apiSuccess(users);
   } catch (error) {

@@ -55,8 +55,9 @@ model Family {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  members User[]
-  tags    Tag[]
+  members      User[]
+  tags         Tag[]
+  inviteCodes  InviteCode[]
 }
 
 model User {
@@ -76,8 +77,10 @@ model User {
   transactions Transaction[]
   categories   Category[]
   budgets      Budget[]
-  lineLink     LineLink?
-  tags         Tag[]
+  lineLink        LineLink?
+  tags            Tag[]
+  inviteCodes     InviteCode[]
+  createdInvites  InviteCode[] @relation("InviteCreator")
 
   // Audit trail relations
   createdAccounts      Account[]         @relation("AccountCreator")
@@ -295,4 +298,21 @@ model Budget {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+model InviteCode {
+  id          String    @id @default(uuid())
+  code        String    @unique @map("code")
+  userId      String    @unique @map("user_id")
+  familyId    String    @map("family_id")
+  createdById String    @map("created_by_id")
+  usedAt      DateTime? @map("used_at")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family     Family @relation(fields: [familyId], references: [id])
+  createdBy  User   @relation("InviteCreator", fields: [createdById], references: [id])
+
+  @@map("invite_codes")
 }

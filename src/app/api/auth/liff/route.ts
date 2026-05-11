@@ -8,49 +8,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-
-interface LineIdTokenPayload {
-  sub: string; // LINE userId
-  name?: string;
-  picture?: string;
-  aud: string;
-  exp: number;
-  iss: string;
-}
-
-async function verifyLineIdToken(idToken: string): Promise<LineIdTokenPayload | null> {
-  const channelId = process.env.LINE_CHANNEL_ID;
-  if (!channelId) {
-    console.error('[liff-auth] LINE_CHANNEL_ID not configured');
-    return null;
-  }
-
-  try {
-    const res = await fetch('https://api.line.me/oauth2/v2.1/verify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `id_token=${encodeURIComponent(idToken)}&client_id=${encodeURIComponent(channelId)}`,
-    });
-
-    if (!res.ok) {
-      console.error('[liff-auth] LINE verify failed:', res.status);
-      return null;
-    }
-
-    const payload: LineIdTokenPayload = await res.json();
-
-    // Check expiration
-    if (payload.exp && Date.now() / 1000 > payload.exp) {
-      console.error('[liff-auth] ID token expired');
-      return null;
-    }
-
-    return payload;
-  } catch (err) {
-    console.error('[liff-auth] LINE verify error:', err);
-    return null;
-  }
-}
+import { verifyLineIdToken } from '@/lib/line-id-token';
 
 export async function POST(request: Request) {
   try {

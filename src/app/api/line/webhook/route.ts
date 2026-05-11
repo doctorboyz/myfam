@@ -571,58 +571,14 @@ async function handleDeleteLast(
   return `🗑️ ลบรายการแล้ว\n${lastTransaction.description || '-'} ${formattedAmount} บาท`;
 }
 
-// ── Handle Link Command ───────────────────────────────────────────
+// ── Handle Link Command (deprecated — now guides to invite system) ──
 
 async function handleLinkCommand(
-  text: string,
+  _text: string,
   replyToken: string,
-  lineUserId: string,
+  _lineUserId: string,
 ): Promise<void> {
-  // Extract display name from "ลิงก์ <name>" or "link <name>"
-  const name = text.replace(/^ลิงก์\s*/i, '').replace(/^link\s*/i, '').trim();
-
-  if (!name) {
-    await sendLineReply(replyToken, 'กรุณาระบุชื่อ เช่น "ลิงก์ พ่อ" หรือ "ลิงก์ แม่"');
-    return;
-  }
-
-  // Search user by name (partial match)
-  const user = await prisma.user.findFirst({
-    where: {
-      name: { contains: name, mode: 'insensitive' },
-    },
-  });
-
-  if (!user) {
-    await sendLineReply(replyToken, `ไม่พบผู้ใช้ชื่อ "${name}" ในระบบ\nกรุณาตรวจสอบชื่อแล้วลองใหม่`);
-    return;
-  }
-
-  // Check if LINE user is already linked
-  const existingLink = await prisma.lineLink.findUnique({
-    where: { lineUserId },
-  });
-
-  if (existingLink) {
-    // Update existing link
-    await prisma.lineLink.update({
-      where: { id: existingLink.id },
-      data: { userId: user.id, displayName: name },
-    });
-    await sendLineReply(replyToken, `✅ เชื่อมต่อใหม่กับ "${user.name}" เรียบร้อยแล้ว`);
-    return;
-  }
-
-  // Create new link
-  await prisma.lineLink.create({
-    data: {
-      lineUserId,
-      userId: user.id,
-      displayName: name,
-    },
-  });
-
-  await sendLineReply(replyToken, `✅ เชื่อมต่อกับ "${user.name}" เรียบร้อยแล้ว\nตอนนี้คุณสามารถส่งข้อความหรือสลิปเพื่อบันทึกรายการได้เลย!`);
+  await sendLineReply(replyToken, `ยังไม่ได้เชื่อมบัญชี MyFam\n\n📌 กรุณาขอลิงก์เชื่อมต่อจากผู้ปกครอง\nผู้ปกครองสามารถสร้างลิงก์เชิญได้จาก\n⚙️ การตั้งค่า > สมาชิกครอบครัว ในแอป MyFam`);
 }
 
 // ── Event Handler ─────────────────────────────────────────────────
@@ -654,14 +610,14 @@ async function handleLineEvent(event: LineEvent): Promise<void> {
       }
 
       if (cmd === 'help') {
-        await sendLineReply(replyToken, `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n🔗 เชื่อมบัญชี — พิมพ์ "ลิงก์ ชื่อ"\n📊 ดูยอด — พิมพ์ "ดูยอด"`, menuQuickReply);
+        await sendLineReply(replyToken, `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n🔗 เชื่อมบัญชี — ขอลิงก์เชิญจากผู้ปกครองในแอป`, menuQuickReply);
         return;
       }
     }
 
     await sendLineReply(
       replyToken,
-      'ยังไม่ได้เชื่อมบัญชี MyFam\n\nกรุณาพิมพ์ "ลิงก์ <ชื่อ>" เพื่อเชื่อมต่อ\nเช่น "ลิงก์ พ่อ" หรือ "ลิงก์ แม่"',
+      'ยังไม่ได้เชื่อมบัญชี MyFam\n\n📌 กรุณาขอลิงก์เชื่อมต่อจากผู้ปกครอง\nผู้ปกครองสามารถสร้างลิงก์เชิญได้จาก\n⚙️ การตั้งค่า > สมาชิกครอบครัว ในแอป MyFam',
     );
     return;
   }

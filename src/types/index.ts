@@ -10,6 +10,7 @@ export interface User {
   avatar?: string;
   color: string;
   familyId: string;
+  lineLink?: { lineUserId: string } | null;
 }
 
 export interface Account {
