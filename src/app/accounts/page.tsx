@@ -51,6 +51,7 @@ export default function AccountsPage() {
   const [initialType, setInitialType] = useState<TransactionType>('expense');
   const [tab, setTab] = useState<Tab>('accounts');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [confirmInput, setConfirmInput] = useState('');
 
   const myAccounts = accounts.filter(a => a.owner === currentUser?.name);
 
@@ -167,7 +168,7 @@ export default function AccountsPage() {
         const account = myTrashedAccounts.find(a => a.id === confirmDelete);
         if (!account) return null;
         return (
-          <div className={styles.overlay} onClick={() => setConfirmDelete(null)}>
+          <div className={styles.overlay} onClick={() => { setConfirmDelete(null); setConfirmInput(''); }}>
             <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
               <h3 className={styles.confirmTitle}>ลบถาวร</h3>
               <p className={styles.confirmText}>
@@ -176,14 +177,28 @@ export default function AccountsPage() {
               <p className={styles.confirmWarning}>
                 การดำเนินการนี้ไม่สามารถกู้คืนได้
               </p>
+              <p className={styles.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+              <input
+                className={styles.confirmInput}
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder="ลบ"
+                autoFocus
+              />
               <div className={styles.confirmActions}>
-                <button className={styles.cancelBtnOverlay} onClick={() => setConfirmDelete(null)}>
+                <button className={styles.cancelBtnOverlay} onClick={() => { setConfirmDelete(null); setConfirmInput(''); }}>
                   ยกเลิก
                 </button>
-                <button className={styles.dangerBtnOverlay} onClick={async () => {
-                  await permanentDeleteAccount(confirmDelete);
-                  setConfirmDelete(null);
-                }}>
+                <button
+                  className={styles.dangerBtnOverlay}
+                  disabled={confirmInput !== 'ลบ'}
+                  onClick={async () => {
+                    await permanentDeleteAccount(confirmDelete);
+                    setConfirmDelete(null);
+                    setConfirmInput('');
+                  }}
+                >
                   ลบถาวร
                 </button>
               </div>

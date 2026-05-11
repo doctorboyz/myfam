@@ -14,6 +14,7 @@ export default function SettingsTagsPage() {
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Tag | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
   const startEdit = (tag: Tag) => {
     setEditingId(tag.id);
@@ -38,9 +39,10 @@ export default function SettingsTagsPage() {
   };
 
   const confirmDelete = () => {
-    if (deleteTarget) {
+    if (deleteTarget && deleteConfirmInput === 'ลบ') {
       deleteTag(deleteTarget.id);
       setDeleteTarget(null);
+      setDeleteConfirmInput('');
     }
   };
 
@@ -142,7 +144,7 @@ export default function SettingsTagsPage() {
 
       {/* Delete confirmation overlay */}
       {deleteTarget && (
-        <div className={s.overlay} onClick={() => setDeleteTarget(null)}>
+        <div className={s.overlay} onClick={() => { setDeleteTarget(null); setDeleteConfirmInput(''); }}>
           <div className={s.confirmDialog} onClick={(e) => e.stopPropagation()}>
             <h3 className={s.confirmTitle}>ลบแท็ก</h3>
             <p className={s.confirmText}>
@@ -151,11 +153,21 @@ export default function SettingsTagsPage() {
             <p className={s.confirmWarning}>
               รายการธุรกรรมที่ใช้แท็กนี้จะไม่ถูกลบ แต่แท็กจะถูกนำออก
             </p>
+            <p className={s.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+            <input
+              className={s.confirmInput}
+              type="text"
+              value={deleteConfirmInput}
+              onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              placeholder="ลบ"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmDelete(); }}
+            />
             <div className={s.confirmActions}>
-              <button className={s.cancelBtn} onClick={() => setDeleteTarget(null)}>
+              <button className={s.cancelBtn} onClick={() => { setDeleteTarget(null); setDeleteConfirmInput(''); }}>
                 ยกเลิก
               </button>
-              <button className={s.dangerBtn} onClick={confirmDelete}>
+              <button className={s.dangerBtn} disabled={deleteConfirmInput !== 'ลบ'} onClick={confirmDelete}>
                 ลบถาวร
               </button>
             </div>

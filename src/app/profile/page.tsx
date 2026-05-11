@@ -12,6 +12,7 @@ export default function Profile() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [showDeleteUser, setShowDeleteUser] = useState<string | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
   if (!currentUser) return <div className={s.page}>กำลังโหลดโปรไฟล์...</div>;
 
@@ -157,7 +158,7 @@ export default function Profile() {
         const member = users.find(u => u.id === showDeleteUser);
         if (!member) return null;
         return (
-          <div className={s.overlay} onClick={() => setShowDeleteUser(null)}>
+          <div className={s.overlay} onClick={() => { setShowDeleteUser(null); setDeleteConfirmInput(''); }}>
             <div className={s.confirmDialog} onClick={(e) => e.stopPropagation()}>
               <h3 className={s.confirmTitle}>ลบผู้ใช้</h3>
               <p className={s.confirmText}>
@@ -167,14 +168,28 @@ export default function Profile() {
                 <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
                 การดำเนินการนี้จะลบบัญชี ธุรกรรม งบประมาณ และแท็กทั้งหมดของผู้ใช้นี้ถาวร ไม่สามารถกู้คืนได้
               </p>
+              <p className={s.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+              <input
+                className={s.confirmInput}
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                placeholder="ลบ"
+                autoFocus
+              />
               <div className={s.confirmActions}>
-                <button className={s.cancelBtnOverlay} onClick={() => setShowDeleteUser(null)}>
+                <button className={s.cancelBtnOverlay} onClick={() => { setShowDeleteUser(null); setDeleteConfirmInput(''); }}>
                   ยกเลิก
                 </button>
-                <button className={s.dangerBtnOverlay} onClick={async () => {
-                  await removeUser(showDeleteUser);
-                  setShowDeleteUser(null);
-                }}>
+                <button
+                  className={s.dangerBtnOverlay}
+                  disabled={deleteConfirmInput !== 'ลบ'}
+                  onClick={async () => {
+                    await removeUser(showDeleteUser);
+                    setShowDeleteUser(null);
+                    setDeleteConfirmInput('');
+                  }}
+                >
                   ลบถาวร
                 </button>
               </div>

@@ -267,8 +267,33 @@
 .confirmWarning {
   font-size: var(--font-xs);
   color: var(--danger);
-  margin: 0 0 var(--space-lg);
+  margin: 0 0 var(--space-sm);
   line-height: 1.4;
+}
+
+.confirmHint {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  margin: 0 0 var(--space-sm);
+  font-weight: var(--weight-regular);
+}
+
+.confirmInput {
+  width: 100%;
+  padding: var(--space-md);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--foreground);
+  font-size: var(--font-md);
+  font-family: var(--font-sans);
+  margin-bottom: var(--space-lg);
+  outline: none;
+  transition: border-color var(--transition-fast) var(--ease-out);
+}
+
+.confirmInput:focus {
+  border-color: var(--danger);
 }
 
 .confirmActions {
@@ -300,4 +325,10 @@
   font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
+  transition: opacity var(--transition-fast) var(--ease-out);
+}
+
+.dangerBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

@@ -69,6 +69,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
   const [reconciliations, setReconciliations] = useState<Reconciliation[]>([]);
   const [activeTab, setActiveTab] = useState<HistoryTab>('transactions');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
   const handleDeleteAccount = async () => {
     await deleteAccount(id);
@@ -202,7 +203,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
       )}
 
       {showDeleteConfirm && (
-        <div className={styles.overlay} onClick={() => setShowDeleteConfirm(false)}>
+        <div className={styles.overlay} onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmInput(''); }}>
           <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
             <h3 className={styles.confirmTitle}>ลบบัญชี</h3>
             <p className={styles.confirmText}>
@@ -211,11 +212,24 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
             <p className={styles.confirmWarning}>
               การดำเนินการนี้จะลบบัญชีและรายการธุรกรรมทั้งหมดถาวร ไม่สามารถกู้คืนได้
             </p>
+            <p className={styles.confirmHint}>พิมพ์ <strong>ลบ</strong> เพื่อยืนยัน</p>
+            <input
+              className={styles.confirmInput}
+              type="text"
+              value={deleteConfirmInput}
+              onChange={(e) => setDeleteConfirmInput(e.target.value)}
+              placeholder="ลบ"
+              autoFocus
+            />
             <div className={styles.confirmActions}>
-              <button className={styles.cancelBtn} onClick={() => setShowDeleteConfirm(false)}>
+              <button className={styles.cancelBtn} onClick={() => { setShowDeleteConfirm(false); setDeleteConfirmInput(''); }}>
                 ยกเลิก
               </button>
-              <button className={styles.dangerBtn} onClick={handleDeleteAccount}>
+              <button
+                className={styles.dangerBtn}
+                disabled={deleteConfirmInput !== 'ลบ'}
+                onClick={handleDeleteAccount}
+              >
                 ลบถาวร
               </button>
             </div>
