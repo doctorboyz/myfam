@@ -54,7 +54,8 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    width: 220px;
+    min-width: 180px;
+    max-width: min(220px, calc(100vw - 32px));
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
@@ -83,6 +84,7 @@
 .scrollArea {
     max-height: 220px;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 4px;
 }
 
@@ -137,6 +139,8 @@
 .optionLabel {
     font-size: 13px;
     color: var(--foreground);
+    overflow-wrap: break-word;
+    min-width: 0;
 }
 
 .footer {
