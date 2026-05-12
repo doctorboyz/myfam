@@ -34,7 +34,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-xs);
+    font-size: 9px;
     color: var(--secondary-text);
     cursor: pointer;
     transition: all 0.2s;
@@ -56,7 +56,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: var(--space-xs);
-    font-size: var(--font-xs);
+    font-size: 9px;
     color: var(--foreground);
     width: 110px;
     font-family: inherit;

@@ -70,14 +70,14 @@
 }
 
 .date {
-  font-size: var(--font-xs);
+  font-size: 9px;
   color: var(--secondary-text);
   margin-top: 2px;
 }
 
 .amount {
   font-weight: 600;
-  font-size: var(--font-base);
+  font-size: 10px;
 }
 
 .expenseText {
