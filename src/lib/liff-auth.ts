@@ -82,10 +82,11 @@ export async function getProfile(): Promise<{
   }
 }
 
-export async function login(): Promise<void> {
+export async function login(redirectUri?: string): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  liff.default.login();
+  const options = redirectUri ? { redirectUri } : undefined;
+  liff.default.login(options);
 }
 
 export async function logout(): Promise<void> {

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Check, UserPlus, MessageCircle, LogIn } from 'lucide-react';
 import s from './page.module.css';
 
-type Step = 'loading' | 'confirm' | 'success' | 'error' | 'no-code';
+type Step = 'loading' | 'needs-login' | 'confirm' | 'success' | 'error' | 'no-code';
 
 interface LineProfile {
   lineUserId: string;
@@ -48,13 +48,14 @@ function LinkPageContent() {
 
         const loggedIn = await isLoggedIn();
         if (!loggedIn) {
-          // Not logged in to LINE, try auto-login
           const inClient = await isInClient();
           if (inClient) {
-            const { login } = await import('@/lib/liff-auth');
-            login();
+            // Inside LIFF — show login button so user can manually login
+            setStep('needs-login');
+          } else {
+            // Outside LIFF — show no-code instructions
+            setStep('no-code');
           }
-          setStep('no-code');
           return;
         }
 
@@ -191,6 +192,17 @@ function LinkPageContent() {
     router.push('/dashboard');
   };
 
+  const handleLogin = async () => {
+    try {
+      const { login } = await import('@/lib/liff-auth');
+      // Preserve current URL (including ?code=...) so we come back here after LINE login
+      const redirectUri = window.location.href;
+      await login(redirectUri);
+    } catch {
+      setError('ไม่สามารถเปิดหน้า login ได้');
+    }
+  };
+
   const displayName = lineProfile?.displayName || '...';
   const initial = displayName.charAt(0).toUpperCase();
 
@@ -200,6 +212,27 @@ function LinkPageContent() {
         <div className={s.card}>
           <div className={s.loadingSpinner} />
           <p className={s.subtitle}>กำลังตรวจสอบ...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'needs-login') {
+    return (
+      <div className={s.page}>
+        <div className={s.card}>
+          <div className={s.avatar}>🤝</div>
+          <h1 className={s.title}>เข้าสู่ระบบ LINE</h1>
+          <p className={s.subtitle}>
+            กรุณาเข้าสู่ระบบ LINE เพื่อดำเนินการเชื่อมบัญชี
+          </p>
+          {error && <p className={s.errorMessage}>{error}</p>}
+          <div className={s.actions}>
+            <button className={s.linkBtn} onClick={handleLogin}>
+              <LogIn size={20} />
+              เข้าสู่ระบบด้วย LINE
+            </button>
+          </div>
         </div>
       </div>
     );

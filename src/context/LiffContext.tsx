@@ -52,6 +52,9 @@ export function LiffProvider({ children }: { children: ReactNode }) {
         document.documentElement.style.setProperty('--liff-extra-bottom', '16px');
       }
 
+      // On /link page, let the page handle its own LIFF auth flow
+      const isLinkPage = typeof window !== 'undefined' && window.location.pathname === '/link';
+
       if (loggedIn) {
         const idToken = await getIDToken();
         if (idToken && mounted) {
@@ -66,10 +69,9 @@ export function LiffProvider({ children }: { children: ReactNode }) {
             // Auth failed silently — fallback to cookie auth
           }
         }
-      } else {
-        if (inClient) {
-          liffLogin();
-        }
+      } else if (inClient && !isLinkPage) {
+        // Auto-login on other pages, but let /link handle its own flow
+        liffLogin();
       }
 
       if (mounted) setIsReady(true);
