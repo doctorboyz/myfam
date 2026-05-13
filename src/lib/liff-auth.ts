@@ -23,6 +23,22 @@ export async function initLiff(): Promise<boolean> {
 
   try {
     const liff = await getLiff();
+
+    // WORKAROUND: LIFF SDK v2.28.0 auto-login in in-app browser passes
+    // a URL object (from addParamsToUrl) as redirectUri, which gets
+    // stringified to "[object Object]" causing 400 Bad Request.
+    // Patch login() to coerce URL objects to strings before the SDK
+    // sends them to LINE OAuth.
+    const originalLogin = liff.login.bind(liff);
+    liff.login = function (options?: { redirectUri?: string | URL | { href?: string } }) {
+      if (options && options.redirectUri && typeof options.redirectUri !== 'string') {
+        const urlObj = options.redirectUri as { href?: string; toString?: () => string };
+        const redirectUri = urlObj.href || (urlObj.toString ? urlObj.toString() : String(urlObj));
+        return originalLogin({ ...options, redirectUri } as any);
+      }
+      return originalLogin(options as any);
+    };
+
     await liff.init({ liffId, withLoginOnExternalBrowser: false });
     initialized = true;
     return true;
