@@ -1,6 +1,8 @@
 .container {
-  padding: var(--section-margin);
+  padding-top: var(--space-md);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
   min-height: 100dvh;
   background-color: var(--background);
 }
@@ -9,11 +11,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-sm);
 }
 
 .title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-lg);
   font-weight: var(--weight-bold);
   color: var(--foreground);
 }

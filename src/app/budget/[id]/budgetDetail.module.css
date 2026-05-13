@@ -22,7 +22,7 @@
 
 .description {
   color: var(--secondary-text);
-  font-size: var(--font-sm);
+  font-size: 9px;
   font-weight: var(--weight-regular);
   margin-bottom: var(--space-xl);
 }
@@ -49,7 +49,7 @@
 }
 
 .summaryValue {
-  font-size: var(--font-lg);
+  font-size: 10px;
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   font-family: var(--font-number);
@@ -61,7 +61,7 @@
 }
 
 .sectionTitle {
-  font-size: var(--font-sm);
+  font-size: 9px;
   font-weight: var(--weight-semibold);
   color: var(--secondary-text);
   margin-bottom: var(--space-md);
@@ -86,7 +86,7 @@
 }
 
 .itemName {
-  font-size: var(--font-md);
+  font-size: 9px;
   font-weight: var(--weight-medium);
   color: var(--foreground);
 }
@@ -102,14 +102,14 @@
 }
 
 .planAmount {
-  font-size: var(--font-md);
+  font-size: 10px;
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   font-family: var(--font-number);
 }
 
 .actualAmount {
-  font-size: var(--font-sm);
+  font-size: 10px;
   color: var(--success);
   font-weight: var(--weight-medium);
 }
@@ -162,7 +162,7 @@
   box-shadow: 0 4px 16px rgba(0, 179, 134, 0.35);
   border: none;
   cursor: pointer;
-  z-index: 10;
+  z-index: 200;
   transition: transform 0.15s var(--ease-out);
 }
 
@@ -174,4 +174,27 @@
 
 .fab:active {
   transform: scale(0.95);
+}
+
+.metaBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: var(--secondary-text);
+  background: var(--input-bg);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-md);
+}
+
+.goalReachedBanner {
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  text-align: center;
+  margin-top: var(--space-md);
 }

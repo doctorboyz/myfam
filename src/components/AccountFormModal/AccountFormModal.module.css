@@ -1,12 +1,12 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .field label {
   display: block;
-  font-size: 13px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--secondary-text);
   margin-bottom: 6px;
@@ -19,7 +19,7 @@
   border: 1px solid var(--border);
   background: var(--background);
   color: var(--foreground);
-  font-size: 16px;
+  font-size: 11px;
 }
 
 .row {
@@ -51,14 +51,14 @@
 }
 
 .submitBtn {
-  margin-top: 10px;
+  margin-top: 8px;
   width: 100%;
-  padding: 14px;
+  padding: 10px;
   background: var(--primary);
   color: var(--card-bg);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -69,18 +69,18 @@
 
 .actions {
   display: flex;
-  gap: 12px;
-  margin-top: 24px;
+  gap: 10px;
+  margin-top: 20px;
 }
 
 .cancelBtn {
   flex: 1;
-  padding: 14px;
+  padding: 10px;
   background: transparent;
   color: var(--secondary-text);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -105,7 +105,7 @@
 }
 
 .selectedIconDisplay span {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
 }
 

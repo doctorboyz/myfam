@@ -1,15 +1,17 @@
 /* Family Management — MAKE-inspired */
 
 .page {
-  padding: var(--section-margin);
+  padding-top: var(--space-md);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
 }
 
 .header {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
+  margin-bottom: var(--space-sm);
 }
 
 .backBtn {
@@ -25,7 +27,7 @@
 }
 
 .title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-lg);
   font-weight: var(--weight-bold);
   margin: 0;
 }

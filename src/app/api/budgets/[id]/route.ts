@@ -18,7 +18,7 @@ export async function PATCH(
       }
     }
 
-    const data = pickFields(body, ['title', 'description', 'limit', 'period', 'startDate', 'endDate', 'icon', 'color']);
+    const data = pickFields(body, ['title', 'description', 'purpose', 'limit', 'period', 'startDate', 'endDate', 'icon', 'color', 'targetAccountId', 'rewardForUserId']);
 
     if (userId) {
       (data as Record<string, unknown>).updatedById = userId;

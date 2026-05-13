@@ -1,23 +1,24 @@
 .container {
+  padding-top: var(--space-md);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
 }
 
 .header {
-  padding: 0 var(--space-lg) var(--space-xl);
+  padding: 0 var(--space-lg) var(--space-sm);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-lg);
   font-weight: var(--weight-bold);
   color: var(--foreground);
   margin: 0;
 }
 
 .content {
-  padding: var(--space-lg);
+  padding: 0 var(--space-lg) var(--space-lg);
   display: flex;
   flex-direction: column;
   gap: var(--card-gap);
@@ -54,7 +55,7 @@
 
 .groupTitle {
   font-weight: var(--weight-semibold);
-  font-size: var(--font-md);
+  font-size: 10px;
 }
 
 .groupCount {
@@ -134,19 +135,19 @@
 
 .txCategory {
   font-weight: var(--weight-semibold);
-  font-size: var(--font-base);
+  font-size: 9px;
   color: var(--foreground);
 }
 
 .txDate {
-  font-size: var(--font-xs);
+  font-size: 9px;
   color: var(--secondary-text);
   margin-top: 2px;
 }
 
 .txAmount {
   font-weight: var(--weight-semibold);
-  font-size: var(--font-base);
+  font-size: 10px;
   font-family: var(--font-number);
 }
 

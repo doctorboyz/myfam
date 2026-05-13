@@ -54,7 +54,7 @@
   /* Typography Scale — refined for mobile */
   --font-xs: 11px;
   --font-sm: 12px;
-  --font-base: 14px;
+  --font-base: 12px;
   --font-md: 15px;
   --font-lg: 16px;
   --font-xl: 18px;
@@ -72,7 +72,7 @@
 
   /* Layout — mobile-first, max-width for desktop */
   --bottomnav-height: 64px;
-  --fab-bottom: 72px;
+  --fab-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + 25px);
   --fab-size: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -88,7 +88,6 @@
   --icon-size: 36px;
   --section-margin: 16px;
   --container-max-width: 480px;
-  --main-font-size: 14px;
   --bottom-sheet-radius: 20px;
   --chart-bar-height: 160px;
   --chart-pie-height: 220px;
@@ -127,20 +126,13 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh; /* Fallback for older WebViews */
   min-height: 100dvh;
-  font-size: var(--font-base);
   font-weight: var(--weight-regular);
   line-height: 1.5;
   /* Prevent browser from auto-scaling text (especially in LIFF WebView) */
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
-}
-
-/* Prevent iOS zoom on form inputs */
-input,
-select,
-textarea {
-  font-size: 16px !important;
 }
 
 /* Mobile Container — centered on desktop */
@@ -149,9 +141,10 @@ main {
   max-width: var(--container-max-width);
   margin: 0 auto;
   background: var(--background);
+  min-height: 100vh; /* Fallback for older WebViews */
   min-height: 100dvh;
   position: relative;
-  padding-top: calc(var(--safe-top) + var(--liff-header-height));
+  padding-top: var(--safe-top);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px + var(--liff-extra-bottom));
 }
 

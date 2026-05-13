@@ -60,12 +60,19 @@ export function formatBangkokShortDate(date: Date | string): string {
   }).format(d);
 }
 
+/** Convert a Date to Bangkok-time equivalent (local fields reflect Bangkok clock) */
+function toBangkokTime(date: Date): Date {
+  const bangkokOffset = 7 * 60; // GMT+7 in minutes
+  const utcMs = date.getTime() + date.getTimezoneOffset() * 60000;
+  return new Date(utcMs + bangkokOffset * 60000);
+}
+
 /** Get Bangkok timezone date string for input[type=date] (YYYY-MM-DD) */
 export function getBangkokDateString(date: Date = new Date()): string {
   const d = typeof date === 'string' ? new Date(date) : date;
-  return bangkokShortFormatter({
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d).split('/').reverse().join('-');
+  const bangkokDate = toBangkokTime(d);
+  const year = bangkokDate.getFullYear();
+  const month = String(bangkokDate.getMonth() + 1).padStart(2, '0');
+  const day = String(bangkokDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }

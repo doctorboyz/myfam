@@ -19,7 +19,7 @@
   border: none;
   background: transparent;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--secondary-text);
   cursor: pointer;
@@ -75,7 +75,7 @@
 .cancelBtn, .saveBtn {
   padding: 10px 20px;
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
   cursor: pointer;
   border: none;

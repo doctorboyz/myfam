@@ -70,15 +70,23 @@ export interface BudgetTransaction {
   createdById?: string;
 }
 
+export type BudgetPurpose = 'spending' | 'savings' | 'reward';
+
 export interface Budget {
   id: string;
   title: string;
   description?: string;
+  purpose: BudgetPurpose;
   period: 'monthly' | 'one_time';
   limit: number;
   imageUrl?: string;
   startDate: string;
   endDate?: string;
+  status: 'active' | 'completed' | 'archived';
+  color?: string;
+  icon?: string;
+  targetAccountId?: string;
+  rewardForUserId?: string;
   items: BudgetTransaction[];
   createdById?: string;
   updatedById?: string;

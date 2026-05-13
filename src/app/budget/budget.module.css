@@ -1,6 +1,8 @@
 .container {
-  padding: var(--section-margin);
+  padding-top: var(--space-md);
   padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
   min-height: 100dvh;
   background-color: var(--background);
 }
@@ -9,7 +11,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-sm);
 }
 
 .addBtn {
@@ -18,7 +20,7 @@
   border: none;
   border-radius: 20px;
   padding: var(--space-sm) var(--space-lg);
-  font-size: var(--font-sm);
+  font-size: 9px;
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);
   display: flex;
@@ -36,9 +38,40 @@
 }
 
 .title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-lg);
   font-weight: var(--weight-bold);
   color: var(--foreground);
+}
+
+/* Tab bar */
+.tabBar {
+  display: flex;
+  background: var(--input-bg);
+  border-radius: var(--radius-md);
+  padding: var(--space-xs);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-lg);
+}
+
+.tab {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  border: none;
+  background: transparent;
+  color: var(--secondary-text);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-sans);
+  font-size: 9px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s var(--ease-out);
+  min-height: 40px;
+}
+
+.tabActive {
+  background: var(--card-bg);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
 }
 
 .grid {
@@ -70,14 +103,14 @@
 }
 
 .cardTitle {
-  font-size: var(--font-lg);
+  font-size: 10px;
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   margin-bottom: var(--space-xs);
 }
 
 .cardDescription {
-  font-size: var(--font-sm);
+  font-size: 9px;
   color: var(--secondary-text);
   font-weight: var(--weight-regular);
 }
@@ -104,7 +137,7 @@
 .stats {
   display: flex;
   justify-content: space-between;
-  font-size: var(--font-sm);
+  font-size: 9px;
 }
 
 .statItem {

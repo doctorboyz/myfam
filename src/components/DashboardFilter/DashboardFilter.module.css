@@ -11,25 +11,27 @@
 }
 
 .dateFilter {
-    grid-column: 1 / -1; /* Reset to full width on mobile if needed, or adjust based on layout */
+    grid-column: 1 / -1;
     background: var(--card-bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
     padding: var(--space-sm);
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: var(--space-sm);
-    align-items: center;
-    justify-content: space-between;
+    align-items: stretch;
 }
 
 .datePresets {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .presetBtn {
+    flex: 1;
     background: none;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
@@ -38,6 +40,9 @@
     color: var(--secondary-text);
     cursor: pointer;
     transition: all 0.2s;
+    text-align: center;
+    min-width: 52px;
+    white-space: nowrap;
 }
 
 .presetBtn:hover {
@@ -49,6 +54,8 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    justify-content: space-between;
+    width: 100%;
 }
 
 .dateInput {
@@ -58,7 +65,8 @@
     padding: var(--space-xs);
     font-size: 9px;
     color: var(--foreground);
-    width: 110px;
+    flex: 1;
+    min-width: 0;
     font-family: inherit;
 }
 
@@ -66,16 +74,32 @@
     color: var(--secondary-text);
 }
 
-/* Response adjustments */
+/* Desktop: horizontal layout */
 @media (min-width: 768px) {
     .container {
-        grid-template-columns: repeat(4, 1fr); /* 4 columns for filters */
+        grid-template-columns: repeat(4, 1fr);
     }
-    
+
     .dateFilter {
-        grid-column: span 4; /* Date takes full row below or next to it? */
-        /* Actually with 5 items: User, Account, Type, Category, Date */
-        /* If User is hidden, 4 items. */
-        /* Let's make Date span full width to accommodate presets + inputs comfortably. */
+        grid-column: span 4;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .datePresets {
+        flex-wrap: nowrap;
+        width: auto;
+        flex: 1;
+    }
+
+    .presetBtn {
+        flex: 0 0 auto;
+        min-width: unset;
+    }
+
+    .dateInputs {
+        width: auto;
+        justify-content: flex-end;
     }
 }

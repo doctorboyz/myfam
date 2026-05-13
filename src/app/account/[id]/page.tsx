@@ -79,6 +79,8 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
+  const [selectedReconciliation, setSelectedReconciliation] = useState<Reconciliation | null>(null);
+  const [isReconcileDetailOpen, setIsReconcileDetailOpen] = useState(false);
 
   const account = accounts.find((a) => a.id === id);
   const transactions = getAccountTransactions(id);
@@ -173,7 +175,15 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
           ) : (
             <div className={styles.reconcileCard}>
               {reconciliations.map((r) => (
-                <div key={r.id} className={styles.reconcileItem}>
+                <div
+                  key={r.id}
+                  className={styles.reconcileItem}
+                  onClick={() => {
+                    setSelectedReconciliation(r);
+                    setIsReconcileDetailOpen(true);
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className={styles.reconcileInfo}>
                     <div className={styles.reconcileDate}>
                       {formatBangkokShortDate(r.createdAt)}
@@ -280,6 +290,69 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         }}
         onDelete={deleteTransaction}
       />
+      {isReconcileDetailOpen && selectedReconciliation && (
+        <div className={styles.overlay} onClick={() => setIsReconcileDetailOpen(false)}>
+          <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.confirmTitle}>รายละเอียดการกระทบยอด</h3>
+            <div className={styles.reconcileDetail}>
+              <div className={styles.reconcileDetailRow}>
+                <span className={styles.reconcileDetailLabel}>วันที่</span>
+                <span className={styles.reconcileDetailValue}>
+                  {formatBangkokShortDate(selectedReconciliation.createdAt)} {formatBangkokTime(selectedReconciliation.createdAt)}
+                </span>
+              </div>
+              <div className={styles.reconcileDetailRow}>
+                <span className={styles.reconcileDetailLabel}>ยอดก่อนกระทบ</span>
+                <span className={styles.reconcileDetailValue}>
+                  <Money amount={selectedReconciliation.previousBalance} />
+                </span>
+              </div>
+              <div className={styles.reconcileDetailRow}>
+                <span className={styles.reconcileDetailLabel}>ยอดใหม่</span>
+                <span className={styles.reconcileDetailValue}>
+                  <Money amount={selectedReconciliation.newBalance} />
+                </span>
+              </div>
+              <div className={styles.reconcileDetailRow}>
+                <span className={styles.reconcileDetailLabel}>ส่วนต่าง</span>
+                <span className={`${styles.reconcileDetailValue} ${selectedReconciliation.difference >= 0 ? styles.positive : styles.negative}`}>
+                  {selectedReconciliation.difference >= 0 ? '+' : ''}
+                  <Money amount={selectedReconciliation.difference} />
+                </span>
+              </div>
+              {selectedReconciliation.note && (
+                <div className={styles.reconcileDetailRow}>
+                  <span className={styles.reconcileDetailLabel}>หมายเหตุ</span>
+                  <span className={styles.reconcileDetailValue}>{selectedReconciliation.note}</span>
+                </div>
+              )}
+            </div>
+            <div className={styles.confirmActions}>
+              <button
+                className={styles.cancelBtn}
+                onClick={() => setIsReconcileDetailOpen(false)}
+              >
+                ปิด
+              </button>
+              {isOwner && (
+                <button
+                  className={styles.dangerBtn}
+                  onClick={async () => {
+                    if (confirm('ลบรายการกระทบยอดนี้?')) {
+                      await fetch(`/api/reconciliations/${selectedReconciliation.id}`, { method: 'DELETE' });
+                      setReconciliations(reconciliations.filter((rec) => rec.id !== selectedReconciliation.id));
+                      setIsReconcileDetailOpen(false);
+                      setSelectedReconciliation(null);
+                    }
+                  }}
+                >
+                  ลบ
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

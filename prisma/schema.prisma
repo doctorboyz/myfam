@@ -37,7 +37,14 @@ enum BudgetPeriod {
 
 enum BudgetStatus {
   active
+  completed
   archived
+}
+
+enum BudgetPurpose {
+  spending
+  savings
+  reward
 }
 
 enum TransactionStatus {
@@ -274,16 +281,20 @@ model LineLink {
 }
 
 model Budget {
-  id          String       @id @default(uuid())
-  title       String
-  description String?
-  period      BudgetPeriod
-  limit       Decimal
-  startDate   DateTime?    @map("start_date")
-  endDate     DateTime?    @map("end_date")
-  status      BudgetStatus @default(active)
-  icon        String?
-  color       String?
+  id              String       @id @default(uuid())
+  title           String
+  description     String?
+  purpose         BudgetPurpose @default(spending) @map("purpose")
+  period          BudgetPeriod
+  limit           Decimal
+  startDate       DateTime?    @map("start_date")
+  endDate         DateTime?    @map("end_date")
+  status          BudgetStatus @default(active)
+  icon            String?
+  color           String?
+
+  targetAccountId String?      @map("target_account_id")
+  rewardForUserId String?      @map("reward_for_user_id")
 
   transactions Transaction[]
 

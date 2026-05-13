@@ -5,6 +5,7 @@ import { useFinance } from "@/context/FinanceContext";
 import styles from "./BudgetTransactionModal.module.css";
 import { BudgetTransaction, TransactionType, BudgetStatus } from "@/types";
 import { Trash2, Ban, CheckCircle } from "lucide-react";
+import Modal from "../Modal/Modal";
 import TagSelector from "../TagSelector";
 import CategorySelector from "../CategorySelector/CategorySelector";
 import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
@@ -146,17 +147,10 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
       setIsCancelled(false);
   };
 
-  if (!isOpen) return null;
-
-  if (!isOpen) return null;
-
+  const modalTitle = itemToEdit ? (isReadonly ? "ดูแผนรายการ" : "แก้ไขแผนรายการ") : "เพิ่มแผนรายการ";
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={styles.header}>
-            <h2 className={styles.title}>{itemToEdit ? (isReadonly ? "ดูแผนรายการ" : "แก้ไขแผนรายการ") : "เพิ่มแผนรายการ"}</h2>
-        </div>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle}>
         
         {isReadonly && (
             <div className={styles.restrictedNotice}>
@@ -344,15 +338,14 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
 
         </form>
 
-        <CreateCategoryModal
-          isOpen={isCreateCategoryOpen}
-          onClose={() => setIsCreateCategoryOpen(false)}
-          onSuccess={(newCategoryName) => {
-            setCategoryName(newCategoryName);
-          }}
-          transactionType={type}
-        />
-      </div>
-    </div>
+      <CreateCategoryModal
+        isOpen={isCreateCategoryOpen}
+        onClose={() => setIsCreateCategoryOpen(false)}
+        onSuccess={(newCategoryName) => {
+          setCategoryName(newCategoryName);
+        }}
+        transactionType={type}
+      />
+    </Modal>
   );
 }

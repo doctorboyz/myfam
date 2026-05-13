@@ -104,11 +104,12 @@ const menuQuickReply = formatQuickReply(QUICK_REPLY_ITEMS);
 // ── Command Detection ───────────────────────────────────────────
 
 type CommandType =
+  | 'open_liff'
+  | 'summary'
+  | 'help'
   | 'balance'
   | 'recent'
-  | 'summary'
   | 'budget'
-  | 'help'
   | 'confirm_expense'
   | 'confirm_income'
   | 'cancel'
@@ -134,6 +135,7 @@ function detectCommand(text: string): CommandType {
   if (q === 'ข้ามประเภท') return 'skip_subcategory';
 
   // Fuzzy match for user-typed commands (handles typos and variations)
+  if (/เปิด MyFam|เปิดแอป|open app/i.test(q)) return 'open_liff';
   if (/ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|ยอด|balance/i.test(q)) return 'balance';
   if (/รายการล่าสุด|ล่าสุด|รายการวันนี้|recent/i.test(q)) return 'recent';
   if (/สรุปยอด|สรุปยอด|รวมรายจ่าย|รวมรายรับ|สรุป|summary/i.test(q)) return 'summary';
@@ -610,7 +612,7 @@ async function handleLineEvent(event: LineEvent): Promise<void> {
       }
 
       if (cmd === 'help') {
-        await sendLineReply(replyToken, `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n🔗 เชื่อมบัญชี — ขอลิงก์เชิญจากผู้ปกครองในแอป`, menuQuickReply);
+        await sendLineReply(replyToken, `🤖 MyFam Bot\n\nพิมพ์หรือถามได้เลย:\n📝 บันทึกรายการ — "ซื้อข้าว 85"\n📸 ส่งรูปสลิป — บันทึกอัตโนมัติ\n🔗 เชื่อมบัญชี — ขอลิงก์จากผู้ปกครอง`, menuQuickReply);
         return;
       }
     }
@@ -649,6 +651,13 @@ async function handleTextMessage(
   const cmd = detectCommand(text);
 
   // ── Command shortcuts (reply immediately, no AI needed) ──
+  if (cmd === 'open_liff') {
+    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+    const liffUrl = liffId ? `https://liff.line.me/${liffId}` : 'https://liff.line.me/';
+    await sendLineReply(replyToken, `เปิดแอป MyFam ได้ที่นี่\n${liffUrl}`, menuQuickReply);
+    return;
+  }
+
   if (cmd === 'unlink') {
     await prisma.lineLink.deleteMany({ where: { userId: user.id } });
     await sendLineReply(replyToken, 'ยกเลิกการเชื่อมต่อเรียบร้อยแล้ว');
@@ -680,7 +689,7 @@ async function handleTextMessage(
   if (cmd === 'help') {
     await sendLineReply(
       replyToken,
-      `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"\n💸 งบประมาณ — พิมพ์ "งบ"`,
+      `🤖 MyFam Bot\n\nพิมพ์หรือถามได้เลย:\n📝 บันทึกรายการ — "ซื้อข้าว 85"\n📸 ส่งรูปสลิป — บันทึกอัตโนมัติ\n💬 ถามได้ เช่น "เหลือเท่าไหร่"`,
       menuQuickReply,
     );
     return;

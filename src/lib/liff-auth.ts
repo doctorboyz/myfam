@@ -85,8 +85,11 @@ export async function getProfile(): Promise<{
 export async function login(redirectUri?: string): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  const options = redirectUri ? { redirectUri } : undefined;
-  liff.default.login(options);
+  if (redirectUri) {
+    liff.default.login({ redirectUri });
+  } else {
+    liff.default.login();
+  }
 }
 
 export async function logout(): Promise<void> {

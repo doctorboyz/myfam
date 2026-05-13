@@ -199,7 +199,7 @@
 
 .field label {
   display: block;
-  font-size: var(--font-sm);
+  font-size: 9px;
   color: var(--secondary-text);
   margin-bottom: 6px;
   font-weight: var(--weight-medium);
@@ -212,7 +212,7 @@
   border-radius: var(--radius-sm);
   background: var(--input-bg);
   color: var(--foreground);
-  font-size: var(--font-md);
+  font-size: 11px;
   font-family: var(--font-sans);
   transition: border-color var(--transition-fast) var(--ease-out), box-shadow var(--transition-fast) var(--ease-out);
 }
@@ -225,12 +225,12 @@
 
 .inputLarge {
   width: 100%;
-  padding: var(--space-lg);
+  padding: var(--space-md);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--input-bg);
   color: var(--foreground);
-  font-size: var(--font-3xl);
+  font-size: var(--font-xl);
   font-weight: var(--weight-semibold);
   font-family: var(--font-number);
   text-align: center;
@@ -347,7 +347,7 @@
 }
 
 .quickParseLabel {
-  font-size: var(--font-sm);
+  font-size: 10px;
   font-weight: var(--weight-semibold);
   color: var(--primary-dark);
 }
@@ -359,7 +359,7 @@
   border-radius: var(--radius-sm);
   background: var(--card-bg);
   color: var(--foreground);
-  font-size: var(--font-md);
+  font-size: 11px;
   font-family: var(--font-sans);
   transition: border-color var(--transition-fast) var(--ease-out);
 }
@@ -371,7 +371,7 @@
 }
 
 .quickParseHint {
-  font-size: var(--font-xs);
+  font-size: 9px;
   color: var(--secondary-text);
 }
 

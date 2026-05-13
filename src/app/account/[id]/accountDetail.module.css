@@ -229,3 +229,35 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+.reconcileDetail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.reconcileDetailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.reconcileDetailRow:last-child {
+  border-bottom: none;
+}
+
+.reconcileDetailLabel {
+  font-size: 9px;
+  color: var(--secondary-text);
+  font-weight: var(--weight-medium);
+}
+
+.reconcileDetailValue {
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  color: var(--foreground);
+  font-family: var(--font-number);
+}

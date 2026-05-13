@@ -14,7 +14,7 @@ const LINE_DATA_BASE = 'https://api-data.line.me/v2/bot';
 export async function sendLineReply(
   replyToken: string,
   text: string,
-  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } }> },
+  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } | { type: 'uri'; label: string; uri: string } }> },
 ): Promise<void> {
   const message: Record<string, unknown> = { type: 'text', text };
   if (quickReply) {
@@ -47,7 +47,7 @@ export async function sendLineReply(
 export async function sendLinePush(
   to: string,
   text: string,
-  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } }> },
+  quickReply?: { type: 'quickReply'; items: Array<{ type: 'action'; action: { type: 'message'; label: string; text: string } | { type: 'uri'; label: string; uri: string } }> },
 ): Promise<void> {
   const message: Record<string, unknown> = { type: 'text', text };
   if (quickReply) {

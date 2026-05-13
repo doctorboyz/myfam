@@ -6,7 +6,7 @@
 
 .description {
   color: var(--secondary-text);
-  font-size: 14px;
+  font-size: 12px;
   line-height: 1.5;
 }
 
@@ -20,42 +20,42 @@
 .stat {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 .field label {
   display: block;
-  font-size: 13px;
+  font-size: 9px;
   font-weight: 500;
   color: var(--secondary-text);
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .input {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  font-size: 24px; /* Large input for amount */
+  font-size: 13px;
   font-weight: 600;
   text-align: center;
 }
 
 .difference {
   text-align: center;
-  font-size: 14px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--secondary-text);
 }
 
 .submitBtn {
   width: 100%;
-  padding: 14px;
+  padding: 10px;
   background: var(--primary);
   color: var(--card-bg);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 16px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -72,7 +72,7 @@
 }
 
 .quickParseLabel {
-  font-size: var(--font-sm);
+  font-size: 10px;
   font-weight: 600;
   color: var(--primary-dark);
 }
@@ -84,10 +84,10 @@
   border-radius: var(--radius-sm);
   background: var(--card-bg);
   color: var(--foreground);
-  font-size: var(--font-md);
+  font-size: 11px;
 }
 
 .quickParseHint {
-  font-size: var(--font-xs);
+  font-size: 9px;
   color: var(--secondary-text);
 }

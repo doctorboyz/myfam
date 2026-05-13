@@ -1,16 +1,24 @@
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const currentUser = await getAuthUser();
     if (!currentUser) return apiError('Not authenticated', 401);
 
+    const { searchParams } = new URL(request.url);
+    const purpose = searchParams.get('purpose');
+
+    const where: any = {
+      deletedAt: null,
+      createdBy: { familyId: currentUser.familyId },
+    };
+    if (purpose) {
+      where.purpose = purpose;
+    }
+
     const budgets = await prisma.budget.findMany({
-      where: {
-        deletedAt: null,
-        createdBy: { familyId: currentUser.familyId },
-      },
+      where,
       include: {
         transactions: { include: { tagRecords: { include: { tag: true } } } },
       },
@@ -52,7 +60,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { title, period, limit, startDate, endDate, createdById } = await request.json();
+    const { title, purpose, period, limit, startDate, endDate, createdById, targetAccountId, rewardForUserId } = await request.json();
 
     if (!createdById) {
       return apiError('createdById is required', 400);
@@ -61,11 +69,14 @@ export async function POST(request: Request) {
     const newBudget = await prisma.budget.create({
       data: {
         title,
+        purpose: purpose ?? 'spending',
         period,
         limit,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
         createdById,
+        targetAccountId: targetAccountId ?? undefined,
+        rewardForUserId: rewardForUserId ?? undefined,
         status: 'active',
       },
     });

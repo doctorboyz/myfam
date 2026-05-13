@@ -21,7 +21,9 @@ interface InviteInfo {
 function LinkPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const code = searchParams.get('code');
+  const urlCode = searchParams.get('code');
+  // Restore invite code from sessionStorage if it was stored before LIFF login redirect
+  const code = urlCode || (typeof window !== 'undefined' ? sessionStorage.getItem('inviteCode') : null);
 
   const [step, setStep] = useState<Step>('loading');
   const [lineProfile, setLineProfile] = useState<LineProfile | null>(null);
@@ -77,6 +79,7 @@ function LinkPageContent() {
 
         if (authData.success && authData.linked) {
           // Already linked, redirect to dashboard
+          sessionStorage.removeItem('inviteCode');
           router.push('/dashboard');
           return;
         }
@@ -122,6 +125,7 @@ function LinkPageContent() {
         } else {
           // Auth failed or unexpected response
           if (authData.success && authData.user) {
+            sessionStorage.removeItem('inviteCode');
             router.push('/dashboard');
             return;
           }
@@ -189,15 +193,19 @@ function LinkPageContent() {
   };
 
   const handleEnterApp = () => {
+    sessionStorage.removeItem('inviteCode');
     router.push('/dashboard');
   };
 
   const handleLogin = async () => {
     try {
       const { login } = await import('@/lib/liff-auth');
-      // Preserve current URL (including ?code=...) so we come back here after LINE login
-      const redirectUri = window.location.href;
-      await login(redirectUri);
+      // Store invite code in sessionStorage before login so we can restore it after redirect.
+      // Calling login() without redirectUri lets LIFF redirect back to the registered endpoint.
+      if (code) {
+        sessionStorage.setItem('inviteCode', code);
+      }
+      await login();
     } catch {
       setError('ไม่สามารถเปิดหน้า login ได้');
     }

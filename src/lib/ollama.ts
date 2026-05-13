@@ -475,10 +475,8 @@ function detectIntentByKeywords(text: string): UserIntent {
  * Shown after every bot response so users can tap to navigate.
  */
 export const QUICK_REPLY_ITEMS = [
-  { label: '📊 ดูยอด', action: 'ดูยอด' },
-  { label: '📋 รายการล่าสุด', action: 'รายการล่าสุด' },
-  { label: '📈 สรุปยอด', action: 'สรุปยอด' },
-  { label: '💸 งบ', action: 'งบ' },
+  { label: '📱 เปิด MyFam', type: 'uri' as const, uri: `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || ''}` },
+  { label: '📊 ดูสรุปยอด', action: 'สรุปยอด' },
   { label: '❓ ช่วยเหลือ', action: 'ช่วยเหลือ' },
 ] as const;
 
@@ -531,17 +529,34 @@ export function buildSubcategoryReply(
  * Format a LINE Quick Reply JSON for the given actions.
  * Returns the LINE Messaging API quickReply structure.
  */
-export function formatQuickReply(actions: ReadonlyArray<{ label: string; action: string }>) {
+export function formatQuickReply(
+  actions: ReadonlyArray<
+    | { label: string; action: string }
+    | { label: string; type: 'uri'; uri: string }
+  >,
+) {
   return {
     type: 'quickReply' as const,
-    items: actions.map((a) => ({
-      type: 'action' as const,
-      action: {
-        type: 'message' as const,
-        label: a.label,
-        text: a.action,
-      },
-    })),
+    items: actions.map((a) => {
+      if ('type' in a && a.type === 'uri') {
+        return {
+          type: 'action' as const,
+          action: {
+            type: 'uri' as const,
+            label: a.label,
+            uri: a.uri,
+          },
+        };
+      }
+      return {
+        type: 'action' as const,
+        action: {
+          type: 'message' as const,
+          label: (a as { label: string; action: string }).label,
+          text: (a as { label: string; action: string }).action,
+        },
+      };
+    }),
   };
 }
 
