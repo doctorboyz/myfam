@@ -5,7 +5,7 @@
  * Provides: init, ID token, access token, profile, and LIFF detection.
  */
 
-let liffModule: typeof import('@line/liff') | null = null;
+let liffModule: import('@line/liff').Liff | null = null;
 
 async function getLiff() {
   if (liffModule) return liffModule;
