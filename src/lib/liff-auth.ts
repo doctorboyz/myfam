@@ -9,7 +9,9 @@ let liffModule: typeof import('@line/liff') | null = null;
 
 async function getLiff() {
   if (liffModule) return liffModule;
-  liffModule = await import('@line/liff');
+  const mod = await import('@line/liff');
+  // Handle CJS/ESM interop: ESM has {default: liff}, CJS is liff itself
+  liffModule = mod.default || mod;
   return liffModule;
 }
 
@@ -21,7 +23,7 @@ export async function initLiff(): Promise<boolean> {
 
   try {
     const liff = await getLiff();
-    await liff.default.init({ liffId });
+    await liff.init({ liffId, withLoginOnExternalBrowser: false });
     initialized = true;
     return true;
   } catch {
@@ -33,7 +35,7 @@ export async function isLiffAvailable(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   try {
     const liff = await getLiff();
-    return typeof liff.default !== 'undefined';
+    return typeof liff !== 'undefined';
   } catch {
     return false;
   }
@@ -42,20 +44,20 @@ export async function isLiffAvailable(): Promise<boolean> {
 export async function isInClient(): Promise<boolean> {
   if (!initialized) return false;
   const liff = await getLiff();
-  return liff.default.isInClient();
+  return liff.isInClient();
 }
 
 export async function isLoggedIn(): Promise<boolean> {
   if (!initialized) return false;
   const liff = await getLiff();
-  return liff.default.isLoggedIn();
+  return liff.isLoggedIn();
 }
 
 export async function getIDToken(): Promise<string | null> {
   if (!initialized) return null;
   const liff = await getLiff();
   try {
-    return liff.default.getIDToken();
+    return liff.getIDToken();
   } catch {
     return null;
   }
@@ -70,7 +72,7 @@ export async function getProfile(): Promise<{
   if (!initialized) return null;
   const liff = await getLiff();
   try {
-    const profile = await liff.default.getProfile();
+    const profile = await liff.getProfile();
     return {
       userId: profile.userId,
       displayName: profile.displayName,
@@ -86,28 +88,28 @@ export async function login(redirectUri?: string): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
   if (redirectUri) {
-    liff.default.login({ redirectUri });
+    liff.login({ redirectUri });
   } else {
-    liff.default.login();
+    liff.login();
   }
 }
 
 export async function logout(): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  liff.default.logout();
+  liff.logout();
 }
 
 export async function closeWindow(): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  liff.default.closeWindow();
+  liff.closeWindow();
 }
 
 export async function sendMessages(messages: unknown[]): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  await liff.default.sendMessages(messages as Parameters<typeof liff.default.sendMessages>[0]);
+  await liff.sendMessages(messages as Parameters<typeof liff.sendMessages>[0]);
 }
 
 export function isInitialized(): boolean {

@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Check, UserPlus, MessageCircle, LogIn } from 'lucide-react';
+import { useLiff } from '@/context/LiffContext';
 import s from './page.module.css';
 
 type Step = 'loading' | 'needs-login' | 'confirm' | 'success' | 'error' | 'no-code';
@@ -21,6 +22,7 @@ interface InviteInfo {
 function LinkPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { isLiffReady, isLoggedIn: liffLoggedIn, isInClient: liffInClient, liffLogin, getIDToken, getProfile } = useLiff();
   const urlCode = searchParams.get('code');
   // Restore invite code from sessionStorage if it was stored before LIFF login redirect
   const code = urlCode || (typeof window !== 'undefined' ? sessionStorage.getItem('inviteCode') : null);
@@ -33,29 +35,13 @@ function LinkPageContent() {
 
   useEffect(() => {
     async function init() {
+      if (!isLiffReady) return;
+
       try {
-        // Get LIFF ID token
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-        if (!liffId) {
-          setStep('no-code');
-          return;
-        }
-
-        const { initLiff, isLoggedIn, getIDToken, getProfile, isInClient } = await import('@/lib/liff-auth');
-        const ok = await initLiff();
-        if (!ok) {
-          setStep('no-code');
-          return;
-        }
-
-        const loggedIn = await isLoggedIn();
-        if (!loggedIn) {
-          const inClient = await isInClient();
-          if (inClient) {
-            // Inside LIFF — show login button so user can manually login
+        if (!liffLoggedIn) {
+          if (liffInClient) {
             setStep('needs-login');
           } else {
-            // Outside LIFF — show no-code instructions
             setStep('no-code');
           }
           return;
@@ -78,7 +64,6 @@ function LinkPageContent() {
         const authData = await authRes.json();
 
         if (authData.success && authData.linked) {
-          // Already linked, redirect to dashboard
           sessionStorage.removeItem('inviteCode');
           router.push('/dashboard');
           return;
@@ -88,9 +73,7 @@ function LinkPageContent() {
           const profile = authData.lineProfile;
           setLineProfile(profile);
 
-          // If we have a code, verify it and get invite info
           if (code) {
-            // Verify the invite code to get the member name
             try {
               const invitesRes = await fetch('/api/invites', { credentials: 'include' });
               if (invitesRes.ok) {
@@ -104,7 +87,6 @@ function LinkPageContent() {
               // If we can't verify the code, we'll still try to link
             }
 
-            // Also get LINE profile from getProfile for avatar
             try {
               const liffProfile = await getProfile();
               if (liffProfile) {
@@ -123,7 +105,6 @@ function LinkPageContent() {
             setStep('no-code');
           }
         } else {
-          // Auth failed or unexpected response
           if (authData.success && authData.user) {
             sessionStorage.removeItem('inviteCode');
             router.push('/dashboard');
@@ -138,7 +119,7 @@ function LinkPageContent() {
     }
 
     init();
-  }, [code, router]);
+  }, [isLiffReady, liffLoggedIn, liffInClient, getIDToken, getProfile, code, router]);
 
   const handleLink = async () => {
     if (!code || !lineProfile) return;
@@ -147,8 +128,7 @@ function LinkPageContent() {
     setError('');
 
     try {
-      const { getIDToken: getToken } = await import('@/lib/liff-auth');
-      const idToken = await getToken();
+      const idToken = await getIDToken();
       if (!idToken) {
         setError('ไม่สามารถยืนยันตัวตน LINE ได้ กรุณาลองใหม่');
         setIsLinking(false);
@@ -167,7 +147,6 @@ function LinkPageContent() {
       if (res.ok && data.success) {
         setStep('success');
       } else {
-        // Map error codes to Thai messages
         const messages: Record<string, string> = {
           'LINE account already linked': 'บัญชี LINE นี้ลิงก์กับบัญชีอื่นแล้ว',
           'Invite code not found': 'ไม่พบรหัสเชิญ กรุณาขอรหัสใหม่',
@@ -199,13 +178,10 @@ function LinkPageContent() {
 
   const handleLogin = async () => {
     try {
-      const { login } = await import('@/lib/liff-auth');
-      // Store invite code in sessionStorage before login so we can restore it after redirect.
-      // Calling login() without redirectUri lets LIFF redirect back to the registered endpoint.
       if (code) {
         sessionStorage.setItem('inviteCode', code);
       }
-      await login();
+      liffLogin();
     } catch {
       setError('ไม่สามารถเปิดหน้า login ได้');
     }

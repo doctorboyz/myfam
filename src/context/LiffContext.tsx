@@ -13,11 +13,19 @@ import {
 interface LiffContextValue {
   isLiffReady: boolean;
   liffLogin: () => void;
+  isLoggedIn: boolean;
+  isInClient: boolean;
+  getIDToken: () => Promise<string | null>;
+  getProfile: () => Promise<{ userId: string; displayName: string; pictureUrl: string | null; statusMessage: string | null; } | null>;
 }
 
 const LiffContext = createContext<LiffContextValue>({
   isLiffReady: false,
   liffLogin: () => {},
+  isLoggedIn: false,
+  isInClient: false,
+  getIDToken: async () => null,
+  getProfile: async () => null,
 });
 
 export function useLiff() {
@@ -26,6 +34,8 @@ export function useLiff() {
 
 export function LiffProvider({ children }: { children: ReactNode }) {
   const [isReady, setIsReady] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [inClient, setInClient] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -43,11 +53,16 @@ export function LiffProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const loggedIn = await isLoggedIn();
-      const inClient = await isInClient();
+      const _loggedIn = await isLoggedIn();
+      const _inClient = await isInClient();
+
+      if (mounted) {
+        setLoggedIn(_loggedIn);
+        setInClient(_inClient);
+      }
 
       // Mark LIFF environment via CSS variables (works in production build)
-      if (inClient) {
+      if (_inClient) {
         document.documentElement.style.setProperty('--liff-header-height', '48px');
         document.documentElement.style.setProperty('--liff-extra-bottom', '16px');
       }
@@ -55,7 +70,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
       // On /link page, let the page handle its own LIFF auth flow
       const isLinkPage = typeof window !== 'undefined' && window.location.pathname === '/link';
 
-      if (loggedIn) {
+      if (_loggedIn) {
         const idToken = await getIDToken();
         if (idToken && mounted) {
           try {
@@ -69,7 +84,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
             // Auth failed silently — fallback to cookie auth
           }
         }
-      } else if (inClient && !isLinkPage) {
+      } else if (_inClient && !isLinkPage) {
         // Auto-login on other pages, but let /link handle its own flow
         liffLogin();
       }
@@ -85,7 +100,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <LiffContext.Provider value={{ isLiffReady: isReady, liffLogin }}>
+    <LiffContext.Provider value={{ isLiffReady: isReady, liffLogin, isLoggedIn: loggedIn, isInClient: inClient, getIDToken, getProfile }}>
       {children}
     </LiffContext.Provider>
   );
