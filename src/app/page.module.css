@@ -13,7 +13,7 @@
 }
 
 .title {
-  font-size: var(--font-3xl);
+  font-size: var(--font-xl);
   font-weight: 700;
   color: var(--foreground);
   margin: 0;

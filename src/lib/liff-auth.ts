@@ -23,44 +23,7 @@ export async function initLiff(): Promise<boolean> {
 
   try {
     const liff = await getLiff();
-
-    // WORKAROUND: LIFF SDK v2.28.0 has a bug where addParamsToUrl returns
-    // a URL object that gets stringified to "[object Object]" in the OAuth
-    // redirectUri param, causing 400 Bad Request.
-    // Also guards against accidental non-string args (e.g. React events).
-    function patchLoginFn(target: any): any {
-      if (!target || typeof target !== 'function') return target;
-      const orig = target.bind(target);
-      return function (options?: any) {
-        const opts = options || {};
-        if (!opts.redirectUri) {
-          opts.redirectUri = window.location.href;
-        } else if (typeof opts.redirectUri !== 'string') {
-          const urlObj = opts.redirectUri;
-          // Only coerce URL-like objects; reject React events / random objects
-          if (urlObj.href || urlObj.url || urlObj instanceof URL) {
-            opts.redirectUri = urlObj.href || urlObj.toString?.() || String(urlObj);
-          } else {
-            opts.redirectUri = window.location.href;
-          }
-        }
-        return orig(opts);
-      };
-    }
-
-    liff.login = patchLoginFn(liff.login);
-
-    try {
-      const loginMod = await import('@liff/login');
-      (loginMod as any).login = patchLoginFn(loginMod.login);
-      if (loginMod.default && loginMod.default.login) {
-        (loginMod.default as any).login = patchLoginFn(loginMod.default.login);
-      }
-    } catch {
-      // ignore — @liff/login may not be reachable in some bundles
-    }
-
-    await liff.init({ liffId, withLoginOnExternalBrowser: false });
+    await liff.init({ liffId });
     initialized = true;
     return true;
   } catch {
@@ -124,7 +87,7 @@ export async function getProfile(): Promise<{
 export async function login(redirectUri?: string): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  if (redirectUri && typeof redirectUri === 'string') {
+  if (typeof redirectUri === 'string' && redirectUri.length > 0) {
     liff.login({ redirectUri });
   } else {
     liff.login();

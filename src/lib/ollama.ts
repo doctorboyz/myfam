@@ -153,17 +153,19 @@ export async function extractFromText(
 กลุ่มหมวด: ${groupList}
 
 ตัวอย่าง:
-"ซื้อข้าวผัด 85 บาท" → {"amount":85,"date":"${today}","description":"ซื้อข้าวผัด","type":"expense","categoryGroupName":"อาหาร","merchantName":null,"confidence":0.95,"needsConfirmation":false}
-"รับเงินเดือน 45000 บาท" → {"amount":45000,"date":"${today}","description":"เงินเดือน","type":"income","categoryGroupName":"เงินเดือน","merchantName":null,"confidence":0.95,"needsConfirmation":false}
-"โอนเงิน 5000 บาท" → {"amount":5000,"date":"${today}","description":"โอนเงิน","type":"transfer","categoryGroupName":"การเงิน","merchantName":null,"confidence":0.8,"needsConfirmation":false}
-"จ่ายให้แม่ 3000 บาท" → {"amount":3000,"date":"${today}","description":"จ่ายให้แม่","type":"expense","categoryGroupName":"ลูกและครอบครัว","merchantName":null,"confidence":0.7,"needsConfirmation":true}
-"สวัสดีครับ" → {"amount":0,"date":"${today}","description":"","type":"expense","categoryGroupName":"","merchantName":null,"confidence":0.1,"needsConfirmation":false}
-"85" → {"amount":85,"date":"${today}","description":"85","type":"expense","categoryGroupName":"","merchantName":null,"confidence":0.2,"needsConfirmation":false}
-"ซื้อของที่เซเว่น" → {"amount":0,"date":"${today}","description":"ซื้อของที่เซเว่น","type":"expense","categoryGroupName":"อาหาร","merchantName":"เซเว่น","confidence":0.5,"needsConfirmation":false}
+"ซื้อข้าวผัด 85 บาท" → {"amount":85,"date":"${today}","description":"ซื้อข้าวผัด","type":"expense","categoryGroupName":"อาหาร","merchantName":null,"accountName":null,"confidence":0.95,"needsConfirmation":false}
+"รับเงินเดือน 45000 บาท" → {"amount":45000,"date":"${today}","description":"เงินเดือน","type":"income","categoryGroupName":"เงินเดือน","merchantName":null,"accountName":null,"confidence":0.95,"needsConfirmation":false}
+"โอนเงิน 5000 บาท" → {"amount":5000,"date":"${today}","description":"โอนเงิน","type":"transfer","categoryGroupName":"การเงิน","merchantName":null,"accountName":null,"confidence":0.8,"needsConfirmation":false}
+"จ่ายให้แม่ 3000 บาท" → {"amount":3000,"date":"${today}","description":"จ่ายให้แม่","type":"expense","categoryGroupName":"ลูกและครอบครัว","merchantName":null,"accountName":null,"confidence":0.7,"needsConfirmation":true}
+"สวัสดีครับ" → {"amount":0,"date":"${today}","description":"","type":"expense","categoryGroupName":"","merchantName":null,"accountName":null,"confidence":0.1,"needsConfirmation":false}
+"85" → {"amount":85,"date":"${today}","description":"85","type":"expense","categoryGroupName":"","merchantName":null,"accountName":null,"confidence":0.2,"needsConfirmation":false}
+"ซื้อของที่เซเว่น" → {"amount":0,"date":"${today}","description":"ซื้อของที่เซเว่น","type":"expense","categoryGroupName":"อาหาร","merchantName":"เซเว่น","accountName":null,"confidence":0.5,"needsConfirmation":false}
+"จ่ายค่าน้ำ 500 จากบัญชีกสิกร" → {"amount":500,"date":"${today}","description":"ค่าน้ำ","type":"expense","categoryGroupName":"การเงิน","merchantName":null,"accountName":"กสิกร","confidence":0.9,"needsConfirmation":false}
 
 ตอบเป็น JSON เท่านั้น:
-{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"คำอธิบาย","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวด","merchantName":"ชื่อร้านหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
+{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"คำอธิบาย","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวด","merchantName":"ชื่อร้านหรือnull","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าไม่มีจำนวนเงิน ให้ใส่ amount=0
+accountName: ถ้าข้อความระบุบัญชี (เช่น "จากบัญชีกสิกร", "เข้ากระเป๋าสตางค์") ให้สกัดชื่อบัญชี ถ้าไม่ระบุให้ใส่ null
 เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
   const result = await ollamaChat({
@@ -209,8 +211,9 @@ export async function extractFromSlip(
 - ถ้าไม่แน่ใจว่า expense หรือ income ให้ใส่ needsConfirmation=true
 
 ตอบเป็น JSON เท่านั้น:
-{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
+{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าอ่านจำนวนเงินไม่ได้ให้ใส่ amount=0
+accountName: ถ้าสลิประบุบัญชี (เช่น "จากบัญชี xxx", "เข้าบัญชี xxx", "xxx ไทยพาณิชย์") ให้สกัดชื่อบัญชี ถ้าไม่ระบุให้ใส่ null
 เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
   const result = await ollamaGenerate({
@@ -280,6 +283,8 @@ export interface ExtractedTransaction {
   categoryId: string | null;
   categoryGroupName: string;
   merchantName?: string;
+  accountName?: string;
+  toAccountName?: string;
   confidence: number;
   needsConfirmation?: boolean;
 }
@@ -350,6 +355,7 @@ function parseExtractedTransaction(raw: string): ExtractedTransaction {
     categoryId: typeof parsed.categoryId === 'string' ? parsed.categoryId : null,
     categoryGroupName: String(parsed.categoryGroupName || ''),
     merchantName: parsed.merchantName ? String(parsed.merchantName) : undefined,
+    accountName: parsed.accountName ? String(parsed.accountName) : undefined,
     confidence: Number(parsed.confidence) || 0.5,
     needsConfirmation: parsed.needsConfirmation === true,
   };
@@ -523,6 +529,33 @@ export function buildSubcategoryReply(
   }));
   items.push({ label: '❌ ข้าม', action: 'ข้ามประเภท' });
   return formatQuickReply(items);
+}
+
+/**
+ * Build Quick Reply items for account selection.
+ */
+export function buildAccountReply(
+  accounts: Array<{ id: string; name: string; icon?: string | null }>,
+) {
+  // LINE allows max 13 items
+  const items = accounts.slice(0, 12).map((a) => ({
+    label: a.icon ? `${a.icon} ${a.name}` : a.name,
+    action: `เลือกบัญชี:${a.id}`,
+  }));
+  items.push({ label: '❌ ยกเลิก', action: 'ยกเลิก' });
+  return formatQuickReply(items);
+}
+
+/**
+ * Build Quick Reply items for money direction (in/out) when transfer
+ * can only resolve to a single account (external party on the other side).
+ */
+export function buildDirectionReply() {
+  return formatQuickReply([
+    { label: 'เงินเข้า', action: 'เงินเข้า' },
+    { label: 'เงินออก', action: 'เงินออก' },
+    { label: '❌ ยกเลิก', action: 'ยกเลิก' },
+  ]);
 }
 
 /**

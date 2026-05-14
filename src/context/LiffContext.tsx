@@ -85,8 +85,10 @@ export function LiffProvider({ children }: { children: ReactNode }) {
           }
         }
       } else if (_inClient && !isLinkPage) {
-        // Auto-login on other pages, but let /link handle its own flow
-        liffLogin();
+        // Only auto-login if NOT on the link page and NOT logged in
+        // However, it's safer to let pages decide. For now, disable global auto-login
+        // to prevent interference with the link flow.
+        // liffLogin();
       }
 
       if (mounted) setIsReady(true);

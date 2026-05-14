@@ -28,6 +28,7 @@ import {
   buildCategoryGroupReply,
   buildSubcategoryReply,
   buildAccountReply,
+  buildDirectionReply,
   type ExtractedTransaction,
 } from '@/lib/ollama';
 import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
@@ -36,10 +37,16 @@ import { sendLineFlexReply } from '@/lib/line';
 export const maxDuration = 300;
 
 // Temporary storage for extractions waiting for account selection
-// Key: userId, Value: extracted transaction data + lineUserId
+// Key: userId, Value: extracted transaction data + lineUserId + transfer step
 const pendingExtractions = new Map<
   string,
-  { extracted: ExtractedTransaction; lineUserId: string }
+  {
+    extracted: ExtractedTransaction;
+    lineUserId: string;
+    step?: 'select_source' | 'select_dest' | 'awaiting_direction';
+    sourceAccountId?: string;
+    singleAccount?: Awaited<ReturnType<typeof findDefaultAccount>>;
+  }
 >();
 
 // ── Types ──────────────────────────────────────────────────────
@@ -129,6 +136,8 @@ type CommandType =
   | 'select_account'
   | 'skip_group'
   | 'skip_subcategory'
+  | 'money_in'
+  | 'money_out'
   | 'none';
 
 function detectCommand(text: string): CommandType {
@@ -143,6 +152,8 @@ function detectCommand(text: string): CommandType {
   if (q.startsWith('เลือกบัญชี:')) return 'select_account';
   if (q === 'ข้ามหมวด') return 'skip_group';
   if (q === 'ข้ามประเภท') return 'skip_subcategory';
+  if (q === 'เงินเข้า') return 'money_in';
+  if (q === 'เงินออก') return 'money_out';
 
   // Fuzzy match for user-typed commands (handles typos and variations)
   if (/เปิด MyFam|เปิดแอป|open app/i.test(q)) return 'open_liff';
@@ -301,6 +312,7 @@ async function createTransactionFromExtracted(
   user: { id: string; role: string; familyId: string },
   status: 'completed' | 'pending' = 'completed',
   account?: Awaited<ReturnType<typeof findDefaultAccount>>,
+  toAccount?: Awaited<ReturnType<typeof findDefaultAccount>>,
 ) {
   const resolvedAccount = account || (await findDefaultAccount(user.id));
   if (!resolvedAccount) {
@@ -316,6 +328,7 @@ async function createTransactionFromExtracted(
         description: extracted.description,
         status,
         accountId: resolvedAccount.id,
+        toAccountId: extracted.type === 'transfer' ? toAccount?.id ?? null : null,
         categoryId: extracted.categoryId,
         createdById: user.id,
         fee: 0,
@@ -337,6 +350,18 @@ async function createTransactionFromExtracted(
           where: { id: resolvedAccount.id },
           data: { balance: { increment: amount } },
         });
+      } else if (extracted.type === 'transfer') {
+        if (!toAccount) {
+          throw new Error('Transfer requires destination account');
+        }
+        await tx.account.update({
+          where: { id: resolvedAccount.id },
+          data: { balance: { decrement: amount } },
+        });
+        await tx.account.update({
+          where: { id: toAccount.id },
+          data: { balance: { increment: amount } },
+        });
       } else {
         await tx.account.update({
           where: { id: resolvedAccount.id },
@@ -347,6 +372,102 @@ async function createTransactionFromExtracted(
 
     return transaction;
   });
+}
+
+// ── Account Selection Helper ─────────────────────────────────────
+
+function getAccountPromptText(extracted: ExtractedTransaction): string {
+  if (extracted.type === 'income') {
+    return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีที่รับเงิน:`;
+  }
+  if (extracted.type === 'transfer') {
+    return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีต้นทาง:`;
+  }
+  return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีที่จ่าย:`;
+}
+
+async function promptAccountSelection(
+  extracted: ExtractedTransaction,
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<{ transaction: Awaited<ReturnType<typeof createTransactionFromExtracted>> | null; waiting: boolean }> {
+  const accounts = await prisma.account.findMany({
+    where: { ownerId: user.id, status: 'active' },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (accounts.length === 0) {
+    await sendLinePush(lineUserId, 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน', menuQuickReply);
+    return { transaction: null, waiting: false };
+  }
+
+  // Try fuzzy match by account name
+  let matchedAccount = null;
+  if (extracted.accountName) {
+    const searchName = extracted.accountName.toLowerCase();
+    matchedAccount = accounts.find((a) =>
+      a.name.toLowerCase().includes(searchName) ||
+      searchName.includes(a.name.toLowerCase()),
+    ) ?? null;
+  }
+
+  // Transfer with single-account resolution (external party on the other side)
+  // Ask user whether money is coming in or going out, then record as income/expense
+  if (extracted.type === 'transfer') {
+    if (matchedAccount) {
+      if (accounts.length < 2) {
+        // Only 1 account in the system — ask direction
+        pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: matchedAccount });
+        await sendLinePush(
+          lineUserId,
+          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
+          buildDirectionReply(),
+        );
+        return { transaction: null, waiting: true };
+      }
+      // Multiple accounts — start normal two-step transfer flow
+      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'select_source' });
+      const destAccounts = accounts.filter((a) => a.id !== matchedAccount!.id);
+      const quickReply = buildAccountReply(destAccounts);
+      await sendLinePush(
+        lineUserId,
+        `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีปลายทาง:`,
+        quickReply,
+      );
+      return { transaction: null, waiting: true };
+    }
+
+    if (accounts.length === 1) {
+      // Only 1 account and no fuzzy match — ask direction
+      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: accounts[0] });
+      await sendLinePush(
+        lineUserId,
+        `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
+        buildDirectionReply(),
+      );
+      return { transaction: null, waiting: true };
+    }
+  }
+
+  if (matchedAccount) {
+    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount);
+    const replyText = formatConfirmationMessage(transaction, extracted);
+    await sendLinePush(lineUserId, replyText, menuQuickReply);
+    return { transaction, waiting: false };
+  }
+
+  if (accounts.length === 1) {
+    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', accounts[0]);
+    const replyText = formatConfirmationMessage(transaction, extracted);
+    await sendLinePush(lineUserId, replyText, menuQuickReply);
+    return { transaction, waiting: false };
+  }
+
+  // Multiple accounts — need user selection
+  pendingExtractions.set(user.id, { extracted, lineUserId });
+  const quickReply = buildAccountReply(accounts);
+  await sendLinePush(lineUserId, getAccountPromptText(extracted), quickReply);
+  return { transaction: null, waiting: true };
 }
 
 // ── Confirm Pending Transaction ──────────────────────────────────
@@ -512,7 +633,11 @@ async function handleSelectAccount(
     return;
   }
 
-  pendingExtractions.delete(user.id);
+  // Awaiting direction — user should tap เงินเข้า / เงินออก instead
+  if (pending.step === 'awaiting_direction') {
+    await sendLinePush(lineUserId, 'กรุณาเลือก เงินเข้า หรือ เงินออก', buildDirectionReply());
+    return;
+  }
 
   const account = await prisma.account.findFirst({
     where: { id: accountId, ownerId: user.id, status: 'active' },
@@ -522,6 +647,63 @@ async function handleSelectAccount(
     await sendLinePush(lineUserId, 'ไม่พบบัญชีที่เลือก', menuQuickReply);
     return;
   }
+
+  // Transfer two-step flow
+  if (pending.extracted.type === 'transfer') {
+    if (pending.step === 'select_dest' && pending.sourceAccountId) {
+      // Destination selected — complete transfer
+      pendingExtractions.delete(user.id);
+
+      const sourceAccount = await prisma.account.findFirst({
+        where: { id: pending.sourceAccountId, ownerId: user.id, status: 'active' },
+      });
+
+      if (!sourceAccount) {
+        await sendLinePush(lineUserId, 'ไม่พบบัญชีต้นทาง', menuQuickReply);
+        return;
+      }
+
+      try {
+        const transaction = await createTransactionFromExtracted(pending.extracted, user, 'completed', sourceAccount, account);
+        const replyText = formatConfirmationMessage(transaction, pending.extracted);
+        await sendLinePush(lineUserId, replyText, menuQuickReply);
+      } catch (error) {
+        console.error('Transfer completion error:', error);
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
+      }
+      return;
+    }
+
+    // Source selected — ask for destination
+    pendingExtractions.set(user.id, {
+      ...pending,
+      step: 'select_dest',
+      sourceAccountId: account.id,
+    });
+
+    const destAccounts = await prisma.account.findMany({
+      where: { ownerId: user.id, status: 'active', id: { not: account.id } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (destAccounts.length === 0) {
+      pendingExtractions.delete(user.id);
+      await sendLinePush(lineUserId, 'ไม่มีบัญชีอื่นสำหรับโอนเงิน กรุณาสร้างบัญชีเพิ่มในแอป MyFam', menuQuickReply);
+      return;
+    }
+
+    const quickReply = buildAccountReply(destAccounts);
+    await sendLinePush(
+      lineUserId,
+      `📝 ${pending.extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(pending.extracted.amount)} บาท\n\nเลือกบัญชีปลายทาง:`,
+      quickReply,
+    );
+    return;
+  }
+
+  // Single account selection for income/expense
+  pendingExtractions.delete(user.id);
 
   try {
     const transaction = await createTransactionFromExtracted(pending.extracted, user, 'completed', account);
@@ -578,7 +760,7 @@ async function handleDeleteLast(
   const lastTransaction = await prisma.transaction.findFirst({
     where: { ...scope, tagRecords: { some: { tag: { name: 'line-bot' } } } },
     orderBy: { createdAt: 'desc' },
-    include: { account: true },
+    include: { account: true, toAccount: true },
   });
 
   if (!lastTransaction) {
@@ -590,12 +772,26 @@ async function handleDeleteLast(
   // Only revert balance if transaction was completed
   if (lastTransaction.status === 'completed' && lastTransaction.accountId) {
     const accountId = lastTransaction.accountId;
+    const toAccountId = lastTransaction.toAccountId;
     await prisma.$transaction(async (tx) => {
       if (lastTransaction.type === 'income') {
         await tx.account.update({
           where: { id: accountId },
           data: { balance: { decrement: amount } },
         });
+      } else if (lastTransaction.type === 'transfer') {
+        // Revert source account (increment back)
+        await tx.account.update({
+          where: { id: accountId },
+          data: { balance: { increment: amount } },
+        });
+        // Revert destination account (decrement back)
+        if (toAccountId) {
+          await tx.account.update({
+            where: { id: toAccountId },
+            data: { balance: { decrement: amount } },
+          });
+        }
       } else {
         await tx.account.update({
           where: { id: accountId },
@@ -760,6 +956,30 @@ async function handleTextMessage(
     return;
   }
 
+  if (cmd === 'money_in' || cmd === 'money_out') {
+    const pending = pendingExtractions.get(user.id);
+    if (!pending || pending.step !== 'awaiting_direction' || !pending.singleAccount) {
+      await sendLineReply(replyToken, 'ไม่พบรายการที่รอการยืนยันทิศทาง', menuQuickReply);
+      return;
+    }
+
+    pendingExtractions.delete(user.id);
+
+    const resolvedType = cmd === 'money_in' ? 'income' : 'expense';
+    const modifiedExtracted = { ...pending.extracted, type: resolvedType as 'income' | 'expense' };
+
+    try {
+      const transaction = await createTransactionFromExtracted(modifiedExtracted, user, 'completed', pending.singleAccount);
+      const replyText = formatConfirmationMessage(transaction, modifiedExtracted);
+      await sendLineReply(replyToken, replyText, menuQuickReply);
+    } catch (error) {
+      console.error('Direction confirm error:', error);
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      await sendLineReply(replyToken, formatErrorMessage(message), menuQuickReply);
+    }
+    return;
+  }
+
   if (cmd === 'select_group') {
     const groupId = text.split(':')[1];
     if (groupId) {
@@ -886,38 +1106,9 @@ async function handleTextMessage(
       return;
     }
 
-    // Try to match account; if ambiguous with multiple accounts, ask user
-    const accounts = await prisma.account.findMany({
-      where: { ownerId: user.id, status: 'active' },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    let matchedAccount = null;
-    if (accounts.length > 1) {
-      if (extracted.accountName) {
-        const searchName = extracted.accountName.toLowerCase();
-        matchedAccount = accounts.find((a) =>
-          a.name.toLowerCase().includes(searchName) ||
-          searchName.includes(a.name.toLowerCase()),
-        ) ?? null;
-      }
-      if (!matchedAccount) {
-        pendingExtractions.set(user.id, { extracted, lineUserId });
-        const quickReply = buildAccountReply(accounts);
-        await sendLinePush(
-          lineUserId,
-          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nกรุณาเลือกบัญชีสำหรับรายการนี้:`,
-          quickReply,
-        );
-        return;
-      }
-    } else if (accounts.length === 1) {
-      matchedAccount = accounts[0];
-    }
-
-    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount ?? undefined);
-    const replyText = formatConfirmationMessage(transaction, extracted);
-    await sendLinePush(lineUserId, replyText, menuQuickReply);
+    // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
+    const result = await promptAccountSelection(extracted, user, lineUserId);
+    if (result.waiting || !result.transaction) return; // Waiting for user to select account or error
   } catch (error) {
     console.error('Text processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -978,45 +1169,15 @@ async function handleImageMessage(
       return;
     }
 
-    // Try to match account; if ambiguous with multiple accounts, ask user
-    const accounts = await prisma.account.findMany({
-      where: { ownerId: user.id, status: 'active' },
-      orderBy: { createdAt: 'asc' },
-    });
+    // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
+    const result = await promptAccountSelection(extracted, user, lineUserId);
+    if (result.waiting || !result.transaction) return; // Waiting for user to select account or error
 
-    let matchedAccount = null;
-    if (accounts.length > 1) {
-      if (extracted.accountName) {
-        const searchName = extracted.accountName.toLowerCase();
-        matchedAccount = accounts.find((a) =>
-          a.name.toLowerCase().includes(searchName) ||
-          searchName.includes(a.name.toLowerCase()),
-        ) ?? null;
-      }
-      if (!matchedAccount) {
-        pendingExtractions.set(user.id, { extracted, lineUserId });
-        const quickReply = buildAccountReply(accounts);
-        await sendLinePush(
-          lineUserId,
-          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nกรุณาเลือกบัญชีสำหรับรายการนี้:`,
-          quickReply,
-        );
-        return;
-      }
-    } else if (accounts.length === 1) {
-      matchedAccount = accounts[0];
-    }
-
-    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount ?? undefined);
-
-    // Save slip image to transaction
+    // Save slip image to the created transaction
     await prisma.transaction.update({
-      where: { id: transaction.id },
+      where: { id: result.transaction.id },
       data: { slipImage: `data:image/jpeg;base64,${imageBase64}` },
     });
-
-    const replyText = formatConfirmationMessage(transaction, extracted);
-    await sendLinePush(lineUserId, replyText, menuQuickReply);
   } catch (error) {
     console.error('Image processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';

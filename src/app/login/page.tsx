@@ -1,11 +1,18 @@
 "use client";
 
+import { useEffect } from "react";
 import { useLiff } from "@/context/LiffContext";
 import styles from "./page.module.css";
 import Image from "next/image";
 
 export default function LoginPage() {
-  const { liffLogin, isLiffReady } = useLiff();
+  const { liffLogin, isLiffReady, isLoggedIn } = useLiff();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      window.location.replace("/dashboard");
+    }
+  }, [isLoggedIn]);
 
   return (
     <div className={styles.container}>

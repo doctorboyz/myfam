@@ -39,21 +39,49 @@ function LinkPageContent() {
 
       try {
         if (!liffLoggedIn) {
-          if (liffInClient) {
-            setStep('needs-login');
-          } else {
-            setStep('no-code');
-          }
+          // If not logged in, just stay on this page and wait for user to click login
+          // (Auto-triggering might be causing the 'jumping' to the app)
+          setStep('needs-login');
           return;
         }
 
         const idToken = await getIDToken();
         if (!idToken) {
-          setStep('no-code');
+          setStep('needs-login');
           return;
         }
 
-        // Send ID token to auth endpoint
+        // If we have an invite code, skip /api/auth/liff — don't auto-create.
+        // Just show the confirm step and let the user bind via link-invite.
+        if (code) {
+          try {
+            const res = await fetch(`/api/invites/\${code.toUpperCase()}`);
+            if (res.ok) {
+              const data = await res.json();
+              setInviteInfo({ code: code.toUpperCase(), userName: data.userName });
+            }
+          } catch (err) {
+            console.error('Verify invite failed', err);
+          }
+
+          try {
+            const profile = await getProfile();
+            if (profile) {
+              setLineProfile({
+                lineUserId: '',
+                displayName: profile.displayName || null,
+                pictureUrl: profile.pictureUrl || null,
+              });
+            }
+          } catch {
+            // Ignore profile fetch errors
+          }
+
+          setStep('confirm');
+          return;
+        }
+
+        // No invite code — normal auth (auto-create if new)
         const authRes = await fetch('/api/auth/liff', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -69,49 +97,9 @@ function LinkPageContent() {
           return;
         }
 
-        if (authData.needsLinking && authData.lineProfile) {
-          const profile = authData.lineProfile;
-          setLineProfile(profile);
-
-          if (code) {
-            try {
-              const invitesRes = await fetch('/api/invites', { credentials: 'include' });
-              if (invitesRes.ok) {
-                const invitesData = await invitesRes.json();
-                const match = invitesData.invites?.find((inv: { code: string }) => inv.code === code.toUpperCase());
-                if (match) {
-                  setInviteInfo({ code: code.toUpperCase(), userName: match.userName });
-                }
-              }
-            } catch {
-              // If we can't verify the code, we'll still try to link
-            }
-
-            try {
-              const liffProfile = await getProfile();
-              if (liffProfile) {
-                setLineProfile(prev => prev ? {
-                  ...prev,
-                  displayName: liffProfile.displayName || prev.displayName,
-                  pictureUrl: liffProfile.pictureUrl || prev.pictureUrl,
-                } : prev);
-              }
-            } catch {
-              // Ignore profile fetch errors
-            }
-
-            setStep('confirm');
-          } else {
-            setStep('no-code');
-          }
-        } else {
-          if (authData.success && authData.user) {
-            sessionStorage.removeItem('inviteCode');
-            router.push('/dashboard');
-            return;
-          }
-          setStep('no-code');
-        }
+        // Should not reach here because /api/auth/liff auto-creates,
+        // but handle gracefully just in case.
+        setStep('no-code');
       } catch (err) {
         console.error('[link] Init error:', err);
         setStep('no-code');
@@ -119,7 +107,7 @@ function LinkPageContent() {
     }
 
     init();
-  }, [isLiffReady, liffLoggedIn, liffInClient, getIDToken, getProfile, code, router]);
+  }, [isLiffReady, liffLoggedIn, getIDToken, getProfile, code, router]);
 
   const handleLink = async () => {
     if (!code || !lineProfile) return;
