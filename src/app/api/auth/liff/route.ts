@@ -9,6 +9,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyLineIdToken } from '@/lib/line-id-token';
+import { seedDefaultCategories } from '@/lib/default-categories';
 
 export async function POST(request: Request) {
   try {
@@ -81,13 +82,57 @@ export async function POST(request: Request) {
       });
     }
 
-    // No link found — return needsLinking flag
+    // No link found — auto-create new user + family (signup with LINE)
+    const baseName = payload.name || 'User';
+    let userName = baseName;
+    let suffix = 1;
+    while (await prisma.user.findUnique({ where: { name: userName } })) {
+      userName = `${baseName}_${suffix}`;
+      suffix++;
+    }
+
+    const family = await prisma.family.create({
+      data: { name: `${userName}'s Family` },
+    });
+
+    // Seed default system categories for new families
+    await seedDefaultCategories();
+
+    const newUser = await prisma.user.create({
+      data: {
+        name: userName,
+        role: 'parent',
+        isAdmin: true,
+        familyId: family.id,
+        avatar: payload.picture || null,
+      },
+      select: { id: true, name: true, role: true, isAdmin: true, avatar: true, color: true, familyId: true },
+    });
+
+    await prisma.lineLink.create({
+      data: {
+        lineUserId,
+        userId: newUser.id,
+        displayName: payload.name || userName,
+      },
+    });
+
+    const cookieStore = await cookies();
+    cookieStore.set('userId', newUser.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
     return NextResponse.json({
-      success: false,
-      needsLinking: true,
+      success: true,
+      linked: true,
+      user: newUser,
       lineProfile: {
         lineUserId,
-        displayName: payload.name || null,
+        displayName: payload.name || userName,
         pictureUrl: payload.picture || null,
       },
     });

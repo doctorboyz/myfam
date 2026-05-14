@@ -22,7 +22,7 @@
 
 .description {
   color: var(--secondary-text);
-  font-size: 9px;
+  font-size: var(--font-detail);
   font-weight: var(--weight-regular);
   margin-bottom: var(--space-xl);
 }
@@ -49,7 +49,7 @@
 }
 
 .summaryValue {
-  font-size: 10px;
+  font-size: var(--font-normal);
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   font-family: var(--font-number);
@@ -61,7 +61,7 @@
 }
 
 .sectionTitle {
-  font-size: 9px;
+  font-size: var(--font-detail);
   font-weight: var(--weight-semibold);
   color: var(--secondary-text);
   margin-bottom: var(--space-md);
@@ -86,7 +86,7 @@
 }
 
 .itemName {
-  font-size: 9px;
+  font-size: var(--font-detail);
   font-weight: var(--weight-medium);
   color: var(--foreground);
 }
@@ -102,14 +102,14 @@
 }
 
 .planAmount {
-  font-size: 10px;
+  font-size: var(--font-normal);
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   font-family: var(--font-number);
 }
 
 .actualAmount {
-  font-size: 10px;
+  font-size: var(--font-normal);
   color: var(--success);
   font-weight: var(--weight-medium);
 }
@@ -180,7 +180,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--secondary-text);
   background: var(--input-bg);
   padding: 4px 10px;
@@ -191,7 +191,7 @@
 .goalReachedBanner {
   background: var(--success-bg);
   color: var(--success);
-  font-size: 10px;
+  font-size: var(--font-normal);
   font-weight: var(--weight-semibold);
   padding: var(--space-md);
   border-radius: var(--radius-md);

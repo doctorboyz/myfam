@@ -101,7 +101,7 @@ export default function BudgetDetailPage() {
           display: "inline-flex",
           alignItems: "center",
           gap: 4,
-          fontSize: 9,
+          fontSize: 'var(--font-detail)',
           color: "var(--text-secondary)",
           marginTop: 2,
         }}
@@ -116,7 +116,7 @@ export default function BudgetDetailPage() {
             borderRadius: "50%",
             backgroundColor: creator.color || "#888",
             color: "#fff",
-            fontSize: 9,
+            fontSize: 'var(--font-detail)',
             fontWeight: 700,
             flexShrink: 0,
           }}
@@ -157,7 +157,7 @@ export default function BudgetDetailPage() {
                 background: "none",
                 border: "none",
                 color: "var(--primary)",
-                fontSize: "14px",
+                fontSize: 'var(--font-header)',
                 fontWeight: 600,
                 cursor: "pointer",
               }}
@@ -299,14 +299,14 @@ export default function BudgetDetailPage() {
       {/* Empty state */}
       {items.length === 0 && (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text-secondary)" }}>
-          <p style={{ fontSize: 9 }}>
+          <p style={{ fontSize: 'var(--font-detail)' }}>
             {purpose === "savings"
               ? "ยังไม่มีรายการออม"
               : purpose === "reward"
               ? "ยังไม่มีรายการให้รางวัล"
               : "ยังไม่มีแผนการใช้เงิน"}
           </p>
-          <p style={{ fontSize: 9, marginTop: 4 }}>กด + เพื่อเริ่ม</p>
+          <p style={{ fontSize: 'var(--font-detail)', marginTop: 4 }}>กด + เพื่อเริ่ม</p>
         </div>
       )}
 

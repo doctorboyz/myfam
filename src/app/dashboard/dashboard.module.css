@@ -16,7 +16,7 @@
 }
 
 .title {
-  font-size: var(--font-2xl);
+  font-size: var(--font-xl);
   font-weight: var(--weight-bold);
   color: var(--foreground);
   margin: 0;
@@ -56,7 +56,7 @@
 }
 
 .label {
-  font-size: 9px;
+  font-size: var(--font-detail);
   opacity: 0.85;
   margin-bottom: var(--space-sm);
   font-weight: var(--weight-medium);
@@ -96,7 +96,7 @@
   flex: 1;
   text-align: center;
   padding: var(--space-sm) var(--space-md);
-  font-size: 9px;
+  font-size: var(--font-detail);
   font-weight: var(--weight-medium);
   color: var(--secondary-text);
   border-radius: var(--radius-sm);

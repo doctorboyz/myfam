@@ -51,12 +51,17 @@
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  /* Typography Scale — refined for mobile */
-  --font-xs: 11px;
+  /* Typography Scale — 3 levels for mobile consistency */
+  --font-header: 12px;   /* Headers, titles, buttons */
+  --font-normal: 10px;   /* Body text, labels */
+  --font-detail: 9px;    /* Captions, hints, secondary info */
+
+  /* Legacy aliases (kept for compatibility during migration) */
+  --font-xs: 9px;
   --font-sm: 12px;
-  --font-base: 12px;
-  --font-md: 15px;
-  --font-lg: 16px;
+  --font-base: 10px;
+  --font-md: 12px;
+  --font-lg: 12px;
   --font-xl: 18px;
   --font-2xl: 22px;
   --font-3xl: 28px;

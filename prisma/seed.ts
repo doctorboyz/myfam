@@ -5,6 +5,7 @@ import { Pool } from 'pg'
 import fs from 'fs'
 import path from 'path'
 import bcrypt from 'bcryptjs'
+import { defaultCategoryConfigs } from '../src/lib/default-categories'
 
 const connectionString = process.env.DATABASE_URL
 
@@ -172,74 +173,9 @@ async function main() {
   // --- 2. Create Categories & Groups ---
   console.log('Creating Categories...')
 
-  // Category Configuration
-  type CategoryConfig = {
-    group: string
-    type: 'expense' | 'income' | 'transfer'
-    categories: string[]
-  }
-
-  const categoryConfigs: CategoryConfig[] = [
-    {
-      group: 'อาหารและเครื่องดื่ม', // Food & Drink
-      type: 'expense',
-      categories: ['กินข้าว', 'ซื้ออาหารสด', 'กาแฟ โกโก้', 'ขนม', 'ผลไม้', 'มื้อพิเศษ', 'เลี้ยงข้าว']
-    },
-    {
-      group: 'การเดินทาง', // Transportation
-      type: 'expense',
-      categories: ['น้ำมันรถ', 'ทางด่วน/จอดรถ', 'ค่ารถสาธารณะ/Taxi', 'ซ่อมแซมรถ', 'ล้างรถ', 'ประกันรถ', 'มอเตอร์ไซค์', 'Grab Transport']
-    },
-    {
-      group: 'ที่อยู่อาศัย', // Housing
-      type: 'expense',
-      categories: ['ค่าเช่า', 'ค่าน้ำ/ไฟ/เน็ต', 'ซื้อของเข้าบ้าน', 'ซ่อมแซมบ้าน', 'เครื่องใช้ไฟฟ้า', 'ค่าส่วนกลาง', 'เฟอร์นิเจอร์', 'อุปกรณ์ทำความสะอาด']
-    },
-    {
-      group: 'ช้อปปิ้งและของใช้', // Shopping
-      type: 'expense',
-      categories: ['เสื้อผ้า', 'เครื่องสำอาง', 'ของใช้ส่วนตัว', 'ตัดผม ทำผม', 'ทำเล็บ', 'ของเล่น', 'Gadget', 'เครื่องประดับ']
-    },
-    {
-      group: 'ลูกและครอบครัว', // Family & Kids
-      type: 'expense',
-      categories: ['ค่าเทอม', 'ค่าเรียนพิเศษ', 'อุปกรณ์การเรียน', 'เสื้อผ้าเด็ก', 'ของเล่นเด็ก', 'กิจกรรมเด็ก', 'ค่ารักษาพยาบาลลูก', 'เงินเดือนลูก', 'ค่าเลี้ยงดูเด็ก']
-    },
-    {
-      group: 'สุขภาพ', // Health
-      type: 'expense',
-      categories: ['ค่ารักษาพยาบาล', 'ค่ายา/อาหารเสริม', 'ประกันสุขภาพ', 'ออกกำลังกาย', 'นวด']
-    },
-    {
-      group: 'การเงินและหนี้สิน', // Finance
-      type: 'expense',
-      categories: ['บัตรเครดิต', 'ผ่อนบ้าน/รถ', 'ดอกเบี้ย', 'ภาษี', 'ค่าธรรมเนียม', 'ประกันชีวิต', 'หนี้สินอื่นๆ', 'ผ่อนชำระ']
-    },
-    {
-      group: 'สังคมและความสัมพันธ์', // Social
-      type: 'expense',
-      categories: ['ทำบุญ', 'ของขวัญ/ของฝาก', 'งานแต่ง/งานศพ', 'บริจาค', 'ปาร์ตี้']
-    },
-    {
-      group: 'ความบันเทิง', // Entertainment
-      type: 'expense',
-      categories: ['ดูหนัง/ฟังเพลง', 'เกม/เติมเกม', 'Subscription', 'เที่ยว/ที่พัก', 'กิจกรรมพักผ่อน']
-    },
-    {
-      group: 'รายได้', // Income
-      type: 'income',
-      categories: ['เงินเดือน', 'โบนัส', 'ค่าเช่า', 'ปันผล/ดอกเบี้ย', 'ขายของ', 'ถูกหวย/รางวัล', 'เงินคืน', 'อื่นๆ']
-    },
-    {
-      group: 'การโอน', // Transfer
-      type: 'transfer',
-      categories: ['โอนเงินไประหว่างบัญชี', 'ชำระบัตรเครดิต (โอน)']
-    }
-  ]
-
   const categoryMap = new Map<string, string>() // Name -> ID
 
-  for (const config of categoryConfigs) {
+  for (const config of defaultCategoryConfigs) {
     const group = await prisma.categoryGroup.create({
       data: {
         name: config.group,
@@ -250,7 +186,7 @@ async function main() {
       },
       include: { categories: true }
     })
-    
+
     // Store category mapping
     for (const cat of group.categories) {
       categoryMap.set(cat.name, cat.id)

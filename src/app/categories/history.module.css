@@ -55,7 +55,7 @@
 
 .groupTitle {
   font-weight: var(--weight-semibold);
-  font-size: 10px;
+  font-size: var(--font-normal);
 }
 
 .groupCount {
@@ -135,19 +135,19 @@
 
 .txCategory {
   font-weight: var(--weight-semibold);
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--foreground);
 }
 
 .txDate {
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--secondary-text);
   margin-top: 2px;
 }
 
 .txAmount {
   font-weight: var(--weight-semibold);
-  font-size: 10px;
+  font-size: var(--font-normal);
   font-family: var(--font-number);
 }
 

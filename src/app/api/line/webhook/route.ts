@@ -27,12 +27,20 @@ import {
   CONFIRM_TYPE_ITEMS,
   buildCategoryGroupReply,
   buildSubcategoryReply,
+  buildAccountReply,
   type ExtractedTransaction,
 } from '@/lib/ollama';
 import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
 import { sendLineFlexReply } from '@/lib/line';
 
 export const maxDuration = 300;
+
+// Temporary storage for extractions waiting for account selection
+// Key: userId, Value: extracted transaction data + lineUserId
+const pendingExtractions = new Map<
+  string,
+  { extracted: ExtractedTransaction; lineUserId: string }
+>();
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -118,6 +126,7 @@ type CommandType =
   | 'delete_last'
   | 'select_group'
   | 'select_subcategory'
+  | 'select_account'
   | 'skip_group'
   | 'skip_subcategory'
   | 'none';
@@ -131,6 +140,7 @@ function detectCommand(text: string): CommandType {
   if (q === 'ยกเลิก') return 'cancel';
   if (q.startsWith('เลือกหมวด:')) return 'select_group';
   if (q.startsWith('เลือกประเภท:')) return 'select_subcategory';
+  if (q.startsWith('เลือกบัญชี:')) return 'select_account';
   if (q === 'ข้ามหมวด') return 'skip_group';
   if (q === 'ข้ามประเภท') return 'skip_subcategory';
 
@@ -290,9 +300,10 @@ async function createTransactionFromExtracted(
   extracted: ExtractedTransaction,
   user: { id: string; role: string; familyId: string },
   status: 'completed' | 'pending' = 'completed',
+  account?: Awaited<ReturnType<typeof findDefaultAccount>>,
 ) {
-  const account = await findDefaultAccount(user.id);
-  if (!account) {
+  const resolvedAccount = account || (await findDefaultAccount(user.id));
+  if (!resolvedAccount) {
     throw new Error('User has no active account');
   }
 
@@ -304,7 +315,7 @@ async function createTransactionFromExtracted(
         type: extracted.type,
         description: extracted.description,
         status,
-        accountId: account.id,
+        accountId: resolvedAccount.id,
         categoryId: extracted.categoryId,
         createdById: user.id,
         fee: 0,
@@ -323,12 +334,12 @@ async function createTransactionFromExtracted(
       const amount = extracted.amount;
       if (extracted.type === 'income') {
         await tx.account.update({
-          where: { id: account.id },
+          where: { id: resolvedAccount.id },
           data: { balance: { increment: amount } },
         });
       } else {
         await tx.account.update({
-          where: { id: account.id },
+          where: { id: resolvedAccount.id },
           data: { balance: { decrement: amount } },
         });
       }
@@ -488,6 +499,39 @@ async function handleSelectGroup(
 
   const quickReply = buildSubcategoryReply(categories);
   return { text: `📂 เลือกหมวดหมู่ย่อย:`, quickReply };
+}
+
+async function handleSelectAccount(
+  accountId: string,
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending) {
+    await sendLinePush(lineUserId, 'ไม่พบรายการที่รอการเลือกบัญชี', menuQuickReply);
+    return;
+  }
+
+  pendingExtractions.delete(user.id);
+
+  const account = await prisma.account.findFirst({
+    where: { id: accountId, ownerId: user.id, status: 'active' },
+  });
+
+  if (!account) {
+    await sendLinePush(lineUserId, 'ไม่พบบัญชีที่เลือก', menuQuickReply);
+    return;
+  }
+
+  try {
+    const transaction = await createTransactionFromExtracted(pending.extracted, user, 'completed', account);
+    const replyText = formatConfirmationMessage(transaction, pending.extracted);
+    await sendLinePush(lineUserId, replyText, menuQuickReply);
+  } catch (error) {
+    console.error('Account selection error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
+  }
 }
 
 async function handleSelectSubcategory(
@@ -709,6 +753,8 @@ async function handleTextMessage(
   }
 
   if (cmd === 'cancel') {
+    // Also clear any pending account selection
+    pendingExtractions.delete(user.id);
     const reply = await cancelPendingTransaction(user);
     await sendLineReply(replyToken, reply, menuQuickReply);
     return;
@@ -734,6 +780,14 @@ async function handleTextMessage(
 
   if (cmd === 'skip_group' || cmd === 'skip_subcategory') {
     await sendLineReply(replyToken, '✅ ข้ามการเลือกหมวดหมู่', menuQuickReply);
+    return;
+  }
+
+  if (cmd === 'select_account') {
+    const accountId = text.split(':')[1];
+    if (accountId) {
+      await handleSelectAccount(accountId, user, lineUserId);
+    }
     return;
   }
 
@@ -832,7 +886,36 @@ async function handleTextMessage(
       return;
     }
 
-    const transaction = await createTransactionFromExtracted(extracted, user);
+    // Try to match account; if ambiguous with multiple accounts, ask user
+    const accounts = await prisma.account.findMany({
+      where: { ownerId: user.id, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let matchedAccount = null;
+    if (accounts.length > 1) {
+      if (extracted.accountName) {
+        const searchName = extracted.accountName.toLowerCase();
+        matchedAccount = accounts.find((a) =>
+          a.name.toLowerCase().includes(searchName) ||
+          searchName.includes(a.name.toLowerCase()),
+        ) ?? null;
+      }
+      if (!matchedAccount) {
+        pendingExtractions.set(user.id, { extracted, lineUserId });
+        const quickReply = buildAccountReply(accounts);
+        await sendLinePush(
+          lineUserId,
+          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nกรุณาเลือกบัญชีสำหรับรายการนี้:`,
+          quickReply,
+        );
+        return;
+      }
+    } else if (accounts.length === 1) {
+      matchedAccount = accounts[0];
+    }
+
+    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount ?? undefined);
     const replyText = formatConfirmationMessage(transaction, extracted);
     await sendLinePush(lineUserId, replyText, menuQuickReply);
   } catch (error) {
@@ -895,7 +978,36 @@ async function handleImageMessage(
       return;
     }
 
-    const transaction = await createTransactionFromExtracted(extracted, user);
+    // Try to match account; if ambiguous with multiple accounts, ask user
+    const accounts = await prisma.account.findMany({
+      where: { ownerId: user.id, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    let matchedAccount = null;
+    if (accounts.length > 1) {
+      if (extracted.accountName) {
+        const searchName = extracted.accountName.toLowerCase();
+        matchedAccount = accounts.find((a) =>
+          a.name.toLowerCase().includes(searchName) ||
+          searchName.includes(a.name.toLowerCase()),
+        ) ?? null;
+      }
+      if (!matchedAccount) {
+        pendingExtractions.set(user.id, { extracted, lineUserId });
+        const quickReply = buildAccountReply(accounts);
+        await sendLinePush(
+          lineUserId,
+          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nกรุณาเลือกบัญชีสำหรับรายการนี้:`,
+          quickReply,
+        );
+        return;
+      }
+    } else if (accounts.length === 1) {
+      matchedAccount = accounts[0];
+    }
+
+    const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount ?? undefined);
 
     // Save slip image to transaction
     await prisma.transaction.update({

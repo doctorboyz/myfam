@@ -250,13 +250,13 @@
 }
 
 .reconcileDetailLabel {
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--secondary-text);
   font-weight: var(--weight-medium);
 }
 
 .reconcileDetailValue {
-  font-size: 10px;
+  font-size: var(--font-normal);
   font-weight: var(--weight-semibold);
   color: var(--foreground);
   font-family: var(--font-number);

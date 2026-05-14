@@ -23,7 +23,7 @@ export default function SettingsCategoriesPage() {
     return (
       <div style={{ padding: 40, textAlign: 'center', color: 'var(--secondary-text)' }}>
         <ShieldAlert size={48} style={{ marginBottom: 16, opacity: 0.5 }} />
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>ไม่มีสิทธิ์เข้าถึง</h2>
+        <h2 style={{ fontSize: 'var(--font-xl)', fontWeight: 600, marginBottom: 8 }}>ไม่มีสิทธิ์เข้าถึง</h2>
         <p>เฉพาะผู้ดูแลระบบเท่านั้นที่สามารถจัดการหมวดหมู่ได้</p>
       </div>
     );
