@@ -18,7 +18,7 @@ export default function LoginPage() {
 
         <button
           className={styles.lineButton}
-          onClick={liffLogin}
+          onClick={() => liffLogin()}
           disabled={!isLiffReady}
         >
           เข้าสู่ระบบด้วย LINE

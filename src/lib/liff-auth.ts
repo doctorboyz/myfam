@@ -27,9 +27,8 @@ export async function initLiff(): Promise<boolean> {
     // WORKAROUND: LIFF SDK v2.28.0 has a bug where addParamsToUrl returns
     // a URL object that gets stringified to "[object Object]" in the OAuth
     // redirectUri param, causing 400 Bad Request.
-    // The SDK's init module imports @liff/login directly (b.login) which is
-    // a DIFFERENT function reference from liff.login, so we must patch both.
-    function patchLoginFn(target: any, name: string): any {
+    // Also guards against accidental non-string args (e.g. React events).
+    function patchLoginFn(target: any): any {
       if (!target || typeof target !== 'function') return target;
       const orig = target.bind(target);
       return function (options?: any) {
@@ -38,38 +37,27 @@ export async function initLiff(): Promise<boolean> {
           opts.redirectUri = window.location.href;
         } else if (typeof opts.redirectUri !== 'string') {
           const urlObj = opts.redirectUri;
-          const keys = Object.keys(urlObj);
-          console.log('[liff-auth] DEBUG keys:', keys);
-          for (const k of keys.slice(0, 10)) {
-            try {
-              console.log('[liff-auth] DEBUG', k, ':', urlObj[k]);
-            } catch {
-              console.log('[liff-auth] DEBUG', k, ': [getter error]');
-            }
+          // Only coerce URL-like objects; reject React events / random objects
+          if (urlObj.href || urlObj.url || urlObj instanceof URL) {
+            opts.redirectUri = urlObj.href || urlObj.toString?.() || String(urlObj);
+          } else {
+            opts.redirectUri = window.location.href;
           }
-          // Try known URL-like properties and fallback to JSON
-          opts.redirectUri = urlObj.href || urlObj.url || urlObj.toString?.() || urlObj.valueOf?.() || JSON.stringify(urlObj);
         }
-        console.log('[liff-auth] login called with redirectUri:', opts.redirectUri);
         return orig(opts);
       };
     }
 
-    liff.login = patchLoginFn(liff.login, 'liff.login');
-    console.log('[liff-auth] liff.login patched');
+    liff.login = patchLoginFn(liff.login);
 
     try {
-      // Use webpackIgnore to bypass bundler and load the actual runtime module
-      // that @liff/init uses internally. Without this, Turbopack bundles a
-      // separate copy that our patch never reaches.
-      const loginMod = await import(/* webpackIgnore: true */ '@liff/login');
-      console.log('[liff-auth] @liff/login loaded, login type:', typeof loginMod.login);
-      (loginMod as any).login = patchLoginFn(loginMod.login, 'loginMod.login');
+      const loginMod = await import('@liff/login');
+      (loginMod as any).login = patchLoginFn(loginMod.login);
       if (loginMod.default && loginMod.default.login) {
-        (loginMod.default as any).login = patchLoginFn(loginMod.default.login, 'loginMod.default.login');
+        (loginMod.default as any).login = patchLoginFn(loginMod.default.login);
       }
-    } catch (e) {
-      console.log('[liff-auth] @liff/login import failed:', (e as Error).message);
+    } catch {
+      // ignore — @liff/login may not be reachable in some bundles
     }
 
     await liff.init({ liffId, withLoginOnExternalBrowser: false });
@@ -136,7 +124,7 @@ export async function getProfile(): Promise<{
 export async function login(redirectUri?: string): Promise<void> {
   if (!initialized) return;
   const liff = await getLiff();
-  if (redirectUri) {
+  if (redirectUri && typeof redirectUri === 'string') {
     liff.login({ redirectUri });
   } else {
     liff.login();
