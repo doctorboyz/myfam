@@ -18,7 +18,7 @@ services:
       - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
       - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen3.5:cloud}
+      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen2.5:7b}
       - OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL:-qwen3.5:cloud}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     depends_on:

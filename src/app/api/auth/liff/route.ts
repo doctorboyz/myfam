@@ -39,25 +39,25 @@ export async function POST(request: Request) {
     });
 
     if (link) {
-      // Update user name and avatar from LINE profile if missing or outdated
-      const lineName = payload.name;
+      // Update avatar from LINE profile only — never overwrite user.name
+      // (parent-set name is canonical; LINE name lives in LineLink.displayName)
       const linePicture = payload.picture;
-      const updateData: { name?: string; avatar?: string } = {};
-
-      if (lineName && lineName !== link.user.name) {
-        updateData.name = lineName;
-      }
       if (linePicture && linePicture !== link.user.avatar) {
-        updateData.avatar = linePicture;
-      }
-
-      if (Object.keys(updateData).length > 0) {
         const updatedUser = await prisma.user.update({
           where: { id: link.userId },
-          data: updateData,
+          data: { avatar: linePicture },
           select: { id: true, name: true, role: true, isAdmin: true, avatar: true, color: true, familyId: true },
         });
         link.user = updatedUser;
+      }
+
+      // Keep LineLink.displayName in sync with LINE profile
+      if (payload.name && payload.name !== link.displayName) {
+        await prisma.lineLink.update({
+          where: { id: link.id },
+          data: { displayName: payload.name },
+        });
+        link.displayName = payload.name;
       }
 
       // User is linked — set cookie and return user data

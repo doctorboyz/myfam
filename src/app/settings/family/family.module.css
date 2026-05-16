@@ -123,6 +123,25 @@
   box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+.aliasInput {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: var(--font-sm);
+  font-family: var(--font-sans);
+  margin-bottom: 4px;
+  background: var(--card-bg);
+  color: var(--secondary-text);
+}
+
+.aliasInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+  color: var(--foreground);
+}
+
 .roleRadios {
   display: flex;
   gap: 8px;

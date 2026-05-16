@@ -150,6 +150,40 @@
   margin-bottom: var(--space-lg);
 }
 
+.viewTotalAmount {
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  color: var(--foreground);
+  text-align: center;
+  margin-top: calc(var(--space-sm) * -1);
+  margin-bottom: var(--space-lg);
+  font-family: var(--font-number);
+}
+
+.totalAmountDisplay {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-lg);
+  background: var(--card-bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-top: calc(var(--space-sm) * -1);
+}
+
+.totalLabel {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--secondary-text);
+}
+
+.totalValue {
+  font-size: var(--font-lg);
+  font-weight: var(--weight-bold);
+  color: var(--foreground);
+  font-family: var(--font-number);
+}
+
 .link {
   color: var(--primary);
   text-decoration: underline;

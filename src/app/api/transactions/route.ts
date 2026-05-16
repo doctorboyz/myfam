@@ -71,6 +71,7 @@ export async function POST(request: Request) {
           budgetId: body.budgetId || null,
           createdById: body.createdById,
           fee: body.fee || 0,
+          totalAmount: (Number(body.amount || 0) + Number(body.fee || 0)),
           slipImage: body.slipImage || null,
           tagRecords: tagIds.length > 0 ? {
             create: tagIds.map((tagId: string) => ({ tagId })),

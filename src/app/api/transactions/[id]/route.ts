@@ -90,6 +90,7 @@ export async function PATCH(
       const result = await prisma.$transaction(async (tx) => {
         const actualAmount = body.amount != null ? Number(body.amount) : Number(existing.planAmount || 0);
         const fee = body.fee != null ? Number(body.fee) : (existing.fee ? Number(existing.fee) : 0);
+        const totalAmount = actualAmount + fee;
         const accountId = body.accountId || existing.accountId;
         const toAccountId = body.toAccountId || existing.toAccountId;
 
@@ -98,6 +99,7 @@ export async function PATCH(
           data: {
             status: 'completed',
             amount: actualAmount,
+            totalAmount,
             accountId,
             toAccountId: toAccountId || null,
             description: body.description ?? existing.description,
@@ -136,7 +138,7 @@ export async function PATCH(
 
     // Standard update (non-status-transition)
     const updateData: Record<string, unknown> = {};
-    const allowedFields = ['description', 'slipImage', 'status', 'categoryId', 'date', 'planAmount', 'fee'];
+    const allowedFields = ['description', 'slipImage', 'status', 'categoryId', 'date', 'planAmount', 'fee', 'totalAmount'];
     for (const key of allowedFields) {
       if (body[key] !== undefined) {
         updateData[key] = body[key];

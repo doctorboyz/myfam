@@ -1,7 +1,7 @@
 'use client';
 
 import { useFinance } from '@/context/FinanceContext';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Plus, Check, Trash2, X, Link2, Copy, CheckCircle } from 'lucide-react';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
@@ -17,6 +17,24 @@ export default function FamilyManagement() {
   const [formData, setFormData] = useState<Partial<User>>({});
   const [inviteState, setInviteState] = useState<{ userId: string; code: string; copied: boolean } | null>(null);
   const [inviteLoading, setInviteLoading] = useState<string | null>(null);
+  const [aliases, setAliases] = useState<Record<string, string>>({});
+  const [aliasDraft, setAliasDraft] = useState('');
+
+  // Fetch aliases on mount
+  useEffect(() => {
+    fetch('/api/users/alias')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.success && data.aliases) {
+          const map: Record<string, string> = {};
+          data.aliases.forEach((a: { targetId: string; alias: string }) => {
+            map[a.targetId] = a.alias;
+          });
+          setAliases(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (!currentUser) return <div className={s.page}>กำลังโหลด...</div>;
 
@@ -33,6 +51,7 @@ export default function FamilyManagement() {
   const handleEdit = (user: User) => {
     setEditingId(user.id);
     setFormData(user);
+    setAliasDraft(aliases[user.id] || '');
     setIsAdding(false);
   };
 
@@ -42,7 +61,7 @@ export default function FamilyManagement() {
     setFormData({ name: '', role: 'child', color: '#GRAY', avatar: '' });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name) return;
 
     if (isAdding) {
@@ -57,10 +76,34 @@ export default function FamilyManagement() {
       addUser(newUser as User);
     } else if (editingId) {
       updateUser(editingId, formData);
+
+      // Save alias if changed
+      const prevAlias = aliases[editingId] || '';
+      const nextAlias = aliasDraft.trim();
+      if (nextAlias !== prevAlias) {
+        try {
+          if (nextAlias) {
+            await fetch('/api/users/alias', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ targetId: editingId, alias: nextAlias }),
+            });
+            setAliases({ ...aliases, [editingId]: nextAlias });
+          } else if (prevAlias) {
+            await fetch(`/api/users/alias?targetId=${editingId}`, { method: 'DELETE' });
+            const next = { ...aliases };
+            delete next[editingId];
+            setAliases(next);
+          }
+        } catch {
+          // silent
+        }
+      }
     }
 
     setEditingId(null);
     setIsAdding(false);
+    setAliasDraft('');
   };
 
   const handleDelete = (id: string) => {
@@ -115,11 +158,12 @@ export default function FamilyManagement() {
       const liffModule = await import('@line/liff');
       const liff = liffModule.default || liffModule;
       const link = getInviteLink();
-      const userName = users.find(u => u.id === inviteState.userId)?.name || '';
+      const targetUser = users.find(u => u.id === inviteState.userId);
+      const userName = targetUser?.displayName ?? targetUser?.name ?? '';
       await liff.sendMessages([
         {
           type: 'text',
-          text: `${currentUser.name} เชิญคุณเข้าร่วม MyFam! 🏠💰\n\nคลิกลิงก์ด้านล่างเพื่อเชื่อมบัญชี LINE กับ ${userName || 'สมาชิก'}\n\n${link}`,
+          text: `${currentUser.displayName ?? currentUser.name} เชิญคุณเข้าร่วม MyFam! 🏠💰\n\nคลิกลิงก์ด้านล่างเพื่อเชื่อมบัญชี LINE กับ ${userName || 'สมาชิก'}\n\n${link}`,
         },
       ]);
       alert('ส่งข้อความเรียบร้อยแล้ว!');
@@ -148,7 +192,7 @@ export default function FamilyManagement() {
             <div key={user.id} className={isEditing ? s.memberCardEditing : s.memberCard}>
               <AvatarUploader
                 currentAvatar={isEditing ? formData.avatar : user.avatar}
-                name={isEditing && formData.name ? formData.name : user.name}
+                name={isEditing && formData.name ? formData.name : (user.displayName ?? user.name)}
                 color={user.color}
                 editable={isEditing}
                 onUpload={(base64) => setFormData({ ...formData, avatar: base64 })}
@@ -157,14 +201,25 @@ export default function FamilyManagement() {
 
               <div className={s.memberInfo}>
                 {isEditing ? (
-                  <input
-                    className={s.nameInput}
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="ชื่อ"
-                  />
+                  <>
+                    <input
+                      className={s.nameInput}
+                      value={formData.name || ''}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="ชื่อ"
+                    />
+                    {user.id !== currentUser.id && (
+                      <input
+                        className={s.aliasInput}
+                        value={aliasDraft}
+                        onChange={(e) => setAliasDraft(e.target.value)}
+                        placeholder="ชื่อที่แสดงให้ฉัน (alias)"
+                        maxLength={50}
+                      />
+                    )}
+                  </>
                 ) : (
-                  <div className={s.memberName}>{user.name}</div>
+                  <div className={s.memberName}>{user.displayName ?? user.name}</div>
                 )}
 
                 {isEditing ? (
@@ -237,7 +292,7 @@ export default function FamilyManagement() {
           <div className={s.inviteCard} onClick={(e) => e.stopPropagation()}>
             <h3 className={s.inviteTitle}>ลิงก์เชิญพร้อมใช้งาน</h3>
             <p className={s.inviteText}>
-              ส่งลิงก์นี้ให้ <strong>{users.find(u => u.id === inviteState.userId)?.name}</strong> เพื่อเชื่อมบัญชี LINE
+              ส่งลิงก์นี้ให้ <strong>{users.find(u => u.id === inviteState.userId)?.displayName ?? users.find(u => u.id === inviteState.userId)?.name}</strong> เพื่อเชื่อมบัญชี LINE
             </p>
             <div className={s.inviteCodeBox}>
               <code className={s.inviteCode}>{inviteState.code}</code>

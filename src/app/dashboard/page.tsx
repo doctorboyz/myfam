@@ -83,7 +83,7 @@ function DashboardContent() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div className={styles.greeting}>{getGreeting()}</div>
-            <h1 className={styles.title}>{currentUser.name} <span style={{fontSize: 'var(--font-header)', opacity: 0.7}}>({currentUser.role})</span></h1>
+            <h1 className={styles.title}>{currentUser.displayName ?? currentUser.name} <span style={{fontSize: 'var(--font-header)', opacity: 0.7}}>({currentUser.role})</span></h1>
             <div className={styles.date}>{formatBangkokDate(new Date())}</div>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
+import { resolveDisplayNames } from '@/lib/display-name';
 
 export async function GET() {
   try {
@@ -8,9 +9,16 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       where: { familyId: currentUser.familyId },
-      include: { lineLink: { select: { lineUserId: true } } },
+      include: { lineLink: { select: { lineUserId: true, displayName: true } } },
     });
-    return apiSuccess(users);
+
+    const displayMap = await resolveDisplayNames(currentUser.id, users);
+    const usersWithDisplay = users.map((u) => ({
+      ...u,
+      displayName: displayMap.get(u.id) ?? u.name,
+    }));
+
+    return apiSuccess(usersWithDisplay);
   } catch (error) {
     console.error('Failed to fetch users:', error);
     return apiError('Failed to fetch users');

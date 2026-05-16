@@ -7,7 +7,7 @@
  */
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || 'qwen3.5:cloud';
+const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || 'qwen2.5:7b';
 const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || 'qwen3.5:cloud';
 
 interface OllamaGenerateOptions {
@@ -143,6 +143,8 @@ export async function extractFromText(
 - transfer: โอนระหว่างบัญชีตัวเอง
 - ถ้าไม่แน่ใจว่า expense หรือ income ให้ใส่ needsConfirmation=true
 
+สำคัญมาก: ค่า type ต้องเป็นภาษาอังกฤษเท่านั้น ได้แก่ "expense" หรือ "income" หรือ "transfer" ห้ามใช้ภาษาอื่น
+
 ถ้าข้อความไม่มีจำนวนเงินชัดเจน หรือไม่ใช่ข้อความเกี่ยวกับธุรกรรมการเงิน ให้ confidence ต่ำ (ต่ำกว่า 0.4)`;
 
   const today = new Date().toISOString().split('T')[0];
@@ -209,6 +211,8 @@ export async function extractFromSlip(
 - income (เรารับเข้า): เห็นชื่อเราเป็น "ผู้รับโอน" หรือ "เข้าบ/ช", มีคำว่า "รับโอน", "รับเงิน", "CREDIT", สลิปที่คนอื่นส่งมา
 - transfer: โอนระหว่างบัญชีตัวเอง
 - ถ้าไม่แน่ใจว่า expense หรือ income ให้ใส่ needsConfirmation=true
+
+สำคัญมาก: ค่า type ต้องเป็นภาษาอังกฤษเท่านั้น ได้แก่ "expense" หรือ "income" หรือ "transfer" ห้ามใช้ภาษาอื่น
 
 ตอบเป็น JSON เท่านั้น:
 {"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
@@ -411,6 +415,76 @@ export function formatErrorMessage(error: string): string {
   return 'ขออภัย เกิดข้อผิดพลาด กรุณาลองใหม่';
 }
 
+/**
+ * Validate extracted transaction data.
+ * Returns structured result with missing fields and a Thai message.
+ */
+export interface ValidationResult {
+  valid: boolean;
+  missingFields: string[];
+  message: string;
+}
+
+export function validateExtracted(extracted: ExtractedTransaction): ValidationResult {
+  const missingFields: string[] = [];
+
+  // Amount must be positive
+  if (!extracted.amount || extracted.amount <= 0) {
+    missingFields.push('amount');
+  }
+
+  // Date must be valid and reasonable
+  const dateStr = extracted.date;
+  const parsedDate = new Date(dateStr);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // End of today
+  const minDate = new Date('2020-01-01');
+
+  if (isNaN(parsedDate.getTime()) || parsedDate > today || parsedDate < minDate) {
+    missingFields.push('date');
+  }
+
+  // Description must not be empty
+  if (!extracted.description || extracted.description.trim().length === 0) {
+    missingFields.push('description');
+  }
+
+  // Type must be valid
+  if (!['income', 'expense', 'transfer'].includes(extracted.type)) {
+    missingFields.push('type');
+  }
+
+  if (missingFields.length === 0) {
+    return { valid: true, missingFields: [], message: '' };
+  }
+
+  // Build polite Thai message
+  const fieldMessages: Record<string, string> = {
+    amount: 'จำนวนเงิน',
+    date: 'วันที่',
+    description: 'รายละเอียดรายการ',
+    type: 'ประเภทรายการ',
+  };
+
+  const missingLabels = missingFields.map((f) => fieldMessages[f] || f).join(' / ');
+
+  let message = `🤖 ขออภัยนะครับ ข้อมูลไม่ครบถ้วน:\n\n`;
+  message += `❌ ไม่พบ: ${missingLabels}\n\n`;
+  message += `💡 ลองพิมพ์ใหม่ เช่น:\n`;
+  if (missingFields.includes('amount')) {
+    message += `   "ซื้อข้าว 85 บาท"\n`;
+  }
+  if (missingFields.includes('date')) {
+    message += `   "ซื้อข้าว 85 บาท วันนี้"\n`;
+  }
+  if (missingFields.includes('description')) {
+    message += `   "ซื้อข้าว 85 บาท"\n`;
+  }
+  message += `\nหรือส่งสลิปธนาคารมาได้เลยครับ`;
+
+  return { valid: false, missingFields, message };
+}
+
 // Export model names for use in other modules
 export { OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL };
 
@@ -506,10 +580,10 @@ export function buildCategoryGroupReply(
   pendingTransactionId?: string,
 ) {
   const filtered = groups.filter((g) => g.type === transactionType);
-  // Format: "เลือกหมวด:{groupId}" so we can parse it back
+  // Format: "เลือกหมวด:{groupName}" so user sees readable text in chat
   const items = filtered.slice(0, 12).map((g) => ({
     label: g.name,
-    action: `เลือกหมวด:${g.id}`,
+    action: `เลือกหมวด:${g.name}`,
   }));
   // Add cancel option
   items.push({ label: '❌ ข้าม', action: 'ข้ามหมวด' });
@@ -525,7 +599,7 @@ export function buildSubcategoryReply(
   // LINE allows max 13 items
   const items = categories.slice(0, 12).map((c) => ({
     label: c.name,
-    action: `เลือกประเภท:${c.id}`,
+    action: `เลือกประเภท:${c.name}`,
   }));
   items.push({ label: '❌ ข้าม', action: 'ข้ามประเภท' });
   return formatQuickReply(items);
@@ -535,13 +609,16 @@ export function buildSubcategoryReply(
  * Build Quick Reply items for account selection.
  */
 export function buildAccountReply(
-  accounts: Array<{ id: string; name: string; icon?: string | null }>,
+  accounts: Array<{ id: string; name: string; alias?: string | null }>,
 ) {
   // LINE allows max 13 items
-  const items = accounts.slice(0, 12).map((a) => ({
-    label: a.icon ? `${a.icon} ${a.name}` : a.name,
-    action: `เลือกบัญชี:${a.id}`,
-  }));
+  const items = accounts.slice(0, 12).map((a) => {
+    const display = a.alias ? `${a.name}-(${a.alias})` : a.name;
+    return {
+      label: display,
+      action: `เลือกบัญชี:${display}`,
+    };
+  });
   items.push({ label: '❌ ยกเลิก', action: 'ยกเลิก' });
   return formatQuickReply(items);
 }

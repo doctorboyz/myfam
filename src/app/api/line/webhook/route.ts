@@ -29,10 +29,17 @@ import {
   buildSubcategoryReply,
   buildAccountReply,
   buildDirectionReply,
+  validateExtracted,
   type ExtractedTransaction,
 } from '@/lib/ollama';
 import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
 import { sendLineFlexReply } from '@/lib/line';
+import {
+  extractSlipText,
+  isSlipKeyword,
+  formatNonSlipMessage,
+  formatUnclearSlipMessage,
+} from '@/lib/slip-ocr';
 
 export const maxDuration = 300;
 
@@ -594,7 +601,7 @@ async function cancelPendingTransaction(
 // ── Category Selection ───────────────────────────────────────────
 
 async function handleSelectGroup(
-  groupId: string,
+  groupName: string,
   user: { id: string; role: string; familyId: string },
 ): Promise<{ text: string; quickReply: ReturnType<typeof formatQuickReply> }> {
   // Find the most recent completed transaction from line-bot for this user
@@ -608,9 +615,20 @@ async function handleSelectGroup(
     return { text: 'ไม่พบรายการที่สร้างล่าสุด', quickReply: menuQuickReply };
   }
 
+  // Find group by name (fallback to id for backward compatibility)
+  const group = await prisma.categoryGroup.findFirst({
+    where: {
+      OR: [{ name: groupName }, { id: groupName }],
+    },
+  });
+
+  if (!group) {
+    return { text: 'ไม่พบหมวดหมู่', quickReply: menuQuickReply };
+  }
+
   // Get subcategories for the selected group
   const categories = await prisma.category.findMany({
-    where: { groupId },
+    where: { groupId: group.id },
     orderBy: { name: 'asc' },
   });
 
@@ -717,7 +735,7 @@ async function handleSelectAccount(
 }
 
 async function handleSelectSubcategory(
-  categoryId: string,
+  categoryName: string,
   user: { id: string; role: string; familyId: string },
 ): Promise<string> {
   const scope = getDataScope(user);
@@ -731,8 +749,11 @@ async function handleSelectSubcategory(
     return 'ไม่พบรายการที่สร้างล่าสุด';
   }
 
-  const category = await prisma.category.findUnique({
-    where: { id: categoryId },
+  // Find category by name (fallback to id for backward compatibility)
+  const category = await prisma.category.findFirst({
+    where: {
+      OR: [{ name: categoryName }, { id: categoryName }],
+    },
     include: { group: true },
   });
 
@@ -742,7 +763,7 @@ async function handleSelectSubcategory(
 
   await prisma.transaction.update({
     where: { id: transaction.id },
-    data: { categoryId },
+    data: { categoryId: category.id },
   });
 
   return `✅ อัปเดตหมวดหมู่เป็น "${category.name}" (${category.group.name}) แล้ว`;
@@ -981,18 +1002,18 @@ async function handleTextMessage(
   }
 
   if (cmd === 'select_group') {
-    const groupId = text.split(':')[1];
-    if (groupId) {
-      const { text: replyText, quickReply } = await handleSelectGroup(groupId, user);
+    const groupName = text.split(':').slice(1).join(':');
+    if (groupName) {
+      const { text: replyText, quickReply } = await handleSelectGroup(groupName, user);
       await sendLineReply(replyToken, replyText, quickReply);
     }
     return;
   }
 
   if (cmd === 'select_subcategory') {
-    const categoryId = text.split(':')[1];
-    if (categoryId) {
-      const reply = await handleSelectSubcategory(categoryId, user);
+    const categoryName = text.split(':').slice(1).join(':');
+    if (categoryName) {
+      const reply = await handleSelectSubcategory(categoryName, user);
       await sendLineReply(replyToken, reply, menuQuickReply);
     }
     return;
@@ -1004,9 +1025,23 @@ async function handleTextMessage(
   }
 
   if (cmd === 'select_account') {
-    const accountId = text.split(':')[1];
-    if (accountId) {
-      await handleSelectAccount(accountId, user, lineUserId);
+    const accountName = text.split(':').slice(1).join(':'); // name may contain ':'
+    if (accountName) {
+      const account = await prisma.account.findFirst({
+        where: {
+          ownerId: user.id,
+          status: 'active',
+          OR: [
+            { name: accountName },
+            { alias: accountName },
+          ],
+        },
+      });
+      if (account) {
+        await handleSelectAccount(account.id, user, lineUserId);
+      } else {
+        await sendLinePush(lineUserId, 'ไม่พบบัญชีที่เลือก', menuQuickReply);
+      }
     }
     return;
   }
@@ -1082,13 +1117,10 @@ async function handleTextMessage(
       return;
     }
 
-    // No amount found — ask user to specify
-    if (extracted.amount === 0) {
-      await sendLinePush(
-        lineUserId,
-        `ไม่พบจำนวนเงินในข้อความ\n\nกรุณาระบุจำนวนเงิน เช่น "ซื้อข้าว 85 บาท"`,
-        menuQuickReply,
-      );
+    // Run comprehensive validation
+    const validation = validateExtracted(extracted);
+    if (!validation.valid) {
+      await sendLinePush(lineUserId, validation.message, menuQuickReply);
       return;
     }
 
@@ -1130,59 +1162,111 @@ async function handleImageMessage(
   try {
     // Download image from LINE
     const imageBuffer = await downloadLineImage(messageId);
-    const imageBase64 = imageBuffer.toString('base64');
 
-    // Process with AI
+    // Step 1: Tesseract OCR (cheap, fast)
+    const { text, confidence } = await extractSlipText(imageBuffer);
+
+    // Get categories once for all paths
     const categories = await getCategoriesForFamily(user.familyId);
     const categoryContext = getCategoryContext(categories);
+
+    // Step 2: If OCR is confident and text looks like a slip → use text model (much cheaper)
+    if (confidence >= 70 && isSlipKeyword(text)) {
+      const extracted = await extractFromText(text, categoryContext);
+
+      // OCR looked like slip but AI couldn't parse → fallback vision
+      if (extracted.confidence < 0.3) {
+        const imageBase64 = imageBuffer.toString('base64');
+        const visionExtracted = await extractFromSlip(imageBase64, categoryContext);
+        await processExtractedSlip(visionExtracted, user, lineUserId, imageBuffer);
+        return;
+      }
+
+      if (extracted.amount === 0) {
+        await sendLinePush(
+          lineUserId,
+          'ไม่พบจำนวนเงินในสลิป กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+          menuQuickReply,
+        );
+        return;
+      }
+
+      await processExtractedSlip(extracted, user, lineUserId, imageBuffer);
+      return;
+    }
+
+    // Step 3: OCR weak or no slip keywords → fallback to vision model
+    const imageBase64 = imageBuffer.toString('base64');
     const extracted = await extractFromSlip(imageBase64, categoryContext);
 
-    if (extracted.confidence < 0.3) {
-      await sendLinePush(
-        lineUserId,
-        'ไม่สามารถอ่านสลิปได้ กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
-        menuQuickReply,
-      );
+    // Vision model says not a slip or can't read at all
+    if (extracted.confidence < 0.3 && extracted.amount === 0) {
+      if (!isSlipKeyword(text)) {
+        await sendLinePush(lineUserId, formatNonSlipMessage(), menuQuickReply);
+      } else {
+        await sendLinePush(lineUserId, formatUnclearSlipMessage(), menuQuickReply);
+      }
       return;
     }
 
-    if (extracted.amount === 0) {
-      await sendLinePush(
-        lineUserId,
-        'ไม่พบจำนวนเงินในสลิป กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
-        menuQuickReply,
-      );
-      return;
-    }
-
-    // If type is uncertain, ask for confirmation
-    if (extracted.needsConfirmation) {
-      const fmt = new Intl.NumberFormat('th-TH');
-      const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
-
-      // Create pending transaction
-      await createTransactionFromExtracted(extracted, user, 'pending');
-
-      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
-
-      await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
-      return;
-    }
-
-    // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
-    const result = await promptAccountSelection(extracted, user, lineUserId);
-    if (result.waiting || !result.transaction) return; // Waiting for user to select account or error
-
-    // Save slip image to the created transaction
-    await prisma.transaction.update({
-      where: { id: result.transaction.id },
-      data: { slipImage: `data:image/jpeg;base64,${imageBase64}` },
-    });
+    // Vision model succeeded
+    await processExtractedSlip(extracted, user, lineUserId, imageBuffer);
   } catch (error) {
     console.error('Image processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
     await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
   }
+}
+
+/**
+ * Shared logic: validate extracted data, handle confirmation/account selection,
+ * and save slip image to transaction.
+ */
+async function processExtractedSlip(
+  extracted: ExtractedTransaction,
+  user: { id: string; name: string; role: string; familyId: string },
+  lineUserId: string,
+  imageBuffer: Buffer,
+): Promise<void> {
+  if (extracted.confidence < 0.3) {
+    await sendLinePush(
+      lineUserId,
+      'ไม่สามารถอ่านสลิปได้ กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+      menuQuickReply,
+    );
+    return;
+  }
+
+  // Run comprehensive validation
+  const validation = validateExtracted(extracted);
+  if (!validation.valid) {
+    await sendLinePush(lineUserId, validation.message, menuQuickReply);
+    return;
+  }
+
+  // If type is uncertain, ask for confirmation
+  if (extracted.needsConfirmation) {
+    const fmt = new Intl.NumberFormat('th-TH');
+    const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+
+    // Create pending transaction
+    await createTransactionFromExtracted(extracted, user, 'pending');
+
+    const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+
+    await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
+    return;
+  }
+
+  // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
+  const result = await promptAccountSelection(extracted, user, lineUserId);
+  if (result.waiting || !result.transaction) return; // Waiting for user to select account or error
+
+  // Save slip image to the created transaction
+  await prisma.transaction.update({
+    where: { id: result.transaction.id },
+    data: { slipImage: `data:image/jpeg;base64,${imageBuffer.toString('base64')}` },
+  });
 }
 
 // ── GET Handler (LINE Webhook Verification) ──────────────────────────

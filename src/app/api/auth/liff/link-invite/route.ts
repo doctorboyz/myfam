@@ -88,16 +88,12 @@ export async function POST(request: Request) {
 
     // Transaction: create LineLink + mark invite as used + update avatar
     const result = await prisma.$transaction(async (tx) => {
+      // Only update avatar from LINE — never overwrite user.name
       const linePicture = payload.picture;
-      const updateData: { avatar?: string } = {};
       if (linePicture && linePicture !== invite.user.avatar) {
-        updateData.avatar = linePicture;
-      }
-
-      if (Object.keys(updateData).length > 0) {
         await tx.user.update({
           where: { id: invite.userId },
-          data: updateData,
+          data: { avatar: linePicture },
         });
       }
 
@@ -105,7 +101,7 @@ export async function POST(request: Request) {
         data: {
           lineUserId,
           userId: invite.userId,
-          displayName: payload.name || invite.user.name,
+          displayName: payload.name || null,
         },
       });
 

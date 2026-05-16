@@ -5,6 +5,7 @@ export type UserRole = 'parent' | 'child';
 export interface User {
   id: string;
   name: string;
+  displayName?: string;
   role: UserRole;
   isAdmin?: boolean;
   avatar?: string;
@@ -114,6 +115,7 @@ export interface Transaction {
   date: string;
   amount: number;
   fee?: number;
+  totalAmount?: number;
   type: TransactionType;
   description?: string;
   slipImage?: string;

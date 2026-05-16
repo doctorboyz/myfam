@@ -32,20 +32,45 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { name, type, balance, color, ownerId, icon } = await request.json();
+    const { name, type, balance, color, ownerId, icon, alias, accountNo } = await request.json();
+    const initialBalance = Number(balance) || 0;
 
-    const account = await prisma.account.create({
-      data: {
-        name,
-        type: type || 'wallet',
-        balance: balance || 0,
-        color: color || '#000000',
-        icon,
-        ownerId,
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      const account = await tx.account.create({
+        data: {
+          name,
+          type: type || 'wallet',
+          balance: 0,
+          color: color || '#000000',
+          icon,
+          alias,
+          accountNo,
+          ownerId,
+        },
+      });
+
+      if (initialBalance > 0) {
+        await tx.reconciliation.create({
+          data: {
+            accountId: account.id,
+            previousBalance: 0,
+            newBalance: initialBalance,
+            difference: initialBalance,
+            note: 'ยอดเริ่มต้น',
+            performedById: ownerId,
+          },
+        });
+
+        await tx.account.update({
+          where: { id: account.id },
+          data: { balance: initialBalance },
+        });
+      }
+
+      return account;
     });
 
-    return apiSuccess(account, 201);
+    return apiSuccess(result, 201);
   } catch (error) {
     console.error('Failed to create account:', error);
     return apiError('Failed to create account');

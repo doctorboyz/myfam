@@ -70,7 +70,7 @@ export function LiffProvider({ children }: { children: ReactNode }) {
       // On /link page, let the page handle its own LIFF auth flow
       const isLinkPage = typeof window !== 'undefined' && window.location.pathname === '/link';
 
-      if (_loggedIn) {
+      if (_loggedIn && !isLinkPage) {
         const idToken = await getIDToken();
         if (idToken && mounted) {
           try {

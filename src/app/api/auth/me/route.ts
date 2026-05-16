@@ -20,6 +20,7 @@ export async function GET() {
         avatar: true,
         color: true,
         familyId: true,
+        lineLink: { select: { displayName: true } },
       },
     });
 
@@ -29,7 +30,9 @@ export async function GET() {
       return apiError('User not found', 401);
     }
 
-    return apiSuccess(user);
+    const displayName = user.lineLink?.displayName ?? user.name;
+
+    return apiSuccess({ ...user, displayName });
   } catch (error) {
     console.error('Auth check error:', error);
     return apiError('Auth check failed');

@@ -28,6 +28,7 @@ interface ApiTransaction {
   categoryId?: string;
   category?: { id: string; name: string; group?: { name: string } };
   fee?: string | number;
+  totalAmount?: string | number;
   slipImage?: string;
   tags?: string[];
   tagIds?: string[];
@@ -189,6 +190,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             categoryId: tx.categoryId || tx.category?.id || null,
             category: tx.category?.name || 'Unknown',
             amount: Number(tx.amount),
+            fee: tx.fee ? Number(tx.fee) : 0,
+            totalAmount: tx.totalAmount ? Number(tx.totalAmount) : (Number(tx.amount) + Number(tx.fee || 0)),
             tags: tx.tags || [],
             tagIds: tx.tagIds || [],
         }));
@@ -283,13 +286,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     if (!currentUser) return;
     
     try {
+        const initialBalance = (accountData as any).balance ?? 0;
         const res = await fetch('/api/accounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 ...accountData,
                 ownerId: currentUser.id, // API expects ownerId
-                balance: 0
+                balance: initialBalance
             })
         });
 
@@ -366,6 +370,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             categoryId: categoryId,
             createdById: createdById || currentUser.id,
             fee: txData.fee ? Number(txData.fee) : 0,
+            totalAmount: (Number(txData.amount || 0) + Number(txData.fee || 0)),
             tagIds: txData.tagIds || [],
             slipImage: txData.slipImage || null,
         };
@@ -383,6 +388,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 category: txData.category,
                 categoryGroup: savedTx.category?.group?.name || txData.categoryGroup || 'Unknown',
                 amount: Number(savedTx.amount),
+                fee: savedTx.fee ? Number(savedTx.fee) : 0,
+                totalAmount: savedTx.totalAmount ? Number(savedTx.totalAmount) : (Number(savedTx.amount) + Number(savedTx.fee || 0)),
                 tags: savedTx.tags || [],
                 tagIds: savedTx.tagIds || [],
             };

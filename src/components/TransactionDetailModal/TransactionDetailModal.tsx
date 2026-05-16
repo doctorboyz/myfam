@@ -159,12 +159,15 @@ export default function TransactionDetailModal({
         return;
     }
     
+    const totalAmount = Number(formData.amount || 0) + Number(formData.fee || 0);
+
     onSave({
       ...formData,
       categoryGroup: groupName,
       accountId: formData.accountId || accountId, // Fallback
       fee: formData.fee ? Number(formData.fee) : 0,
       amount: Number(formData.amount),
+      totalAmount,
       tagIds: formData.tagIds || [],
       tags: formData.tagIds ? tags.filter(t => formData.tagIds!.includes(t.id)).map(t => t.name) : [],
     } as Omit<Transaction, "id">, selectedMemberId);
@@ -225,6 +228,12 @@ export default function TransactionDetailModal({
            {transaction.fee && transaction.fee > 0 && (
               <div className={styles.viewFee}>
                  ค่าธรรมเนียม: -฿{transaction.fee.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+           )}
+
+           {transaction.totalAmount != null && transaction.totalAmount > 0 && (
+              <div className={styles.viewTotalAmount}>
+                 ยอดรวม: {transaction.type === 'expense' ? '-' : ''}฿{transaction.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
            )}
 
@@ -425,6 +434,13 @@ export default function TransactionDetailModal({
                 placeholder="0.00"
               />
             </div>
+        </div>
+
+        <div className={styles.totalAmountDisplay}>
+          <span className={styles.totalLabel}>ยอดรวม</span>
+          <span className={styles.totalValue}>
+            ฿{(Number(formData.amount || 0) + Number(formData.fee || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         </div>
 
         <CategorySelector

@@ -121,9 +121,9 @@ export default function BudgetDetailPage() {
             flexShrink: 0,
           }}
         >
-          {creator.name.charAt(0).toUpperCase()}
+          {(creator.displayName ?? creator.name).charAt(0).toUpperCase()}
         </span>
-        {isMe ? "คุณ" : creator.name}
+        {isMe ? "คุณ" : (creator.displayName ?? creator.name)}
       </span>
     );
   };

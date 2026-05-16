@@ -50,7 +50,7 @@ export default function Profile() {
         <div className={s.avatarWrap}>
           <AvatarUploader
             currentAvatar={currentUser.avatar}
-            name={currentUser.name}
+            name={currentUser.displayName ?? currentUser.name}
             color={currentUser.color}
             onUpload={handleAvatarUpdate}
             editable={true}
@@ -78,7 +78,7 @@ export default function Profile() {
           </div>
         ) : (
           <div className={s.nameRow}>
-            <h1 className={s.name}>{currentUser.name}</h1>
+            <h1 className={s.name}>{currentUser.displayName ?? currentUser.name}</h1>
             <button className={s.editIcon} onClick={startEditName} aria-label="แก้ไขชื่อ">
               <Pencil size={16} />
             </button>
@@ -139,7 +139,7 @@ export default function Profile() {
             {otherMembers.map(member => (
               <div key={member.id} className={s.dangerItem}>
                 <div className={s.dangerItemInfo}>
-                  <span className={s.dangerItemName}>{member.name}</span>
+                  <span className={s.dangerItemName}>{member.displayName ?? member.name}</span>
                   <span className={s.dangerItemBalance}>
                     {member.role === 'parent' ? 'ผู้ปกครอง' : 'สมาชิก'}
                   </span>
@@ -162,7 +162,7 @@ export default function Profile() {
             <div className={s.confirmDialog} onClick={(e) => e.stopPropagation()}>
               <h3 className={s.confirmTitle}>ลบผู้ใช้</h3>
               <p className={s.confirmText}>
-                คุณแน่ใจหรือไม่ที่จะลบ <strong>{member.name}</strong> และข้อมูลทั้งหมด?
+                คุณแน่ใจหรือไม่ที่จะลบ <strong>{member.displayName ?? member.name}</strong> และข้อมูลทั้งหมด?
               </p>
               <p className={s.confirmWarning}>
                 <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />

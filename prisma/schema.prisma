@@ -89,6 +89,10 @@ model User {
   inviteCodes     InviteCode[]
   createdInvites  InviteCode[] @relation("InviteCreator")
 
+  // Alias relations
+  aliasesSet       UserAlias[] @relation("AliasOwner")
+  aliasesReceived  UserAlias[] @relation("AliasTarget")
+
   // Audit trail relations
   createdAccounts      Account[]         @relation("AccountCreator")
   updatedAccounts      Account[]         @relation("AccountUpdater")
@@ -102,6 +106,19 @@ model User {
   deletedTransactionTags TransactionTag[] @relation("TransactionTagDeleter")
   updatedBudgets       Budget[]          @relation("BudgetUpdater")
   deletedBudgets       Budget[]          @relation("BudgetDeleter")
+}
+
+model UserAlias {
+  id       String @id @default(uuid())
+  ownerId  String @map("owner_id")   // who set this alias (the viewer)
+  targetId String @map("target_id")  // who this alias is for
+  alias    String
+
+  owner  User @relation("AliasOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  target User @relation("AliasTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, targetId])
+  @@map("user_aliases")
 }
 
 model Account {
@@ -210,8 +227,9 @@ model Transaction {
   createdBy   User   @relation(fields: [createdById], references: [id])
 
   // Extra fields
-  fee       Decimal? @default(0)
-  slipImage String?  @map("slip_image")
+  fee        Decimal? @default(0)
+  totalAmount Decimal? @default(0) @map("total_amount")
+  slipImage  String?  @map("slip_image")
 
   // Tags (many-to-many via TransactionTag)
   tagRecords TransactionTag[]

@@ -2,7 +2,7 @@ FROM node:20-alpine AS base
 
 # Stage 1: Build
 FROM base AS builder
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl tesseract-ocr tesseract-ocr-data-tha tesseract-ocr-data-eng
 WORKDIR /app
 
 # Build-time env vars (NEXT_PUBLIC_ vars are inlined into JS at build time)
@@ -22,7 +22,7 @@ RUN npm run build
 
 # Stage 2: Runner
 FROM base AS runner
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl tesseract-ocr tesseract-ocr-data-tha tesseract-ocr-data-eng
 WORKDIR /app
 
 ENV NODE_ENV=production
