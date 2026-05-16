@@ -34,6 +34,7 @@ import {
 } from '@/lib/ollama';
 import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
 import { sendLineFlexReply } from '@/lib/line';
+import { handleIntent } from '@/lib/intent-router';
 import {
   extractSlipText,
   isSlipKeyword,
@@ -1054,51 +1055,10 @@ async function handleTextMessage(
     const intent = await detectIntent(text);
     console.log(`[webhook] intent: ${intent} for text: "${text.slice(0, 50)}"`);
 
-    // Route by intent
-    if (intent === 'balance') {
-      const reply = await handleBalanceQuery(user);
+    // Route query intents through intent-router (example-driven + session memory)
+    if (intent === 'balance' || intent === 'recent' || intent === 'summary' || intent === 'budget' || intent === 'help') {
+      const reply = await handleIntent(intent, text, lineUserId, user);
       await sendLinePush(lineUserId, reply, menuQuickReply);
-      return;
-    }
-
-    if (intent === 'recent') {
-      const reply = await handleRecentQuery(user);
-      await sendLinePush(lineUserId, reply, menuQuickReply);
-      return;
-    }
-
-    if (intent === 'summary') {
-      const reply = await handleSummaryQuery(user);
-      await sendLinePush(lineUserId, reply, menuQuickReply);
-      return;
-    }
-
-    if (intent === 'budget') {
-      const familyBudgets = await prisma.budget.findMany({
-        where: { createdBy: { familyId: user.familyId } },
-        include: { transactions: { where: { status: 'completed' } } },
-      });
-      const budgetData = familyBudgets.map((b) => {
-        const totalActual = b.transactions.reduce((sum, t) => sum + Number(t.amount), 0);
-        return { title: b.title, used: totalActual, limit: Number(b.limit) };
-      });
-      const localFmt = new Intl.NumberFormat('th-TH');
-      const reply = budgetData.length === 0
-        ? 'ยังไม่มีงบประมาณ'
-        : budgetData.map((b) => {
-            const pct = b.limit > 0 ? Math.round((b.used / b.limit) * 100) : 0;
-            return `📈 ${b.title}: ฿${localFmt.format(b.used)} / ฿${localFmt.format(b.limit)} (${pct}%)`;
-          }).join('\n');
-      await sendLinePush(lineUserId, reply, menuQuickReply);
-      return;
-    }
-
-    if (intent === 'help') {
-      await sendLinePush(
-        lineUserId,
-        `🤖 MyFam Bot ช่วยอะไรได้บ้าง:\n\n📝 บันทึกรายการ — พิมพ์ เช่น "ซื้อข้าว 85 บาท"\n📸 อ่านสลิป — ส่งรูปสลิป/ใบเสร็จ\n📊 ดูยอด — พิมพ์ "ดูยอด"\n📋 รายการล่าสุด — พิมพ์ "รายการล่าสุด"\n📈 สรุปยอด — พิมพ์ "สรุปยอด"\n💸 งบประมาณ — พิมพ์ "งบ"`,
-        menuQuickReply,
-      );
       return;
     }
 
@@ -1156,6 +1116,15 @@ async function handleImageMessage(
   messageId: string,
   user: { id: string; name: string; role: string; familyId: string },
 ): Promise<void> {
+  // Fallback: OCR models not ready yet during development
+  if (process.env.SLIP_OCR_ENABLED !== 'true') {
+    await sendLineReply(
+      replyToken,
+      'ขออภัย ระบบอ่านสลิปยังไม่พร้อมใช้งานขณะนี้\nกรุณาพิมพ์รายละเอียดรายการแทน เช่น\n"ค่าอาหารกลางวัน 150 บาท" หรือ "โอน 5000 จากกรุงไทยไปกสิกร"',
+    );
+    return;
+  }
+
   // Acknowledge immediately — OCR takes time
   await sendLineReply(replyToken, '⏳ กำลังอ่านสลิป...');
 
