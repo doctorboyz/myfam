@@ -130,6 +130,75 @@ async function executeIntentQuery(intent: UserIntent, user: UserContext): Promis
       };
     }
 
+    case 'categories': {
+      const scope = getDataScope(user);
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+      // Groups with subcategories
+      const groups = await prisma.categoryGroup.findMany({
+        where: { deletedAt: null },
+        include: {
+          categories: {
+            where: { deletedAt: null },
+            orderBy: { name: 'asc' },
+          },
+        },
+        orderBy: { type: 'asc' },
+      });
+
+      // Spending per group this month (ranking)
+      const groupSpending = await prisma.transaction.groupBy({
+        by: ['categoryId'],
+        where: { ...scope, type: 'expense', date: { gte: startOfMonth } },
+        _sum: { amount: true },
+      });
+
+      // Resolve categoryId → group name
+      const allCats = await prisma.category.findMany({
+        where: { deletedAt: null },
+        include: { group: true },
+      });
+      const catMap = new Map(allCats.map((c) => [c.id, c.group?.name ?? 'อื่นๆ']));
+
+      const groupRanking = new Map<string, number>();
+      for (const gs of groupSpending) {
+        const gName = catMap.get(gs.categoryId ?? '') ?? 'อื่นๆ';
+        groupRanking.set(gName, (groupRanking.get(gName) || 0) + Number(gs._sum.amount ?? 0));
+      }
+      const topGroups = Array.from(groupRanking.entries())
+        .map(([name, amount]) => ({ groupName: name, amount }))
+        .sort((a, b) => b.amount - a.amount);
+
+      // Top categories (individual, not grouped)
+      const topCategories = allCats
+        .map((c) => {
+          const amount = groupSpending
+            .filter((gs) => gs.categoryId === c.id)
+            .reduce((sum, gs) => sum + Number(gs._sum.amount ?? 0), 0);
+          return { name: c.name, groupName: c.group.name, amount };
+        })
+        .sort((a, b) => b.amount - a.amount)
+        .slice(0, 10);
+
+      // Tags
+      const tags = await prisma.tag.findMany({
+        where: { familyId: user.familyId },
+        orderBy: { name: 'asc' },
+      });
+
+      return {
+        groups: groups.map((g) => ({
+          name: g.name,
+          type: g.type,
+          subcategories: g.categories.map((c) => c.name),
+        })),
+        topGroups,
+        topCategories,
+        tags: tags.map((t) => ({ name: t.name })),
+      };
+    }
+
     default:
       return {};
   }

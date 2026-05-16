@@ -1056,7 +1056,7 @@ async function handleTextMessage(
     console.log(`[webhook] intent: ${intent} for text: "${text.slice(0, 50)}"`);
 
     // Route query intents through intent-router (example-driven + session memory)
-    if (intent === 'balance' || intent === 'recent' || intent === 'summary' || intent === 'budget' || intent === 'help') {
+    if (intent === 'balance' || intent === 'recent' || intent === 'summary' || intent === 'budget' || intent === 'help' || intent === 'categories') {
       const reply = await handleIntent(intent, text, lineUserId, user);
       await sendLinePush(lineUserId, reply, menuQuickReply);
       return;

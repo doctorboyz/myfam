@@ -491,7 +491,7 @@ export { OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL };
 /**
  * Intent types the LLM can detect from user messages.
  */
-export type UserIntent = 'create_transaction' | 'balance' | 'recent' | 'summary' | 'budget' | 'help';
+export type UserIntent = 'create_transaction' | 'balance' | 'recent' | 'summary' | 'budget' | 'help' | 'categories';
 
 /**
  * Use LLM to detect the user's intent from a Thai text message.
@@ -508,6 +508,7 @@ export async function detectIntent(text: string): Promise<UserIntent> {
 - "recent" — ผู้ใช้ต้องการดูรายการล่าสุด
 - "summary" — ผู้ใช้ต้องการดูสรุปยอดรายรับรายจ่าย
 - "help" — ผู้ใช้ถามว่าบอททำอะไรได้ หรือข้อความไม่เข้ากรณีอื่น
+- "categories" — ผู้ใช้ถามเกี่ยวกับหมวดหมู่ (มีหมวดอะไรบ้าง, หมวดไหนใช้เงินเยอะสุด, หมวดอาหารมีอะไรบ้าง)
 
 ตอบ: {"intent":"..."}`;
 
@@ -523,7 +524,7 @@ export async function detectIntent(text: string): Promise<UserIntent> {
     const parsed = JSON.parse(result.trim().replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, ''));
     const intent = String(parsed.intent ?? '');
 
-    if (['create_transaction', 'balance', 'recent', 'summary', 'help'].includes(intent)) {
+    if (['create_transaction', 'balance', 'recent', 'summary', 'budget', 'help', 'categories'].includes(intent)) {
       return intent as UserIntent;
     }
   } catch {
@@ -546,6 +547,7 @@ function detectIntentByKeywords(text: string): UserIntent {
   if (/(สรุป|สรุปยอด|รวม|รวมรายจ่าย|รวมรายรับ|summary|total)/i.test(q)) return 'summary';
   if (/(^งบ$|งบประมาณ|budget)/i.test(q)) return 'budget';
   if (/(ช่วย|ใช้ยังไง|ทำอะไรได้|help|บอททำอะไร)/i.test(q)) return 'help';
+  if (/(หมวด|หมวดหมู่|category|categories|แท็ก|tag|อันดับ|ranking|จัดอันดับ)/i.test(q)) return 'categories';
 
   return 'create_transaction';
 }
