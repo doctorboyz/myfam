@@ -1,14 +1,15 @@
 /**
- * Ollama API client for AI text generation and vision (OCR).
+ * AI client — transaction extraction, intent detection, and response formatting.
  *
- * Both models use Ollama Max cloud (qwen3.5:cloud, 397B params):
- * - Text chat (Thai understanding): qwen3.5:cloud
- * - Vision/OCR (slip receipt): qwen3.5:cloud
+ * Uses the unified ai-client.ts backend which supports both Ollama and OpenRouter.
+ * Model selection is configured per-function via AI_*_MODEL env vars.
  */
 
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-const OLLAMA_TEXT_MODEL = process.env.OLLAMA_TEXT_MODEL || 'qwen2.5:7b';
-const OLLAMA_VISION_MODEL = process.env.OLLAMA_VISION_MODEL || 'qwen3.5:cloud';
+import { aiChat, AI_RESPONSE_MODEL, AI_INTENT_MODEL, AI_EXTRACT_TEXT_MODEL, AI_EXTRACT_SLIP_MODEL } from '@/lib/ai-client';
+
+// Backward-compatible exports (used by intent-router.ts)
+export const OLLAMA_TEXT_MODEL = AI_RESPONSE_MODEL;
+export const OLLAMA_VISION_MODEL = AI_EXTRACT_SLIP_MODEL;
 
 interface OllamaGenerateOptions {
   model?: string;
@@ -20,13 +21,6 @@ interface OllamaGenerateOptions {
   format?: 'json' | 'text';
 }
 
-interface OllamaGenerateResponse {
-  model: string;
-  response: string;
-  done: boolean;
-  total_duration: number;
-  eval_count: number;
-}
 
 interface OllamaChatOptions {
   model?: string;
@@ -41,87 +35,35 @@ interface OllamaChatOptions {
   format?: 'json' | 'text';
 }
 
-interface OllamaChatResponse {
-  model: string;
-  message: {
-    role: string;
-    content: string;
-    images?: string[];
-  };
-  done: boolean;
-  total_duration: number;
-  eval_count: number;
-}
 
 /**
- * Call Ollama /api/generate endpoint (single prompt).
- * Use for simple text generation or vision tasks with a single prompt.
+ * Single-prompt generation (backward-compatible wrapper around aiChat).
  */
 export async function ollamaGenerate(options: OllamaGenerateOptions): Promise<string> {
   const model = options.model || OLLAMA_TEXT_MODEL;
 
-  const body = {
+  return aiChat({
     model,
-    prompt: options.prompt,
-    images: options.images,
-    stream: false,
-    format: options.format || 'json',
-    options: {
-      temperature: options.temperature ?? 0.1,
-      top_p: options.topP ?? 0.6,
-      repetition_penalty: options.repetitionPenalty ?? 1.1,
-    },
-  };
-
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300_000), // 5 min for CPU inference
+    messages: [{ role: 'user', content: options.prompt, images: options.images }],
+    temperature: options.temperature,
+    topP: options.topP,
+    format: options.format,
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Ollama generate error (${response.status}): ${errorText}`);
-  }
-
-  const data: OllamaGenerateResponse = await response.json();
-  return data.response;
 }
 
 /**
- * Call Ollama /api/chat endpoint (multi-turn conversation).
- * Use for complex interactions that need system prompts or conversation context.
+ * Multi-turn chat (backward-compatible wrapper around aiChat).
  */
 export async function ollamaChat(options: OllamaChatOptions): Promise<string> {
   const model = options.model || OLLAMA_TEXT_MODEL;
 
-  const body = {
+  return aiChat({
     model,
     messages: options.messages,
-    stream: false,
-    format: options.format || 'json',
-    options: {
-      temperature: options.temperature ?? 0.1,
-      top_p: options.topP ?? 0.6,
-      repetition_penalty: options.repetitionPenalty ?? 1.1,
-    },
-  };
-
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300_000), // 5 min for CPU inference
+    temperature: options.temperature,
+    topP: options.topP,
+    format: options.format,
   });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Ollama chat error (${response.status}): ${errorText}`);
-  }
-
-  const data: OllamaChatResponse = await response.json();
-  return data.message.content;
 }
 
 /**
@@ -171,7 +113,7 @@ accountName: ถ้าข้อความระบุบัญชี (เช�
 เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
   const result = await ollamaChat({
-    model: OLLAMA_TEXT_MODEL,
+    model: AI_EXTRACT_TEXT_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt },
@@ -221,7 +163,7 @@ accountName: ถ้าสลิประบุบัญชี (เช่น "จ
 เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
 
   const result = await ollamaGenerate({
-    model: OLLAMA_VISION_MODEL,
+    model: AI_EXTRACT_SLIP_MODEL,
     prompt,
     images: [resizedBase64],
     format: 'json',
@@ -485,9 +427,6 @@ export function validateExtracted(extracted: ExtractedTransaction): ValidationRe
   return { valid: false, missingFields, message };
 }
 
-// Export model names for use in other modules
-export { OLLAMA_TEXT_MODEL, OLLAMA_VISION_MODEL };
-
 /**
  * Intent types the LLM can detect from user messages.
  */
@@ -514,7 +453,7 @@ export async function detectIntent(text: string): Promise<UserIntent> {
 
   try {
     const result = await ollamaChat({
-      model: OLLAMA_TEXT_MODEL,
+      model: AI_INTENT_MODEL,
       messages: [{ role: 'user', content: prompt }],
       format: 'json',
       temperature: 0,

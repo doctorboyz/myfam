@@ -1,14 +1,15 @@
 /**
  * Intent Router — routes detected intents through example-driven query + response pipeline.
  *
- * Flow: load intent/<intent>.md → execute Prisma query → ollamaGenerate formats response
+ * Flow: load intent/<intent>.md → execute Prisma query → aiChat formats response
  * Uses Session Memory (last 5 cycles) to maintain conversation context.
  */
 
 import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { prisma } from '@/lib/prisma';
-import { ollamaGenerate, OLLAMA_TEXT_MODEL, type UserIntent } from '@/lib/ollama';
+import { aiChat, AI_RESPONSE_MODEL } from '@/lib/ai-client';
+import { type UserIntent } from '@/lib/ollama';
 import { getSessionMemory, addCycle, formatSessionContext, type ChatCycle } from '@/lib/session-memory';
 
 // ── Intent example cache ──────────────────────────────────────────
@@ -240,9 +241,9 @@ ${JSON.stringify(data, null, 2)}
 ถ้าข้อมูลมีจำนวนเงิน ให้ใช้เครื่องหมายคอมม่าคั่นหลักพัน
 ใช้ emoji ให้เหมาะสมกับบริบท`;
 
-  const response = await ollamaGenerate({
-    model: OLLAMA_TEXT_MODEL,
-    prompt,
+  const response = await aiChat({
+    model: AI_RESPONSE_MODEL,
+    messages: [{ role: 'user', content: prompt }],
     format: 'text',
     temperature: 0.3,
     topP: 0.7,
