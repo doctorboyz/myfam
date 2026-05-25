@@ -20,27 +20,31 @@ import {
   extractFromText,
   extractFromSlip,
   formatConfirmationMessage,
+  formatConfirmationPrompt,
   formatErrorMessage,
   detectIntent,
   formatQuickReply,
   QUICK_REPLY_ITEMS,
   CONFIRM_TYPE_ITEMS,
+  CONFIRM_ITEMS,
   buildCategoryGroupReply,
   buildSubcategoryReply,
   buildAccountReply,
   buildDirectionReply,
+  buildConfirmReply,
   validateExtracted,
+  hashImageBuffer,
+  FMT_AMOUNT,
+  extractReconcile,
+  buildReconcileConfirmReply,
+  ROUTED_INTENTS,
   type ExtractedTransaction,
+  type ExtractedReconcile,
 } from '@/lib/ollama';
 import { buildMonthlySummaryFlex, buildBudgetProgressFlex } from '@/lib/chart-message';
 import { sendLineFlexReply } from '@/lib/line';
 import { handleIntent } from '@/lib/intent-router';
-import {
-  extractSlipText,
-  isSlipKeyword,
-  formatNonSlipMessage,
-  formatUnclearSlipMessage,
-} from '@/lib/slip-ocr';
+import { parseOnboardingAnswers, getOnboardingQuestions, type UserIdentity } from '@/prompt';
 
 export const maxDuration = 300;
 
@@ -51,11 +55,41 @@ const pendingExtractions = new Map<
   {
     extracted: ExtractedTransaction;
     lineUserId: string;
-    step?: 'select_source' | 'select_dest' | 'awaiting_direction';
+    step?: 'select_source' | 'select_dest' | 'awaiting_direction' | 'awaiting_confirm' | 'awaiting_category' | 'awaiting_reconcile_account' | 'awaiting_reconcile_confirm' | 'awaiting_account';
     sourceAccountId?: string;
     singleAccount?: Awaited<ReturnType<typeof findDefaultAccount>>;
+    imageBuffer?: Buffer;
+    imageHash?: string;
+    categories?: Awaited<ReturnType<typeof getCategoriesForFamily>>;
+    reconcileData?: ExtractedReconcile & { accountId: string; accountName: string; currentBalance: number; newBalance: number; difference: number };
   }
 >();
+
+// Track consecutive failures per user to offer escalation
+const consecutiveFailures = new Map<string, { count: number; lastFailure: number }>();
+
+// Track onboarding state per user
+const onboardingState = new Map<string, { step: number; answers: Partial<UserIdentity> }>();
+
+function incrementFailure(userId: string): string {
+  const now = Date.now();
+  const entry = consecutiveFailures.get(userId);
+  if (!entry || now - entry.lastFailure > 5 * 60 * 1000) {
+    consecutiveFailures.set(userId, { count: 1, lastFailure: now });
+    return '';
+  }
+  entry.count += 1;
+  entry.lastFailure = now;
+  consecutiveFailures.set(userId, entry);
+  if (entry.count >= 3) {
+    return '\n\n💁 หากต้องการความช่วยเหลือเพิ่มเติม พิมพ์ "ขอคุยกับเจ้าหน้าที่"';
+  }
+  return '';
+}
+
+function resetFailures(userId: string): void {
+  consecutiveFailures.delete(userId);
+}
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -120,9 +154,23 @@ function getCategoryContext(categories: Awaited<ReturnType<typeof getCategoriesF
   }));
 }
 
+function parseUserIdentity(raw: string | null | undefined): UserIdentity | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && parsed.roleContext) return parsed as UserIdentity;
+  } catch { /* ignore */ }
+  return null;
+}
+
 // ── Quick Reply Shorthand ──────────────────────────────────────
 
 const menuQuickReply = formatQuickReply(QUICK_REPLY_ITEMS);
+
+const unlinkedQuickReply = formatQuickReply([
+  { label: '📱 สมัครใหม่ สร้างครอบครัว', type: 'uri', uri: `https://liff.line.me/${process.env.NEXT_PUBLIC_LIFF_ID || ''}` },
+  { label: '🔗 มีบัญชีแล้ว ขอลิงก์', action: 'ขอลิงก์เชื่อมต่อ' },
+]);
 
 // ── Command Detection ───────────────────────────────────────────
 
@@ -146,6 +194,13 @@ type CommandType =
   | 'skip_subcategory'
   | 'money_in'
   | 'money_out'
+  | 'confirm'
+  | 'change_category'
+  | 'reconcile'
+  | 'confirm_reconcile'
+  | 'cancel_reconcile'
+  | 'six_jars'
+  | 'three_mini_jars'
   | 'none';
 
 function detectCommand(text: string): CommandType {
@@ -155,6 +210,10 @@ function detectCommand(text: string): CommandType {
   if (q === 'ยืนยันรายจ่าย') return 'confirm_expense';
   if (q === 'ยืนยันรายรับ') return 'confirm_income';
   if (q === 'ยกเลิก') return 'cancel';
+  if (q === 'ยืนยัน') return 'confirm';
+  if (q === 'เปลี่ยนหมวด') return 'change_category';
+  if (q === 'ยืนยันปรับยอด') return 'confirm_reconcile';
+  if (q === 'ยกเลิกปรับยอด') return 'cancel_reconcile';
   if (q.startsWith('เลือกหมวด:')) return 'select_group';
   if (q.startsWith('เลือกประเภท:')) return 'select_subcategory';
   if (q.startsWith('เลือกบัญชี:')) return 'select_account';
@@ -173,11 +232,49 @@ function detectCommand(text: string): CommandType {
   if (/ยกเลิกลิงก์|unlink/i.test(q)) return 'unlink';
   if (/ลบรายการล่าสุด|ลบล่าสุด|ลบรายการ/i.test(q)) return 'delete_last';
   if (/^งบ$|งบประมาณ|budget/i.test(q)) return 'budget';
+  if (/ปรับยอด|กระทบยอด|reconcile|adjust balance|แก้ยอด|แก้ไขยอด/i.test(q)) return 'reconcile';
+  if (/\b6\s*jars?\b|six\s*jars?|\b6jar\b|ระบบ\s*6|หก\s*jars?/i.test(q)) return 'six_jars';
+  if (/\b3\s*(mini\s*)?jars?\b|three\s*jars?|mini\s*jars?|สาม\s*(mini\s*)?jars?/i.test(q)) return 'three_mini_jars';
+  if (/\bjars?\b|jar\s*system|ระบบ\s*jar|ระบบจัดการเงิน|การเงิน\s*jar/i.test(q)) return 'six_jars';
 
   return 'none';
 }
 
 // ── Query Handlers ──────────────────────────────────────────────
+
+// ── Escalation ─────────────────────────────────────────────────
+
+function detectEscalate(text: string): boolean {
+  const q = text.toLowerCase().trim();
+  return /(ขอคุยกับคน|ขอคุยกับเจ้าหน้าที่|ติดต่อเจ้าหน้าที่|ติดต่อ\s*support|ขอความช่วยเหลือ|คุยกับคน|talk to human|support|agent|customer service|ติดต่อแอดมิน|ขอคุยกับแอดมิน)/i.test(q);
+}
+
+async function handleEscalate(
+  replyToken: string,
+  lineUserId: string,
+  user: { id: string; name: string; familyId: string },
+): Promise<void> {
+  console.error(`[ESCALATE] User ${user.name} (${user.id}) from family ${user.familyId} via LINE ${lineUserId} requests human help`);
+  await sendLineReply(
+    replyToken,
+    'แจ้งเจ้าหน้าที่ให้แล้ว จะติดต่อกลับทางไลน์โดยเร็วที่สุด 🙏\n\nระหว่างนี้สามารถใช้งานฟีเจอร์อื่นๆ ได้ตามปกติ เช่น ดูยอด รายการล่าสุด สรุปยอด',
+    menuQuickReply,
+  );
+}
+
+// ── Jar System Knowledge ───────────────────────────────────────
+
+async function handleJarsQuery(system: '6-jars' | '3-mini-jars'): Promise<string> {
+  const { readFile } = await import('fs/promises');
+  const { join } = await import('path');
+  const filePath = join(process.cwd(), 'src/prompt/knowledge', `${system}.md`);
+  const content = await readFile(filePath, 'utf-8');
+  // Strip the markdown H1 title (first line starting with #)
+  const body = content.replace(/^# .*\n/, '').trim();
+  return body;
+}
+
+// ── Query Handlers ─────────────────────────────────────────────
 
 async function handleBalanceQuery(user: { id: string; role: string; familyId: string }): Promise<string> {
   const accounts = await prisma.account.findMany({
@@ -189,10 +286,20 @@ async function handleBalanceQuery(user: { id: string; role: string; familyId: st
     return 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน';
   }
 
-  const fmt = new Intl.NumberFormat('th-TH');
-  const lines = accounts.map((a) => `💳 ${a.name}: ${fmt.format(Number(a.balance))} บาท`);
+  const lines = accounts.map((a) => {
+    const bal = Number(a.balance);
+    const prefix = bal < 0 ? '⚠️ ' : '💳 ';
+    return `${prefix}${a.name}: ${FMT_AMOUNT.format(bal)} บาท`;
+  });
   const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
-  lines.push(`\n💰 รวมทุกบัญชี: ${fmt.format(total)} บาท`);
+  lines.push(`\n💰 รวมทุกบัญชี: ${FMT_AMOUNT.format(total)} บาท`);
+
+  const negativeAccounts = accounts.filter((a) => Number(a.balance) < 0);
+  if (negativeAccounts.length > 0) {
+    const negLines = negativeAccounts.map((a) => `⚠️ ${a.name}: ${FMT_AMOUNT.format(Number(a.balance))} บาท`);
+    lines.push(`\n🚨 ยอดติดลบ:\n${negLines.join('\n')}`);
+    lines.push('💡 พิมพ์ "ปรับยอด" เพื่อปรับยอดเงินในบัญชี');
+  }
 
   return `📊 ยอดคงเหลือ\n${lines.join('\n')}`;
 }
@@ -210,11 +317,12 @@ async function handleRecentQuery(user: { id: string; role: string; familyId: str
     return 'ยังไม่มีรายการ';
   }
 
-  const fmt = new Intl.NumberFormat('th-TH');
   const lines = transactions.map((t) => {
     const icon = t.type === 'income' ? '🟢' : t.type === 'transfer' ? '🔄' : '🔴';
     const typeLabel = t.type === 'income' ? '+' : '-';
-    return `${icon} ${t.description || 'ไม่ระบุ'} ${typeLabel}${fmt.format(Number(t.amount))} บาท (${t.category?.group?.name ?? '-'})`;
+    const dt = t.date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    const tm = t.date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    return `${icon} ${t.description || 'ไม่ระบุ'} ${typeLabel}${FMT_AMOUNT.format(Number(t.amount))} บาท (${t.category?.group?.name ?? '-'}) — ${dt} ${tm}`;
   });
 
   return `📋 รายการล่าสุด (${transactions.length} รายการ)\n${lines.join('\n')}`;
@@ -224,7 +332,6 @@ async function handleSummaryQuery(user: { id: string; role: string; familyId: st
   const scope = getDataScope(user);
   const today = new Date();
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const fmt = new Intl.NumberFormat('th-TH');
 
   const [income, expense] = await Promise.all([
     prisma.transaction.aggregate({
@@ -241,7 +348,12 @@ async function handleSummaryQuery(user: { id: string; role: string; familyId: st
   const totalExpense = Number(expense._sum.amount ?? 0);
   const monthName = today.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
 
-  return `📊 สรุปยอดเดือน${monthName}\n🟢 รายรับ: ${fmt.format(totalIncome)} บาท\n🔴 รายจ่าย: ${fmt.format(totalExpense)} บาท\n💰 คงเหลือ: ${fmt.format(totalIncome - totalExpense)} บาท`;
+  const balance = totalIncome - totalExpense;
+  let result = `📊 สรุปยอดเดือน${monthName}\n🟢 รายรับ: ${FMT_AMOUNT.format(totalIncome)} บาท\n🔴 รายจ่าย: ${FMT_AMOUNT.format(totalExpense)} บาท\n💰 คงเหลือ: ${FMT_AMOUNT.format(balance)} บาท`;
+  if (balance < 0) {
+    result += `\n🚨 ยอดรวมติดลบ`;
+  }
+  return result;
 }
 
 async function handleSummaryFlex(
@@ -321,6 +433,7 @@ async function createTransactionFromExtracted(
   status: 'completed' | 'pending' = 'completed',
   account?: Awaited<ReturnType<typeof findDefaultAccount>>,
   toAccount?: Awaited<ReturnType<typeof findDefaultAccount>>,
+  imageHash?: string,
 ) {
   const resolvedAccount = account || (await findDefaultAccount(user.id));
   if (!resolvedAccount) {
@@ -328,10 +441,26 @@ async function createTransactionFromExtracted(
   }
 
   return prisma.$transaction(async (tx) => {
+    const fee = extracted.fee || 0;
+    const totalAmount = extracted.amount + fee;
+
+    // Preserve actual recording time unless AI extracted a specific time from slip/text
+    const now = new Date();
+    const extractedDate = new Date(extracted.date);
+    const hasTime = extracted.date.includes('T') || extracted.date.includes(':');
+    const date = hasTime ? extractedDate : new Date(
+      extractedDate.getFullYear(),
+      extractedDate.getMonth(),
+      extractedDate.getDate(),
+      now.getHours(),
+      now.getMinutes(),
+      now.getSeconds(),
+    );
+
     const transaction = await tx.transaction.create({
       data: {
         amount: extracted.amount,
-        date: new Date(extracted.date),
+        date,
         type: extracted.type,
         description: extracted.description,
         status,
@@ -339,7 +468,9 @@ async function createTransactionFromExtracted(
         toAccountId: extracted.type === 'transfer' ? toAccount?.id ?? null : null,
         categoryId: extracted.categoryId,
         createdById: user.id,
-        fee: 0,
+        fee,
+        totalAmount,
+        imageHash: imageHash ?? null,
         tagRecords: {
           create: [{ tag: { connectOrCreate: { create: { name: 'line-bot', userId: user.id, familyId: user.familyId }, where: { name_userId: { name: 'line-bot', userId: user.id } } } } }],
         },
@@ -352,11 +483,10 @@ async function createTransactionFromExtracted(
     });
 
     if (status === 'completed') {
-      const amount = extracted.amount;
       if (extracted.type === 'income') {
         await tx.account.update({
           where: { id: resolvedAccount.id },
-          data: { balance: { increment: amount } },
+          data: { balance: { increment: totalAmount } },
         });
       } else if (extracted.type === 'transfer') {
         if (!toAccount) {
@@ -364,16 +494,16 @@ async function createTransactionFromExtracted(
         }
         await tx.account.update({
           where: { id: resolvedAccount.id },
-          data: { balance: { decrement: amount } },
+          data: { balance: { decrement: totalAmount } },
         });
         await tx.account.update({
           where: { id: toAccount.id },
-          data: { balance: { increment: amount } },
+          data: { balance: { increment: totalAmount } },
         });
       } else {
         await tx.account.update({
           where: { id: resolvedAccount.id },
-          data: { balance: { decrement: amount } },
+          data: { balance: { decrement: totalAmount } },
         });
       }
     }
@@ -384,20 +514,31 @@ async function createTransactionFromExtracted(
 
 // ── Account Selection Helper ─────────────────────────────────────
 
+function formatAmountLine(extracted: ExtractedTransaction): string {
+  const fee = extracted.fee || 0;
+  const totalAmount = extracted.amount + fee;
+  return fee > 0
+    ? `💰 ${FMT_AMOUNT.format(extracted.amount)} + ค่าธรรมเนียม ${FMT_AMOUNT.format(fee)} = ${FMT_AMOUNT.format(totalAmount)} บาท`
+    : `💰 ${FMT_AMOUNT.format(extracted.amount)} บาท`;
+}
+
 function getAccountPromptText(extracted: ExtractedTransaction): string {
+  const amountLine = formatAmountLine(extracted);
+
   if (extracted.type === 'income') {
-    return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีที่รับเงิน:`;
+    return `📝 ${extracted.description}\n${amountLine}\n\nเลือกบัญชีที่รับเงิน:`;
   }
   if (extracted.type === 'transfer') {
-    return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีต้นทาง:`;
+    return `📝 ${extracted.description}\n${amountLine}\n\nเลือกบัญชีต้นทาง:`;
   }
-  return `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีที่จ่าย:`;
+  return `📝 ${extracted.description}\n${amountLine}\n\nเลือกบัญชีที่จ่าย:`;
 }
 
 async function promptAccountSelection(
   extracted: ExtractedTransaction,
   user: { id: string; role: string; familyId: string },
   lineUserId: string,
+  slipData?: { imageBuffer?: Buffer; imageHash?: string; categories?: Awaited<ReturnType<typeof getCategoriesForFamily>> },
 ): Promise<{ transaction: Awaited<ReturnType<typeof createTransactionFromExtracted>> | null; waiting: boolean }> {
   const accounts = await prisma.account.findMany({
     where: { ownerId: user.id, status: 'active' },
@@ -425,21 +566,21 @@ async function promptAccountSelection(
     if (matchedAccount) {
       if (accounts.length < 2) {
         // Only 1 account in the system — ask direction
-        pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: matchedAccount });
+        pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: matchedAccount, ...slipData });
         await sendLinePush(
           lineUserId,
-          `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
+          `📝 ${extracted.description}\n${formatAmountLine(extracted)}\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
           buildDirectionReply(),
         );
         return { transaction: null, waiting: true };
       }
       // Multiple accounts — start normal two-step transfer flow
-      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'select_source' });
+      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'select_source', ...slipData });
       const destAccounts = accounts.filter((a) => a.id !== matchedAccount!.id);
       const quickReply = buildAccountReply(destAccounts);
       await sendLinePush(
         lineUserId,
-        `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nเลือกบัญชีปลายทาง:`,
+        `📝 ${extracted.description}\n${formatAmountLine(extracted)}\n\nเลือกบัญชีปลายทาง:`,
         quickReply,
       );
       return { transaction: null, waiting: true };
@@ -447,10 +588,10 @@ async function promptAccountSelection(
 
     if (accounts.length === 1) {
       // Only 1 account and no fuzzy match — ask direction
-      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: accounts[0] });
+      pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_direction', singleAccount: accounts[0], ...slipData });
       await sendLinePush(
         lineUserId,
-        `📝 ${extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(extracted.amount)} บาท\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
+        `📝 ${extracted.description}\n${formatAmountLine(extracted)}\n\nระบุเป็นธุรกรรมโอน แต่มีบัญชีเดียวในระบบ\nนี่คือเงินเข้าหรือเงินออก?`,
         buildDirectionReply(),
       );
       return { transaction: null, waiting: true };
@@ -458,6 +599,7 @@ async function promptAccountSelection(
   }
 
   if (matchedAccount) {
+    resetFailures(user.id);
     const transaction = await createTransactionFromExtracted(extracted, user, 'completed', matchedAccount);
     const replyText = formatConfirmationMessage(transaction, extracted);
     await sendLinePush(lineUserId, replyText, menuQuickReply);
@@ -465,6 +607,7 @@ async function promptAccountSelection(
   }
 
   if (accounts.length === 1) {
+    resetFailures(user.id);
     const transaction = await createTransactionFromExtracted(extracted, user, 'completed', accounts[0]);
     const replyText = formatConfirmationMessage(transaction, extracted);
     await sendLinePush(lineUserId, replyText, menuQuickReply);
@@ -472,7 +615,8 @@ async function promptAccountSelection(
   }
 
   // Multiple accounts — need user selection
-  pendingExtractions.set(user.id, { extracted, lineUserId });
+  console.log('[SLIP] promptAccountSelection: multi-account for user=%s hasSlip=%s step=awaiting_account', user.id, !!slipData?.imageBuffer);
+  pendingExtractions.set(user.id, { extracted, lineUserId, step: 'awaiting_account', ...slipData });
   const quickReply = buildAccountReply(accounts);
   await sendLinePush(lineUserId, getAccountPromptText(extracted), quickReply);
   return { transaction: null, waiting: true };
@@ -596,7 +740,7 @@ async function cancelPendingTransaction(
     data: { status: 'void' },
   });
 
-  return `❌ ยกเลิกรายการแล้ว\n📝 ${pending.description || 'ไม่ระบุ'} ${new Intl.NumberFormat('th-TH').format(Number(pending.amount))} บาท`;
+  return `❌ ยกเลิกรายการแล้ว\n📝 ${pending.description || 'ไม่ระบุ'} ${FMT_AMOUNT.format(Number(pending.amount))} บาท`;
 }
 
 // ── Category Selection ───────────────────────────────────────────
@@ -652,6 +796,19 @@ async function handleSelectAccount(
     return;
   }
 
+  // Reconcile account selection
+  if (pending.step === 'awaiting_reconcile_account') {
+    const account = await prisma.account.findFirst({
+      where: { id: accountId, ownerId: user.id, status: 'active' },
+    });
+    if (!account) {
+      await sendLinePush(lineUserId, 'ไม่พบบัญชีที่เลือก', menuQuickReply);
+      return;
+    }
+    await showReconcileConfirmation(user, lineUserId, { id: account.id, name: account.name, balance: Number(account.balance), alias: account.alias }, pending.reconcileData!);
+    return;
+  }
+
   // Awaiting direction — user should tap เงินเข้า / เงินออก instead
   if (pending.step === 'awaiting_direction') {
     await sendLinePush(lineUserId, 'กรุณาเลือก เงินเข้า หรือ เงินออก', buildDirectionReply());
@@ -671,6 +828,7 @@ async function handleSelectAccount(
   if (pending.extracted.type === 'transfer') {
     if (pending.step === 'select_dest' && pending.sourceAccountId) {
       // Destination selected — complete transfer
+      const { imageBuffer: xferBuf, imageHash: xferHash } = pending;
       pendingExtractions.delete(user.id);
 
       const sourceAccount = await prisma.account.findFirst({
@@ -683,7 +841,20 @@ async function handleSelectAccount(
       }
 
       try {
+        resetFailures(user.id);
         const transaction = await createTransactionFromExtracted(pending.extracted, user, 'completed', sourceAccount, account);
+
+        // Save slip image if available
+        if (xferBuf) {
+          await prisma.transaction.update({
+            where: { id: transaction.id },
+            data: {
+              imageHash: xferHash ?? null,
+              slipImage: `data:image/jpeg;base64,${xferBuf.toString('base64')}`,
+            },
+          });
+        }
+
         const replyText = formatConfirmationMessage(transaction, pending.extracted);
         await sendLinePush(lineUserId, replyText, menuQuickReply);
       } catch (error) {
@@ -715,17 +886,31 @@ async function handleSelectAccount(
     const quickReply = buildAccountReply(destAccounts);
     await sendLinePush(
       lineUserId,
-      `📝 ${pending.extracted.description}\n💰 ${new Intl.NumberFormat('th-TH').format(pending.extracted.amount)} บาท\n\nเลือกบัญชีปลายทาง:`,
+      `📝 ${pending.extracted.description}\n${formatAmountLine(pending.extracted)}\n\nเลือกบัญชีปลายทาง:`,
       quickReply,
     );
     return;
   }
 
   // Single account selection for income/expense
+  const { imageBuffer: slipBuf, imageHash: slipHash } = pending;
   pendingExtractions.delete(user.id);
 
   try {
+    resetFailures(user.id);
     const transaction = await createTransactionFromExtracted(pending.extracted, user, 'completed', account);
+
+    // Save slip image if available
+    if (slipBuf) {
+      await prisma.transaction.update({
+        where: { id: transaction.id },
+        data: {
+          imageHash: slipHash ?? null,
+          slipImage: `data:image/jpeg;base64,${slipBuf.toString('base64')}`,
+        },
+      });
+    }
+
     const replyText = formatConfirmationMessage(transaction, pending.extracted);
     await sendLinePush(lineUserId, replyText, menuQuickReply);
   } catch (error) {
@@ -831,8 +1016,217 @@ async function handleDeleteLast(
     });
   }
 
-  const formattedAmount = new Intl.NumberFormat('th-TH').format(amount);
+  const formattedAmount = FMT_AMOUNT.format(amount);
   return `🗑️ ลบรายการแล้ว\n${lastTransaction.description || '-'} ${formattedAmount} บาท`;
+}
+
+// ── Reconcile / Adjust Balance ─────────────────────────────────────
+
+async function matchAccountByText(text: string, userId: string) {
+  const accounts = await prisma.account.findMany({
+    where: { ownerId: userId, status: 'active' },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  if (accounts.length === 0) return null;
+
+  const q = text.toLowerCase().trim();
+
+  // Exact name match
+  let match = accounts.find((a) => a.name.toLowerCase() === q);
+  if (match) return match;
+
+  // Alias match
+  match = accounts.find((a) => a.alias && a.alias.toLowerCase() === q);
+  if (match) return match;
+
+  // Contains match
+  match = accounts.find((a) => a.name.toLowerCase().includes(q) || q.includes(a.name.toLowerCase()));
+  if (match) return match;
+
+  return null;
+}
+
+async function handleReconcileCommand(
+  lineUserId: string,
+  text: string,
+  user: { id: string; name: string; role: string; familyId: string },
+): Promise<void> {
+  const extracted = await extractReconcile(text);
+
+  if (extracted.amount === 0 && extracted.confidence < 0.4) {
+    const failHint = incrementFailure(user.id);
+    await sendLinePush(
+      lineUserId,
+      '🤔 ไม่สามารถอ่านข้อมูลการปรับยอดได้\n\nตัวอย่างการพิมพ์:\n📝 "ปรับ 1688 เป็น 5000" — ปรับยอดให้เป็น 5000\n📝 "ปรับ make เพิ่ม 1000" — เพิ่มยอด 1000\n📝 "ปรับ make ลด 500" — ลดยอด 500' + failHint,
+      menuQuickReply,
+    );
+    return;
+  }
+
+  if (extracted.amount === 0) {
+    await sendLinePush(
+      lineUserId,
+      'กรุณาระบุจำนวนเงินที่ต้องการปรับ\n\nตัวอย่าง: "ปรับ 1688 เป็น 5000"',
+      menuQuickReply,
+    );
+    return;
+  }
+
+  // Match account
+  const account = extracted.accountNameRaw
+    ? await matchAccountByText(extracted.accountNameRaw, user.id)
+    : null;
+
+  if (!account) {
+    // Show account list with balances for selection
+    const accounts = await prisma.account.findMany({
+      where: { ownerId: user.id, status: 'active' },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (accounts.length === 0) {
+      await sendLinePush(lineUserId, 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน', menuQuickReply);
+      return;
+    }
+
+    pendingExtractions.set(user.id, {
+      extracted: {} as ExtractedTransaction,
+      lineUserId,
+      step: 'awaiting_reconcile_account',
+      reconcileData: {
+        accountId: '',
+        accountName: '',
+        accountNameRaw: extracted.accountNameRaw,
+        currentBalance: 0,
+        newBalance: 0,
+        difference: 0,
+        amount: extracted.amount,
+        mode: extracted.mode,
+        adjustSign: extracted.adjustSign,
+        note: extracted.note,
+        confidence: extracted.confidence,
+      },
+    });
+
+    const lines = accounts.map((a) => {
+      const bal = Number(a.balance);
+      const prefix = bal < 0 ? '⚠️ ' : '💳 ';
+      return `${prefix}${a.name}: ${FMT_AMOUNT.format(bal)} บาท${a.alias ? ` (${a.alias})` : ''}`;
+    });
+
+    const modeText = extracted.mode === 'set'
+      ? `ปรับยอดเป็น ${FMT_AMOUNT.format(extracted.amount)} บาท`
+      : `ปรับ${extracted.adjustSign === 1 ? 'เพิ่ม' : 'ลด'} ${FMT_AMOUNT.format(extracted.amount)} บาท`;
+
+    await sendLinePush(
+      lineUserId,
+      `🔧 ปรับยอด: ${modeText}\n\nกรุณาพิมพ์ชื่อบัญชีที่ต้องการปรับ:\n${lines.join('\n')}`,
+      menuQuickReply,
+    );
+    return;
+  }
+
+  await showReconcileConfirmation(user, lineUserId, { id: account.id, name: account.name, balance: Number(account.balance), alias: account.alias }, extracted);
+}
+
+async function showReconcileConfirmation(
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+  account: { id: string; name: string; balance: number; alias?: string | null },
+  extracted: ExtractedReconcile,
+): Promise<void> {
+  const currentBalance = Number(account.balance);
+
+  let newBalance: number;
+  if (extracted.mode === 'set') {
+    newBalance = extracted.amount;
+  } else {
+    newBalance = currentBalance + extracted.amount * extracted.adjustSign;
+  }
+
+  const difference = newBalance - currentBalance;
+
+  const diffText = difference >= 0
+    ? `+${FMT_AMOUNT.format(difference)}`
+    : FMT_AMOUNT.format(difference);
+
+  const note = extracted.note || 'ปรับยอดจาก LINE';
+
+  pendingExtractions.set(user.id, {
+    extracted: {} as ExtractedTransaction,
+    lineUserId,
+    step: 'awaiting_reconcile_confirm',
+    reconcileData: {
+      ...extracted,
+      accountId: account.id,
+      accountName: account.name,
+      currentBalance,
+      newBalance,
+      difference,
+    },
+  });
+
+  const modeText = extracted.mode === 'set'
+    ? `ปรับเป็น ${FMT_AMOUNT.format(extracted.amount)}`
+    : extracted.adjustSign === 1
+      ? `เพิ่ม ${FMT_AMOUNT.format(extracted.amount)}`
+      : `ลด ${FMT_AMOUNT.format(extracted.amount)}`;
+
+  const newBalanceWarn = newBalance < 0 ? '\n⚠️ ยอดใหม่ติดลบ' : '';
+
+  await sendLinePush(
+    lineUserId,
+    `🔧 ยืนยันการปรับยอด\n\n💳 บัญชี: ${account.name}\n📊 ยอดปัจจุบัน: ${FMT_AMOUNT.format(currentBalance)} บาท\n🔄 ${modeText} (${diffText})\n📊 ยอดใหม่: ${FMT_AMOUNT.format(newBalance)} บาท${newBalanceWarn}\n📝 หมายเหตุ: ${note}\n\nกดยืนยันเพื่อดำเนินการ:`,
+    buildReconcileConfirmReply(),
+  );
+}
+
+async function handleConfirmReconcile(
+  user: { id: string; name: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending || !pending.reconcileData || pending.step !== 'awaiting_reconcile_confirm') {
+    await sendLinePush(lineUserId, 'ไม่พบรายการปรับยอดที่รอการยืนยัน', menuQuickReply);
+    return;
+  }
+
+  pendingExtractions.delete(user.id);
+  resetFailures(user.id);
+
+  const { accountId, accountName, currentBalance, newBalance, difference, note, mode, amount, adjustSign } = pending.reconcileData;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.reconciliation.create({
+        data: {
+          accountId,
+          previousBalance: currentBalance,
+          newBalance,
+          difference,
+          note: note || `ปรับยอดจาก LINE (${mode === 'set' ? 'set' : `adjust ${adjustSign > 0 ? '+' : '-'}${amount}`})`,
+          performedById: user.id,
+        },
+      });
+
+      await tx.account.update({
+        where: { id: accountId },
+        data: { balance: newBalance },
+      });
+    });
+
+    const diffText = difference >= 0 ? `+${FMT_AMOUNT.format(difference)}` : FMT_AMOUNT.format(difference);
+    await sendLinePush(
+      lineUserId,
+      `✅ ปรับยอดในบัญชี "${accountName}" เรียบร้อยแล้ว!\n📊 ${FMT_AMOUNT.format(currentBalance)} → ${FMT_AMOUNT.format(newBalance)} (${diffText})`,
+      menuQuickReply,
+    );
+  } catch (error) {
+    console.error('[Reconcile] Error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    await sendLinePush(lineUserId, formatErrorMessage(message), menuQuickReply);
+  }
 }
 
 // ── Handle Link Command (deprecated — now guides to invite system) ──
@@ -842,7 +1236,11 @@ async function handleLinkCommand(
   replyToken: string,
   _lineUserId: string,
 ): Promise<void> {
-  await sendLineReply(replyToken, `ยังไม่ได้เชื่อมบัญชี MyFam\n\n📌 กรุณาขอลิงก์เชื่อมต่อจากผู้ปกครอง\nผู้ปกครองสามารถสร้างลิงก์เชิญได้จาก\n⚙️ การตั้งค่า > สมาชิกครอบครัว ในแอป MyFam`);
+  await sendLineReply(
+    replyToken,
+    `🔗 การเชื่อมบัญชี MyFam\n\nคุณมีบัญชีใน MyFam อยู่แล้ว แต่ยังไม่ได้เชื่อมกับ LINE?\n\n📌 ให้ผู้ปกครองสร้างลิงก์เชิญให้คุณ:\n1. เปิด MyFam\n2. ไปที่ ⚙️ การตั้งค่า > สมาชิกครอบครัว\n3. กดปุ่ม 🔗 ข้างชื่อของคุณ\n4. ส่งลิงก์ที่ได้ให้คุณ\n\nเมื่อคุณเปิดลิงก์ใน LINE ระบบจะเชื่อมบัญชีให้อัตโนมัติ`,
+    unlinkedQuickReply,
+  );
 }
 
 // ── Event Handler ─────────────────────────────────────────────────
@@ -868,20 +1266,21 @@ async function handleLineEvent(event: LineEvent): Promise<void> {
       const text = event.message.text?.trim() || '';
       const cmd = detectCommand(text);
 
-      if (cmd === 'link') {
+      if (text.includes('ขอลิงก์') || text.includes('ลิงก์เชื่อมต่อ') || cmd === 'link') {
         await handleLinkCommand(text, replyToken, lineUserId);
         return;
       }
 
       if (cmd === 'help') {
-        await sendLineReply(replyToken, `🤖 MyFam Bot\n\nพิมพ์หรือถามได้เลย:\n📝 บันทึกรายการ — "ซื้อข้าว 85"\n📸 ส่งรูปสลิป — บันทึกอัตโนมัติ\n🔗 เชื่อมบัญชี — ขอลิงก์จากผู้ปกครอง`, menuQuickReply);
+        await sendLineReply(replyToken, `🤖 MyFam Bot — ผู้ช่วยจัดการเงินครอบครัว\n\n✨ ยังไม่มีบัญชี?\n📱 กด "เปิด MyFam" เพื่อสมัครและสร้างครอบครัว\n\n🔗 มีบัญชีอยู่แล้ว?\nกด "มีบัญชีแล้ว ขอลิงก์" เพื่อดูวิธีเชื่อมต่อ`, unlinkedQuickReply);
         return;
       }
     }
 
     await sendLineReply(
       replyToken,
-      'ยังไม่ได้เชื่อมบัญชี MyFam\n\n📌 กรุณาขอลิงก์เชื่อมต่อจากผู้ปกครอง\nผู้ปกครองสามารถสร้างลิงก์เชิญได้จาก\n⚙️ การตั้งค่า > สมาชิกครอบครัว ในแอป MyFam',
+      `🤖 MyFam Bot — ผู้ช่วยจัดการเงินครอบครัว\n\n✨ ยังไม่มีบัญชี?\n📱 กด "เปิด MyFam" เพื่อสมัครและสร้างครอบครัว\n\n🔗 มีบัญชีอยู่แล้ว?\nกด "มีบัญชีแล้ว ขอลิงก์" เพื่อดูวิธีเชื่อมต่อ`,
+      unlinkedQuickReply,
     );
     return;
   }
@@ -908,9 +1307,58 @@ async function handleTextMessage(
   replyToken: string,
   lineUserId: string,
   text: string,
-  user: { id: string; name: string; role: string; familyId: string },
+  user: { id: string; name: string; role: string; familyId: string; identity?: string | null },
 ): Promise<void> {
   const cmd = detectCommand(text);
+
+  // ── Onboarding: first-time user, ask questions to build identity ──
+  const identity = parseUserIdentity(user.identity);
+  const onboarding = onboardingState.get(user.id);
+
+  if (onboarding) {
+    // User is in onboarding flow — parse answer and advance
+    const nextAnswers = parseOnboardingAnswers(onboarding.step, text, onboarding.answers);
+    const nextStep = onboarding.step + 1;
+    const questions = getOnboardingQuestions();
+
+    if (nextStep > questions.length) {
+      // Done — save identity to DB
+      onboardingState.delete(user.id);
+      const finalIdentity: UserIdentity = {
+        ...nextAnswers,
+        onboardedAt: new Date().toISOString(),
+      };
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { identity: JSON.stringify(finalIdentity) },
+      });
+      await sendLineReply(
+        replyToken,
+        `ขอบคุณที่แนะนำตัวครับ! 😊\nตอนนี้ผมรู้จักคุณมากขึ้นแล้ว — พร้อมช่วยจัดการเรื่องเงินของครอบครัวคุณแล้วนะครับ\n\nลองถามอะไรก็ได้ เช่น "ดูยอด" หรือ "สรุปยอด"`,
+        menuQuickReply,
+      );
+      return;
+    }
+
+    onboardingState.set(user.id, { step: nextStep, answers: nextAnswers });
+    await sendLineReply(replyToken, questions[nextStep - 1]);
+    return;
+  }
+
+  if (!identity && !onboarding) {
+    // First time — start onboarding
+    const questions = getOnboardingQuestions();
+    onboardingState.set(user.id, { step: 1, answers: {} });
+    await sendLineReply(replyToken, questions[0]);
+    return;
+  }
+  // ── End onboarding ──
+
+  // ── Escalation detection (before any other processing) ──
+  if (detectEscalate(text)) {
+    await handleEscalate(replyToken, lineUserId, user);
+    return;
+  }
 
   // ── Command shortcuts (reply immediately, no AI needed) ──
   if (cmd === 'open_liff') {
@@ -948,12 +1396,25 @@ async function handleTextMessage(
     return;
   }
 
+  if (cmd === 'reconcile') {
+    await sendLineReply(replyToken, '⏳ กำลังประมวลผล...');
+    await handleReconcileCommand(lineUserId, text, user);
+    return;
+  }
+
   if (cmd === 'help') {
     await sendLineReply(
       replyToken,
       `🤖 MyFam Bot\n\nพิมพ์หรือถามได้เลย:\n📝 บันทึกรายการ — "ซื้อข้าว 85"\n📸 ส่งรูปสลิป — บันทึกอัตโนมัติ\n💬 ถามได้ เช่น "เหลือเท่าไหร่"`,
       menuQuickReply,
     );
+    return;
+  }
+
+  if (cmd === 'six_jars' || cmd === 'three_mini_jars') {
+    const system = cmd === 'six_jars' ? '6-jars' : '3-mini-jars';
+    const reply = await handleJarsQuery(system);
+    await sendLineReply(replyToken, reply, menuQuickReply);
     return;
   }
 
@@ -978,6 +1439,44 @@ async function handleTextMessage(
     return;
   }
 
+  if (cmd === 'confirm_reconcile') {
+    const pending = pendingExtractions.get(user.id);
+    if (pending && pending.step === 'awaiting_reconcile_confirm') {
+      await sendLineReply(replyToken, '⏳ กำลังปรับยอด...');
+      await handleConfirmReconcile(user, lineUserId);
+    } else {
+      await sendLineReply(replyToken, 'ไม่พบรายการปรับยอดที่รอการยืนยัน', menuQuickReply);
+    }
+    return;
+  }
+
+  if (cmd === 'cancel_reconcile') {
+    const pending = pendingExtractions.get(user.id);
+    if (pending && (pending.step === 'awaiting_reconcile_account' || pending.step === 'awaiting_reconcile_confirm')) {
+      pendingExtractions.delete(user.id);
+      await sendLineReply(replyToken, '❌ ยกเลิกการปรับยอดแล้ว', menuQuickReply);
+    } else {
+      await sendLineReply(replyToken, 'ไม่พบรายการปรับยอดที่รอการยกเลิก', menuQuickReply);
+    }
+    return;
+  }
+
+  if (cmd === 'confirm') {
+    const pending = pendingExtractions.get(user.id);
+    if (pending && pending.step === 'awaiting_confirm') {
+      await sendLineReply(replyToken, '⏳ กำลังบันทึก...');
+      await handleConfirmExtraction(user, lineUserId);
+    } else {
+      await sendLineReply(replyToken, 'ไม่พบรายการที่รอการยืนยัน', menuQuickReply);
+    }
+    return;
+  }
+
+  if (cmd === 'change_category') {
+    await handleChangeCategory(user, lineUserId);
+    return;
+  }
+
   if (cmd === 'money_in' || cmd === 'money_out') {
     const pending = pendingExtractions.get(user.id);
     if (!pending || pending.step !== 'awaiting_direction' || !pending.singleAccount) {
@@ -991,6 +1490,7 @@ async function handleTextMessage(
     const modifiedExtracted = { ...pending.extracted, type: resolvedType as 'income' | 'expense' };
 
     try {
+      resetFailures(user.id);
       const transaction = await createTransactionFromExtracted(modifiedExtracted, user, 'completed', pending.singleAccount);
       const replyText = formatConfirmationMessage(transaction, modifiedExtracted);
       await sendLineReply(replyToken, replyText, menuQuickReply);
@@ -1004,19 +1504,44 @@ async function handleTextMessage(
 
   if (cmd === 'select_group') {
     const groupName = text.split(':').slice(1).join(':');
-    if (groupName) {
-      const { text: replyText, quickReply } = await handleSelectGroup(groupName, user);
-      await sendLineReply(replyToken, replyText, quickReply);
+    if (!groupName) return;
+
+    // If awaiting_category, update category and re-confirm
+    const pending = pendingExtractions.get(user.id);
+    if (pending && pending.step === 'awaiting_category') {
+      await handleCategorySelected(groupName, user, lineUserId);
+      return;
     }
+
+    const { text: replyText, quickReply } = await handleSelectGroup(groupName, user);
+    await sendLineReply(replyToken, replyText, quickReply);
     return;
   }
 
   if (cmd === 'select_subcategory') {
     const categoryName = text.split(':').slice(1).join(':');
-    if (categoryName) {
-      const reply = await handleSelectSubcategory(categoryName, user);
-      await sendLineReply(replyToken, reply, menuQuickReply);
+    if (!categoryName) return;
+
+    // If in awaiting_category flow (subcategory selection)
+    const pending = pendingExtractions.get(user.id);
+    if (pending && pending.step === 'awaiting_confirm') {
+      // Handle as subcategory update for confirmation flow
+      const cats = pending.categories || [];
+      const cat = cats.find((c) => c.name === categoryName || c.id === categoryName);
+      if (cat) {
+        const updated = { ...pending.extracted, categoryId: cat.id, categoryGroupName: cat.group.name };
+        const scope = getDataScope(user);
+        const similar = await findSimilarTransactions(updated, scope);
+        const catInfo = { groupName: cat.group.name, subcategoryName: cat.name };
+        const promptText = formatConfirmationPrompt(updated, similar.length, catInfo);
+        pendingExtractions.set(user.id, { ...pending, extracted: updated, step: 'awaiting_confirm' });
+        await sendLinePush(lineUserId, promptText, buildConfirmReply());
+        return;
+      }
     }
+
+    const reply = await handleSelectSubcategory(categoryName, user);
+    await sendLineReply(replyToken, reply, menuQuickReply);
     return;
   }
 
@@ -1047,6 +1572,30 @@ async function handleTextMessage(
     return;
   }
 
+  // ── Pending reconcile account input (text-based) ──
+  const pendingRec = pendingExtractions.get(user.id);
+  if (pendingRec && pendingRec.step === 'awaiting_reconcile_account') {
+    const account = await matchAccountByText(text, user.id);
+    if (account) {
+      await sendLineReply(replyToken, '⏳ กำลังตรวจสอบ...');
+      await showReconcileConfirmation(user, lineUserId, { id: account.id, name: account.name, balance: Number(account.balance), alias: account.alias }, pendingRec.reconcileData!);
+    } else {
+      await sendLineReply(replyToken, 'ไม่พบบัญชีที่ตรงกับที่ระบุ กรุณาลองใหม่ หรือพิมพ์ชื่อบัญชีให้ชัดเจน', menuQuickReply);
+    }
+    return;
+  }
+
+  // ── Correction check (before AI fallback) ──
+  const pendingConfirm = pendingExtractions.get(user.id);
+  if (pendingConfirm && pendingConfirm.step === 'awaiting_confirm') {
+    const isCorrection = /เปลี่ยน|แก้|เป็น|ไม่ใช่|\d+/.test(text);
+    if (isCorrection) {
+      await sendLineReply(replyToken, '⏳ กำลังแก้ไข...');
+      await handleCorrection(text, user, lineUserId);
+      return;
+    }
+  }
+
   // ── AI-powered text processing (needs time) ──
   // Reply "processing" immediately, then push result
   await sendLineReply(replyToken, '⏳ กำลังประมวลผล...');
@@ -1056,8 +1605,9 @@ async function handleTextMessage(
     console.log(`[webhook] intent: ${intent} for text: "${text.slice(0, 50)}"`);
 
     // Route query intents through intent-router (example-driven + session memory)
-    if (intent === 'balance' || intent === 'recent' || intent === 'summary' || intent === 'budget' || intent === 'help' || intent === 'categories') {
-      const reply = await handleIntent(intent, text, lineUserId, user);
+    if (ROUTED_INTENTS.has(intent)) {
+      const reply = await handleIntent(intent, text, lineUserId, user, identity);
+      resetFailures(user.id);
       await sendLinePush(lineUserId, reply, menuQuickReply);
       return;
     }
@@ -1069,9 +1619,10 @@ async function handleTextMessage(
 
     // Low confidence — likely not a transaction, show help
     if (extracted.confidence < 0.3) {
+      const failHint = incrementFailure(user.id);
       await sendLinePush(
         lineUserId,
-        `🤔 ไม่เข้าใจข้อความ "${text.length > 30 ? text.slice(0, 30) + '...' : text}"\n\nลองพิมพ์เช่น:\n📝 "ซื้อข้าว 85 บาท" — บันทึกรายการ\n📊 "ดูยอด" — ดูยอดเงิน\n📋 "รายการล่าสุด" — ดูรายการล่าสุด\n📈 "สรุปยอด" — สรุปรายรับรายจ่าย\n❓ "ช่วยเหลือ" — ดูคำสั่งทั้งหมด`,
+        `🤔 ไม่เข้าใจข้อความ "${text.length > 30 ? text.slice(0, 30) + '...' : text}"\n\nลองพิมพ์เช่น:\n📝 "ซื้อข้าว 85 บาท" — บันทึกรายการ\n📊 "ดูยอด" — ดูยอดเงิน\n📋 "รายการล่าสุด" — ดูรายการล่าสุด\n📈 "สรุปยอด" — สรุปรายรับรายจ่าย\n❓ "ช่วยเหลือ" — ดูคำสั่งทั้งหมด` + failHint,
         menuQuickReply,
       );
       return;
@@ -1080,19 +1631,19 @@ async function handleTextMessage(
     // Run comprehensive validation
     const validation = validateExtracted(extracted);
     if (!validation.valid) {
-      await sendLinePush(lineUserId, validation.message, menuQuickReply);
+      const failHint = incrementFailure(user.id);
+      await sendLinePush(lineUserId, validation.message + failHint, menuQuickReply);
       return;
     }
 
     // If type is uncertain, ask for confirmation
     if (extracted.needsConfirmation) {
-      const fmt = new Intl.NumberFormat('th-TH');
       const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
 
       // Create pending transaction
       await createTransactionFromExtracted(extracted, user, 'pending');
 
-      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+      const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n${formatAmountLine(extracted)}\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
 
       await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
       return;
@@ -1125,61 +1676,57 @@ async function handleImageMessage(
     return;
   }
 
-  // Acknowledge immediately — OCR takes time
+  // Acknowledge immediately — AI takes a moment
   await sendLineReply(replyToken, '⏳ กำลังอ่านสลิป...');
 
   try {
-    // Download image from LINE
     const imageBuffer = await downloadLineImage(messageId);
+    const imageHash = hashImageBuffer(imageBuffer);
 
-    // Step 1: Tesseract OCR (cheap, fast)
-    const { text, confidence } = await extractSlipText(imageBuffer);
+    // Check for duplicate image
+    const existing = await prisma.transaction.findFirst({
+      where: { imageHash, status: { not: 'void' } },
+      include: { category: { include: { group: true } }, account: true },
+    });
 
-    // Get categories once for all paths
+    if (existing) {
+      const dateObj = new Date(existing.date);
+      const thaiDate = dateObj.toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+      const typeLabel = existing.type === 'income' ? 'รายรับ' : existing.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+      await sendLinePush(
+        lineUserId,
+        `📸 สลิปนี้ถูกบันทึกแล้ว!\n\n🔹 รายการ: ${existing.description || '-'}\n🔹 จำนวน: ${FMT_AMOUNT.format(Number(existing.amount))} บาท\n🔹 ประเภท: ${typeLabel}\n🔹 วันที่: ${thaiDate}\n🔹 หมวด: ${existing.category?.group?.name || '-'}\n\nไม่ต้องบันทึกซ้ำ`,
+        menuQuickReply,
+      );
+      return;
+    }
+
     const categories = await getCategoriesForFamily(user.familyId);
     const categoryContext = getCategoryContext(categories);
 
-    // Step 2: If OCR is confident and text looks like a slip → use text model (much cheaper)
-    if (confidence >= 70 && isSlipKeyword(text)) {
-      const extracted = await extractFromText(text, categoryContext);
-
-      // OCR looked like slip but AI couldn't parse → fallback vision
-      if (extracted.confidence < 0.3) {
-        const imageBase64 = imageBuffer.toString('base64');
-        const visionExtracted = await extractFromSlip(imageBase64, categoryContext);
-        await processExtractedSlip(visionExtracted, user, lineUserId, imageBuffer);
-        return;
-      }
-
-      if (extracted.amount === 0) {
-        await sendLinePush(
-          lineUserId,
-          'ไม่พบจำนวนเงินในสลิป กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
-          menuQuickReply,
-        );
-        return;
-      }
-
-      await processExtractedSlip(extracted, user, lineUserId, imageBuffer);
-      return;
-    }
-
-    // Step 3: OCR weak or no slip keywords → fallback to vision model
+    // Gemini 2.5 Flash vision — directly extract from image
     const imageBase64 = imageBuffer.toString('base64');
     const extracted = await extractFromSlip(imageBase64, categoryContext);
 
-    // Vision model says not a slip or can't read at all
     if (extracted.confidence < 0.3 && extracted.amount === 0) {
-      if (!isSlipKeyword(text)) {
-        await sendLinePush(lineUserId, formatNonSlipMessage(), menuQuickReply);
-      } else {
-        await sendLinePush(lineUserId, formatUnclearSlipMessage(), menuQuickReply);
-      }
+      await sendLinePush(
+        lineUserId,
+        'ไม่สามารถอ่านสลิปนี้ได้ กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+        menuQuickReply,
+      );
       return;
     }
 
-    // Vision model succeeded
-    await processExtractedSlip(extracted, user, lineUserId, imageBuffer);
+    if (extracted.amount === 0) {
+      await sendLinePush(
+        lineUserId,
+        'ไม่พบจำนวนเงินในสลิป กรุณาส่งรูปที่ชัดกว่านี้ หรือพิมพ์รายละเอียดแทน',
+        menuQuickReply,
+      );
+      return;
+    }
+
+    await processExtractedSlip(extracted, user, lineUserId, imageBuffer, imageHash, categories);
   } catch (error) {
     console.error('Image processing error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
@@ -1187,15 +1734,44 @@ async function handleImageMessage(
   }
 }
 
+async function findSimilarTransactions(
+  extracted: ExtractedTransaction,
+  scope: ReturnType<typeof getDataScope>,
+) {
+  const extractedDate = new Date(extracted.date);
+  const amountTolerance = 1;
+
+  return prisma.transaction.findMany({
+    where: {
+      ...scope,
+      type: extracted.type,
+      amount: {
+        gte: extracted.amount - amountTolerance,
+        lte: extracted.amount + amountTolerance,
+      },
+      date: {
+        gte: new Date(extractedDate.getFullYear(), extractedDate.getMonth(), extractedDate.getDate()),
+        lt: new Date(extractedDate.getFullYear(), extractedDate.getMonth(), extractedDate.getDate() + 1),
+      },
+      description: extracted.description,
+      status: { not: 'void' },
+    },
+    include: { category: { include: { group: true } }, account: true },
+    take: 3,
+  });
+}
+
 /**
- * Shared logic: validate extracted data, handle confirmation/account selection,
- * and save slip image to transaction.
+ * Shared logic: validate extracted data, show confirmation prompt with category,
+ * and wait for user to confirm/correct before saving.
  */
 async function processExtractedSlip(
   extracted: ExtractedTransaction,
   user: { id: string; name: string; role: string; familyId: string },
   lineUserId: string,
   imageBuffer: Buffer,
+  imageHash: string,
+  categories: Awaited<ReturnType<typeof getCategoriesForFamily>>,
 ): Promise<void> {
   if (extracted.confidence < 0.3) {
     await sendLinePush(
@@ -1213,29 +1789,191 @@ async function processExtractedSlip(
     return;
   }
 
-  // If type is uncertain, ask for confirmation
-  if (extracted.needsConfirmation) {
-    const fmt = new Intl.NumberFormat('th-TH');
-    const typeGuess = extracted.type === 'income' ? 'รายรับ' : extracted.type === 'transfer' ? 'โอน' : 'รายจ่าย';
+  // Check for similar transactions
+  const scope = getDataScope(user);
+  const similar = await findSimilarTransactions(extracted, scope);
 
-    // Create pending transaction
-    await createTransactionFromExtracted(extracted, user, 'pending');
+  // Resolve category for display
+  const matchedCat = extracted.categoryId
+    ? categories.find((c) => c.id === extracted.categoryId)
+    : null;
+  const catInfo = extracted.categoryGroupName
+    ? { groupName: extracted.categoryGroupName, subcategoryName: matchedCat?.name }
+    : null;
 
-    const replyText = `❓ ไม่แน่ใจประเภทรายการ\n📝 ${extracted.description}\n💰 ${fmt.format(extracted.amount)} บาท\n🔍 ตรวจจับเป็น: ${typeGuess}\n\nกรุณายืนยันประเภท:`;
+  // Show confirmation prompt
+  const promptText = formatConfirmationPrompt(extracted, similar.length, catInfo);
 
-    await sendLinePush(lineUserId, replyText, formatQuickReply(CONFIRM_TYPE_ITEMS));
+  // Store pending extraction
+  pendingExtractions.set(user.id, {
+    extracted,
+    lineUserId,
+    step: 'awaiting_confirm',
+    imageBuffer,
+    imageHash,
+    categories,
+  });
+
+  await sendLinePush(lineUserId, promptText, buildConfirmReply());
+}
+
+async function handleConfirmExtraction(
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending || pending.step !== 'awaiting_confirm') {
+    await sendLinePush(lineUserId, 'ไม่พบรายการที่รอการยืนยัน', menuQuickReply);
     return;
   }
 
-  // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
-  const result = await promptAccountSelection(extracted, user, lineUserId);
-  if (result.waiting || !result.transaction) return; // Waiting for user to select account or error
+  // Save slip data before deleting from map
+  const { imageBuffer, imageHash, categories } = pending;
+  console.log('[SLIP] handleConfirmExtraction: user=%s hasSlip=%s categories=%d', user.id, !!imageBuffer, categories?.length ?? 0);
+  pendingExtractions.delete(user.id);
 
-  // Save slip image to the created transaction
-  await prisma.transaction.update({
-    where: { id: result.transaction.id },
-    data: { slipImage: `data:image/jpeg;base64,${imageBuffer.toString('base64')}` },
-  });
+  // Account selection (type-aware: income=destination, expense=source, transfer=two-step)
+  const result = await promptAccountSelection(pending.extracted, user, lineUserId, { imageBuffer, imageHash, categories });
+  if (result.waiting || !result.transaction) return;
+
+  // Save slip image and hash to the created transaction
+  if (pending.imageBuffer) {
+    await prisma.transaction.update({
+      where: { id: result.transaction.id },
+      data: {
+        imageHash: pending.imageHash ?? null,
+        slipImage: `data:image/jpeg;base64,${pending.imageBuffer.toString('base64')}`,
+      },
+    });
+  }
+}
+
+async function handleChangeCategory(
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending || (pending.step !== 'awaiting_confirm' && pending.step !== 'awaiting_category')) {
+    await sendLinePush(lineUserId, 'ไม่พบรายการที่รอการแก้ไขหมวดหมู่', menuQuickReply);
+    return;
+  }
+
+  pendingExtractions.set(user.id, { ...pending, step: 'awaiting_category' });
+
+  const cats = pending.categories || [];
+  const groups = [...new Set(cats.map((c) => c.group))].filter(
+    (g) => g.type === pending.extracted.type,
+  );
+
+  if (groups.length === 0) {
+    await sendLinePush(lineUserId, 'ไม่พบหมวดหมู่ที่ตรงกับประเภทรายการนี้', buildConfirmReply());
+    return;
+  }
+
+  const quickReply = buildCategoryGroupReply(
+    groups.map((g) => ({ id: g.id, name: g.name, type: g.type })),
+    pending.extracted.type,
+  );
+  await sendLinePush(lineUserId, '📂 เลือกหมวดหมู่:', quickReply);
+}
+
+async function handleCategorySelected(
+  groupName: string,
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending || pending.step !== 'awaiting_category') {
+    await sendLinePush(lineUserId, 'ไม่พบรายการที่รอการเลือกหมวดหมู่', menuQuickReply);
+    return;
+  }
+
+  const cats = pending.categories || [];
+  const group = cats.find((c) => c.group.name === groupName)?.group;
+  if (!group) {
+    await sendLinePush(lineUserId, 'ไม่พบหมวดหมู่ที่เลือก', buildConfirmReply());
+    return;
+  }
+
+  // Update extraction with selected category
+  const subcats = cats.filter((c) => c.groupId === group.id);
+  const updated = {
+    ...pending.extracted,
+    categoryGroupName: group.name,
+    categoryId: subcats.length === 1 ? subcats[0].id : null,
+  };
+
+  // If multiple subcategories, ask to pick one
+  if (subcats.length > 1) {
+    pendingExtractions.set(user.id, { ...pending, extracted: updated, step: 'awaiting_confirm' });
+    const quickReply = buildSubcategoryReply(subcats);
+    await sendLinePush(lineUserId, `📂 ${group.name} — เลือกหมวดหมู่ย่อย:`, quickReply);
+    return;
+  }
+
+  // Show updated confirmation
+  const catInfo = { groupName: group.name, subcategoryName: subcats[0]?.name };
+  const scope = getDataScope(user);
+  const similar = await findSimilarTransactions(updated, scope);
+  const promptText = formatConfirmationPrompt(updated, similar.length, catInfo);
+
+  pendingExtractions.set(user.id, { ...pending, extracted: updated, step: 'awaiting_confirm' });
+  await sendLinePush(lineUserId, promptText, buildConfirmReply());
+}
+
+async function handleCorrection(
+  text: string,
+  user: { id: string; role: string; familyId: string },
+  lineUserId: string,
+): Promise<void> {
+  const pending = pendingExtractions.get(user.id);
+  if (!pending || pending.step !== 'awaiting_confirm') return;
+
+  const cats = pending.categories || [];
+  const categoryContext = cats.map((c) => ({
+    id: c.id,
+    name: c.name,
+    groupName: c.group.name,
+    groupType: c.group.type,
+  }));
+
+  const reExtracted = await extractFromText(text, categoryContext);
+
+  if (reExtracted.confidence < 0.3 && reExtracted.amount === 0) {
+    await sendLinePush(
+      lineUserId,
+      'ไม่เข้าใจการแก้ไข กรุณาลองใหม่ เช่น "เปลี่ยนเป็นค่ากินข้าว 200"',
+      buildConfirmReply(),
+    );
+    return;
+  }
+
+  // Merge only non-zero/non-empty fields from re-extraction
+  const merged: ExtractedTransaction = {
+    ...pending.extracted,
+    amount: reExtracted.amount > 0 ? reExtracted.amount : pending.extracted.amount,
+    fee: reExtracted.fee !== undefined ? reExtracted.fee : pending.extracted.fee,
+    description: reExtracted.description || pending.extracted.description,
+    type: reExtracted.confidence > 0.5 ? reExtracted.type : pending.extracted.type,
+    categoryGroupName: reExtracted.categoryGroupName || pending.extracted.categoryGroupName,
+    categoryId: reExtracted.categoryId || pending.extracted.categoryId,
+    merchantName: reExtracted.merchantName || pending.extracted.merchantName,
+  };
+
+  // Resolve category for display
+  const matchedCat = merged.categoryId
+    ? cats.find((c) => c.id === merged.categoryId)
+    : null;
+  const catInfo = merged.categoryGroupName
+    ? { groupName: merged.categoryGroupName, subcategoryName: matchedCat?.name }
+    : null;
+
+  const scope = getDataScope(user);
+  const similar = await findSimilarTransactions(merged, scope);
+  const promptText = formatConfirmationPrompt(merged, similar.length, catInfo);
+
+  pendingExtractions.set(user.id, { ...pending, extracted: merged });
+  await sendLinePush(lineUserId, `✅ อัปเดตรายการแล้ว\n\n${promptText}`, buildConfirmReply());
 }
 
 // ── GET Handler (LINE Webhook Verification) ──────────────────────────

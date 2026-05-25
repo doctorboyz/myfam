@@ -128,8 +128,8 @@ export default function HistoryPage() {
                             <Icon size={20} strokeWidth={2} />
                           </div>
                           <div className={styles.txDetails}>
-                            <span className={styles.txCategory}>{tx.category}</span>
-                            <span className={styles.txDate}>{formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
+                            <span className={styles.txCategory}>{tx.description || tx.category}</span>
+                            <span className={styles.txDate}>{tx.category} · {formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
                           </div>
                           <div className={styles.txAmount} style={{ color: config.color }}>
                             {type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :

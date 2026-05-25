@@ -52,8 +52,8 @@ export default function TransactionList({ transactions, title = "รายกา
 
 
               <div className={styles.details}>
-                <span className={styles.category}>{tx.category}</span>
-                <span className={styles.date}>{formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
+                <span className={styles.category}>{tx.description || tx.category}</span>
+                <span className={styles.date}>{tx.category} · {formatBangkokShortDate(tx.date)} {formatBangkokTime(tx.date)}</span>
               </div>
               <div className={`${styles.amount} ${styles[tx.type + 'Text']}`}>
                 {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> : 
