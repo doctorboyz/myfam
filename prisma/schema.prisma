@@ -88,6 +88,7 @@ model User {
   tags            Tag[]
   inviteCodes     InviteCode[]
   createdInvites  InviteCode[] @relation("InviteCreator")
+  identity        String?       // JSON: UserIdentity
 
   // Alias relations
   aliasesSet       UserAlias[] @relation("AliasOwner")
@@ -230,6 +231,7 @@ model Transaction {
   fee        Decimal? @default(0)
   totalAmount Decimal? @default(0) @map("total_amount")
   slipImage  String?  @map("slip_image")
+  imageHash  String?  @map("image_hash")
 
   // Tags (many-to-many via TransactionTag)
   tagRecords TransactionTag[]

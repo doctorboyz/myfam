@@ -3,25 +3,30 @@
 import { useFinance } from '@/context/FinanceContext';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Plus, Check, Trash2, X, Link2, Copy, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Plus, Check, Trash2, X } from 'lucide-react';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
 import { User, UserRole } from '@/types';
 import s from './family.module.css';
 
+type FormMode = 'idle' | 'add' | 'edit';
+
 export default function FamilyManagement() {
-  const { users, currentUser, updateUser, addUser, removeUser } = useFinance();
+  const { currentUser, users, refreshUsers, removeUser, getUserLabel } = useFinance();
   const router = useRouter();
 
+  const [mode, setMode] = useState<FormMode>('idle');
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState<Partial<User>>({});
-  const [inviteState, setInviteState] = useState<{ userId: string; code: string; copied: boolean } | null>(null);
-  const [inviteLoading, setInviteLoading] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('child');
+  const [avatar, setAvatar] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [aliases, setAliases] = useState<Record<string, string>>({});
   const [aliasDraft, setAliasDraft] = useState('');
 
-  // Fetch aliases on mount
   useEffect(() => {
+    refreshUsers();
     fetch('/api/users/alias')
       .then((r) => r.json())
       .then((data) => {
@@ -34,7 +39,9 @@ export default function FamilyManagement() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [refreshUsers]);
+
+  // refreshUsers is stable from context; effect runs on mount.
 
   if (!currentUser) return <div className={s.page}>กำลังโหลด...</div>;
 
@@ -48,40 +55,86 @@ export default function FamilyManagement() {
     );
   }
 
-  const handleEdit = (user: User) => {
-    setEditingId(user.id);
-    setFormData(user);
-    setAliasDraft(aliases[user.id] || '');
-    setIsAdding(false);
+  const resetForm = () => {
+    setMode('idle');
+    setEditingId(null);
+    setUsername('');
+    setPassword('');
+    setRole('child');
+    setAvatar('');
+    setError(null);
+    setAliasDraft('');
   };
 
-  const handleAdd = () => {
-    setIsAdding(true);
-    setEditingId('new');
-    setFormData({ name: '', role: 'child', color: '#GRAY', avatar: '' });
+  const startAdd = () => {
+    resetForm();
+    setMode('add');
+  };
+
+  const startEdit = (user: User) => {
+    resetForm();
+    setMode('edit');
+    setEditingId(user.id);
+    setUsername(user.name);
+    setRole(user.role);
+    setAvatar(user.avatar || '');
+    setAliasDraft(aliases[user.id] || '');
   };
 
   const handleSave = async () => {
-    if (!formData.name) return;
+    setError(null);
+    if (!username.trim()) {
+      setError('กรุณากรอกชื่อผู้ใช้');
+      return;
+    }
+    if (mode === 'add' && !password) {
+      setError('กรุณากรอกรหัสผ่าน');
+      return;
+    }
 
-    if (isAdding) {
-      const newUser: Omit<User, 'familyId'> & { familyId?: string } = {
-        id: Date.now().toString(),
-        name: formData.name,
-        role: (formData.role as UserRole) || 'child',
-        color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-        avatar: formData.avatar,
-        familyId: currentUser?.familyId || '',
-      };
-      addUser(newUser as User);
-    } else if (editingId) {
-      updateUser(editingId, formData);
+    setSaving(true);
+    try {
+      if (mode === 'add') {
+        const res = await fetch('/api/users', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: username.trim(),
+            password,
+            role,
+            avatar,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'สร้างสมาชิกไม่สำเร็จ');
+          setSaving(false);
+          return;
+        }
+      } else if (mode === 'edit' && editingId) {
+        const body: Record<string, unknown> = {
+          name: username.trim(),
+          role,
+          avatar,
+        };
+        if (password) body.password = password;
 
-      // Save alias if changed
-      const prevAlias = aliases[editingId] || '';
-      const nextAlias = aliasDraft.trim();
-      if (nextAlias !== prevAlias) {
-        try {
+        const res = await fetch(`/api/users/${editingId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || 'แก้ไขไม่สำเร็จ');
+          setSaving(false);
+          return;
+        }
+
+        // Save alias if changed
+        const prevAlias = aliases[editingId] || '';
+        const nextAlias = aliasDraft.trim();
+        if (nextAlias !== prevAlias) {
           if (nextAlias) {
             await fetch('/api/users/alias', {
               method: 'POST',
@@ -95,82 +148,21 @@ export default function FamilyManagement() {
             delete next[editingId];
             setAliases(next);
           }
-        } catch {
-          // silent
         }
       }
-    }
 
-    setEditingId(null);
-    setIsAdding(false);
-    setAliasDraft('');
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('คุณแน่ใจหรือไม่ที่จะลบสมาชิกคนนี้?')) {
-      removeUser(id);
-    }
-  };
-
-  const handleCreateInvite = async (userId: string) => {
-    setInviteLoading(userId);
-    try {
-      const res = await fetch('/api/invites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setInviteState({ userId, code: data.invite.code, copied: false });
-      } else {
-        alert(data.error || 'ไม่สามารถสร้างลิงก์เชิญได้');
-      }
+      await refreshUsers();
+      resetForm();
     } catch {
-      alert('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่');
     }
-    setInviteLoading(null);
+    setSaving(false);
   };
 
-  const getInviteLink = () => {
-    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-    if (liffId) {
-      return `https://liff.line.me/${liffId}/link?code=${inviteState!.code}`;
-    }
-    const baseUrl = process.env.NEXT_PUBLIC_LIFF_URL || window.location.origin;
-    return `${baseUrl}/link?code=${inviteState!.code}`;
-  };
-
-  const handleCopyLink = () => {
-    if (!inviteState) return;
-    const link = getInviteLink();
-    navigator.clipboard.writeText(link).then(() => {
-      setInviteState({ ...inviteState, copied: true });
-      setTimeout(() => {
-        if (inviteState) setInviteState({ ...inviteState, copied: false });
-      }, 2000);
-    });
-  };
-
-  const handleSendLine = async () => {
-    if (!inviteState) return;
-    try {
-      const liffModule = await import('@line/liff');
-      const liff = liffModule.default || liffModule;
-      const link = getInviteLink();
-      const targetUser = users.find(u => u.id === inviteState.userId);
-      const userName = targetUser?.displayName ?? targetUser?.name ?? '';
-      await liff.sendMessages([
-        {
-          type: 'text',
-          text: `${currentUser.displayName ?? currentUser.name} เชิญคุณเข้าร่วม MyFam! 🏠💰\n\nคลิกลิงก์ด้านล่างเพื่อเชื่อมบัญชี LINE กับ ${userName || 'สมาชิก'}\n\n${link}`,
-        },
-      ]);
-      alert('ส่งข้อความเรียบร้อยแล้ว!');
-    } catch {
-      // Fallback to copy if sendMessages fails
-      handleCopyLink();
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบสมาชิกคนนี้?')) return;
+    removeUser(id);
+    await refreshUsers();
   };
 
   return (
@@ -184,101 +176,92 @@ export default function FamilyManagement() {
 
       <div className={s.memberList}>
         {users.map((user) => {
-          const isEditing = editingId === user.id;
-          const isLinked = !!(user as User & { lineLink?: { lineUserId: string } | null }).lineLink;
-          const isInviteOpen = inviteState?.userId === user.id;
-
-          return (
-            <div key={user.id} className={isEditing ? s.memberCardEditing : s.memberCard}>
-              <AvatarUploader
-                currentAvatar={isEditing ? formData.avatar : user.avatar}
-                name={isEditing && formData.name ? formData.name : (user.displayName ?? user.name)}
-                color={user.color}
-                editable={isEditing}
-                onUpload={(base64) => setFormData({ ...formData, avatar: base64 })}
-                size={50}
-              />
-
-              <div className={s.memberInfo}>
-                {isEditing ? (
-                  <>
+          const isEditing = mode === 'edit' && editingId === user.id;
+          if (isEditing) {
+            return (
+              <div key={user.id} className={s.memberCardEditing}>
+                <AvatarUploader
+                  currentAvatar={avatar}
+                  name={username || '?'}
+                  color={user.color}
+                  editable={true}
+                  onUpload={(base64) => setAvatar(base64)}
+                  size={50}
+                />
+                <div className={s.memberInfo}>
+                  <input
+                    className={s.nameInput}
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="ชื่อผู้ใช้ (login)"
+                  />
+                  {user.id !== currentUser.id && (
                     <input
-                      className={s.nameInput}
-                      value={formData.name || ''}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="ชื่อ"
+                      className={s.aliasInput}
+                      value={aliasDraft}
+                      onChange={(e) => setAliasDraft(e.target.value)}
+                      placeholder="ชื่อที่แสดงให้ฉัน (alias)"
+                      maxLength={50}
                     />
-                    {user.id !== currentUser.id && (
-                      <input
-                        className={s.aliasInput}
-                        value={aliasDraft}
-                        onChange={(e) => setAliasDraft(e.target.value)}
-                        placeholder="ชื่อที่แสดงให้ฉัน (alias)"
-                        maxLength={50}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <div className={s.memberName}>{user.displayName ?? user.name}</div>
-                )}
-
-                {isEditing ? (
+                  )}
+                  <input
+                    className={s.aliasInput}
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="รหัสผ่านใหม่ (เว้นว่าง = ไม่เปลี่ยน)"
+                  />
                   <div className={s.roleRadios}>
                     <label className={s.roleLabel}>
                       <input
                         type="radio"
-                        checked={formData.role === 'parent'}
-                        onChange={() => setFormData({ ...formData, role: 'parent' })}
+                        checked={role === 'parent'}
+                        onChange={() => setRole('parent')}
                       />
                       ผู้ปกครอง
                     </label>
                     <label className={s.roleLabel}>
                       <input
                         type="radio"
-                        checked={formData.role === 'child'}
-                        onChange={() => setFormData({ ...formData, role: 'child' })}
+                        checked={role === 'child'}
+                        onChange={() => setRole('child')}
                       />
                       ลูก
                     </label>
                   </div>
-                ) : (
-                  <div className={s.memberRole}>
-                    {user.role === 'parent' ? 'ผู้ปกครอง' : 'ลูก'}
-                    {isLinked && <span style={{ marginLeft: 6, color: 'var(--success, #00b386)' }}>● เชื่อมแล้ว</span>}
-                  </div>
-                )}
+                </div>
+                <div className={s.actions}>
+                  <button className={s.saveBtn} onClick={handleSave} disabled={saving}>
+                    <Check size={18} />
+                  </button>
+                  <button className={s.cancelBtn} onClick={resetForm}>
+                    <X size={18} />
+                  </button>
+                </div>
               </div>
+            );
+          }
 
+          return (
+            <div key={user.id} className={s.memberCard}>
+              <AvatarUploader
+                currentAvatar={user.avatar}
+                name={getUserLabel(user.id, user.name)}
+                color={user.color}
+                editable={false}
+                onUpload={() => {}}
+                size={50}
+              />
+              <div className={s.memberInfo}>
+                <div className={s.memberName}>{getUserLabel(user.id, user.name)}</div>
+                <div className={s.memberRole}>{user.role === 'parent' ? 'ผู้ปกครอง' : 'ลูก'}</div>
+              </div>
               <div className={s.actions}>
-                {isEditing ? (
-                  <>
-                    <button className={s.saveBtn} onClick={handleSave}>
-                      <Check size={18} />
-                    </button>
-                    <button className={s.cancelBtn} onClick={() => setEditingId(null)}>
-                      <X size={18} />
-                    </button>
-                    <button className={s.deleteBtn} onClick={() => handleDelete(user.id)} aria-label="ลบสมาชิก">
-                      <Trash2 size={16} />
-                    </button>
-                  </>
-                ) : (
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    {!isLinked && user.id !== currentUser.id && (
-                      <button
-                        className={s.inviteBtn}
-                        onClick={() => handleCreateInvite(user.id)}
-                        disabled={inviteLoading === user.id}
-                        aria-label="ส่งคำเชิญ"
-                        title="ส่งลิงก์เชื่อม LINE"
-                      >
-                        <Link2 size={14} />
-                      </button>
-                    )}
-                    <button className={s.editBtn} onClick={() => handleEdit(user)}>
-                      แก้ไข
-                    </button>
-                  </div>
+                <button className={s.editBtn} onClick={() => startEdit(user)}>แก้ไข</button>
+                {user.id !== currentUser.id && (
+                  <button className={s.deleteBtn} onClick={() => handleDelete(user.id)} aria-label="ลบสมาชิก">
+                    <Trash2 size={16} />
+                  </button>
                 )}
               </div>
             </div>
@@ -286,80 +269,65 @@ export default function FamilyManagement() {
         })}
       </div>
 
-      {/* Invite link display */}
-      {inviteState && (
-        <div className={s.inviteOverlay} onClick={() => setInviteState(null)}>
-          <div className={s.inviteCard} onClick={(e) => e.stopPropagation()}>
-            <h3 className={s.inviteTitle}>ลิงก์เชิญพร้อมใช้งาน</h3>
-            <p className={s.inviteText}>
-              ส่งลิงก์นี้ให้ <strong>{users.find(u => u.id === inviteState.userId)?.displayName ?? users.find(u => u.id === inviteState.userId)?.name}</strong> เพื่อเชื่อมบัญชี LINE
-            </p>
-            <div className={s.inviteCodeBox}>
-              <code className={s.inviteCode}>{inviteState.code}</code>
-            </div>
-            <div className={s.inviteActions}>
-              <button className={s.copyBtn} onClick={handleCopyLink}>
-                {inviteState.copied ? <CheckCircle size={16} /> : <Copy size={16} />}
-                {inviteState.copied ? 'คัดลอกแล้ว!' : 'คัดลอกลิงก์'}
-              </button>
-              <button className={s.sendLineBtn} onClick={handleSendLine}>
-                ส่งผ่าน LINE
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isAdding && (
+      {mode === 'add' && (
         <div className={s.addCard}>
           <AvatarUploader
-            currentAvatar={formData.avatar}
-            name={formData.name || '?'}
+            currentAvatar={avatar}
+            name={username || '?'}
             color="#CCC"
             editable={true}
-            onUpload={(base64) => setFormData({ ...formData, avatar: base64 })}
+            onUpload={(base64) => setAvatar(base64)}
             size={50}
           />
           <div className={s.memberInfo}>
             <input
               className={s.nameInput}
-              value={formData.name || ''}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              placeholder="ชื่อสมาชิกใหม่"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="ชื่อผู้ใช้ (login)"
               autoFocus
+            />
+            <input
+              className={s.aliasInput}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="รหัสผ่าน"
             />
             <div className={s.roleRadios}>
               <label className={s.roleLabel}>
                 <input
                   type="radio"
-                  checked={formData.role === 'parent'}
-                  onChange={() => setFormData({ ...formData, role: 'parent' })}
+                  checked={role === 'parent'}
+                  onChange={() => setRole('parent')}
                 />
                 ผู้ปกครอง
               </label>
               <label className={s.roleLabel}>
                 <input
                   type="radio"
-                  checked={formData.role === 'child'}
-                  onChange={() => setFormData({ ...formData, role: 'child' })}
+                  checked={role === 'child'}
+                  onChange={() => setRole('child')}
                 />
                 ลูก
               </label>
             </div>
           </div>
           <div className={s.actions}>
-            <button className={s.saveBtn} onClick={handleSave}>
+            <button className={s.saveBtn} onClick={handleSave} disabled={saving}>
               <Check size={18} />
             </button>
-            <button className={s.cancelBtn} onClick={() => setIsAdding(false)}>
+            <button className={s.cancelBtn} onClick={resetForm}>
               <X size={18} />
             </button>
           </div>
         </div>
       )}
 
-      {!isAdding && (
-        <button className={s.addBtn} onClick={handleAdd}>
+      {error && <div className={s.errorBanner}>{error}</div>}
+
+      {mode === 'idle' && (
+        <button className={s.addBtn} onClick={startAdd}>
           <Plus size={20} />
           เพิ่มสมาชิกครอบครัว
         </button>

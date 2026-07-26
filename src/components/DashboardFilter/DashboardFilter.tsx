@@ -21,7 +21,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
   const canFilterUsers = currentUser.role === 'parent';
 
   // Fetch Context Data
-  const { getCategoriesByGroup, getGroupsByType, accounts } = useFinance();
+  const { getCategoriesByGroup, getGroupsByType, accounts, getUserLabel } = useFinance();
 
   // --- Filter Options Preparation ---
 
@@ -41,7 +41,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
     ? accounts.filter(a => filters.users.includes(a.owner))
     : accounts;
     
-  const accountOptions = availableAccounts.map(a => ({ id: a.id, label: a.name, group: a.owner }));
+  const accountOptions = availableAccounts.map(a => ({ id: a.id, label: a.name, group: getUserLabel(a.ownerId || '', a.owner) }));
 
   // 4. Categories
   // Based on selected types. If no type selected, show all? Or show grouped by type.

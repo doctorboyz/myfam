@@ -51,21 +51,21 @@
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  /* Typography Scale — 3 levels for mobile consistency */
-  --font-header: 12px;   /* Headers, titles, buttons */
-  --font-normal: 10px;   /* Body text, labels */
-  --font-detail: 9px;    /* Captions, hints, secondary info */
+  /* Typography Scale — standalone mobile webapp (480px shell) */
+  --font-header: 16px;   /* Headers, titles, buttons */
+  --font-normal: 14px;   /* Body text, labels */
+  --font-detail: 12px;   /* Captions, hints, secondary info */
 
-  /* Legacy aliases (kept for compatibility during migration) */
-  --font-xs: 9px;
-  --font-sm: 12px;
-  --font-base: 10px;
-  --font-md: 12px;
-  --font-lg: 12px;
-  --font-xl: 18px;
-  --font-2xl: 22px;
-  --font-3xl: 28px;
-  --font-hero: 34px;
+  /* Size scale — consistent progression for mobile */
+  --font-xs: 11px;       /* Timestamps, hints */
+  --font-sm: 13px;       /* Secondary labels, meta */
+  --font-base: 14px;     /* Body text */
+  --font-md: 15px;       /* Default body / list items */
+  --font-lg: 17px;       /* Card titles */
+  --font-xl: 20px;       /* Section headers */
+  --font-2xl: 24px;      /* Page titles */
+  --font-3xl: 30px;      /* Large numbers / emphasis */
+  --font-hero: 36px;     /* Hero amounts */
 
   /* Spacing Scale — compact for mobile */
   --space-xs: 4px;
@@ -81,15 +81,12 @@
   --fab-size: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  /* LIFF overrides — set via JS in LiffContext */
-  --liff-header-height: 0px;
-  --liff-extra-bottom: 0px;
 
   --card-padding: 16px;
   --card-gap: 12px;
   --card-margin: 12px;
   --card-radius: 16px;
-  --amount-size: 24px;
+  --amount-size: 28px;
   --icon-size: 36px;
   --section-margin: 16px;
   --container-max-width: 480px;

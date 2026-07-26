@@ -7,15 +7,17 @@ import TransactionDetailModal from "@/components/TransactionDetailModal/Transact
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Transaction, DashboardFilters as FilterType } from "@/types";
-import { getBangkokHour, formatBangkokDate, getBangkokDate } from "@/lib/timezone";
+import Link from "next/link";
+import { Transaction, DashboardFilters as FilterType, Budget } from "@/types";
+import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
+import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } from "lucide-react";
 
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
 
 import Money from "@/components/Money/Money";
 
 function DashboardContent() {
-  const { globalBalance, currentUser, addTransaction, deleteTransaction, accounts, users, getFilteredTransactions } = useFinance();
+  const { globalBalance, currentUser, addTransaction, updateTransaction, deleteTransaction, accounts, users, getFilteredTransactions, budgets } = useFinance();
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
@@ -62,6 +64,37 @@ function DashboardContent() {
      return globalBalance;
   }, [accounts, filters.users, globalBalance]);
 
+  // Recent transactions (latest 6) — newest first by date
+  const recentTransactions = useMemo(() => {
+    return [...displayedTransactions]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 6);
+  }, [displayedTransactions]);
+
+  // Active budgets with progress (spending budgets: sum actualAmount / limit)
+  const activeBudgets = useMemo(() => {
+    return budgets
+      .filter((b: Budget) => b.status === 'active')
+      .slice(0, 4)
+      .map((b: Budget) => {
+        const spent = b.items.reduce((sum, it) => sum + (it.actualAmount ?? it.plannedAmount), 0);
+        const pct = b.limit > 0 ? Math.min(100, (spent / b.limit) * 100) : 0;
+        const over = b.limit > 0 && spent > b.limit;
+        return { budget: b, spent, pct, over };
+      });
+  }, [budgets]);
+
+  const getIcon = (categoryGroup: string) => {
+    switch ((categoryGroup || '').toLowerCase()) {
+      case 'food': return Utensils;
+      case 'income': return Briefcase;
+      case 'transfer': return ArrowRightLeft;
+      case 'shopping': return ShoppingCart;
+      case 'housing': return Home;
+      default: return CreditCard;
+    }
+  };
+
   const getGreeting = () => {
     const hour = getBangkokHour();
     if (hour < 12) return "สวัสดีตอนเช้า";
@@ -98,15 +131,87 @@ function DashboardContent() {
 
 
 
-      <div className={styles.balanceCard}>
+      <Link href="/accounts" className={styles.balanceCard} style={{ display: 'block' }}>
         <div className={styles.label}>ยอดคงเหลือ</div>
         <div className={styles.amount}>
             <Money amount={dashboardBalance} />
         </div>
-      </div>
+      </Link>
 
       <div className={styles.section}>
         <VisualizationView transactions={displayedTransactions} />
+      </div>
+
+      {/* Active budgets */}
+      {activeBudgets.length > 0 && (
+        <div className={styles.sectionBlock}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>งบประมาณ</h2>
+            <Link href="/budget">ดูทั้งหมด</Link>
+          </div>
+          <div className={styles.budgetList}>
+            {activeBudgets.map(({ budget, spent, pct, over }) => (
+              <div key={budget.id} className={styles.budgetCard}>
+                <div className={styles.budgetRow}>
+                  <span className={styles.budgetTitle}>{budget.title}</span>
+                  <span className={styles.budgetAmounts}>
+                    <Money amount={spent} colored={false} /> / <Money amount={budget.limit} colored={false} />
+                  </span>
+                </div>
+                <div className={styles.budgetBar}>
+                  <div
+                    className={`${styles.budgetFill} ${over ? styles.budgetFillOver : ''}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent transactions */}
+      <div className={styles.sectionBlock}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>รายการล่าสุด</h2>
+          <Link href="/transactions">ดูทั้งหมด</Link>
+        </div>
+        {recentTransactions.length === 0 ? (
+          <div className={styles.emptyHint}>ยังไม่มีรายการในช่วงเวลานี้</div>
+        ) : (
+          <div className={styles.recentList}>
+            {recentTransactions.map(tx => {
+              const Icon = getIcon(tx.categoryGroup);
+              const iconClass =
+                tx.type === 'expense' ? styles.recentIconExpense :
+                tx.type === 'income' ? styles.recentIconIncome :
+                styles.recentIconTransfer;
+              const color =
+                tx.type === 'expense' ? 'var(--danger)' :
+                tx.type === 'income' ? 'var(--success)' :
+                'var(--primary)';
+              return (
+                <div
+                  key={tx.id}
+                  className={styles.recentItem}
+                  onClick={() => { setSelectedTransaction(tx); setIsTxModalOpen(true); }}
+                >
+                  <div className={`${styles.recentIcon} ${iconClass}`}>
+                    <Icon size={18} strokeWidth={2} />
+                  </div>
+                  <div className={styles.recentInfo}>
+                    <div className={styles.recentCategory}>{tx.description || tx.category}</div>
+                    <div className={styles.recentDate}>{formatBangkokShortDate(tx.date)}</div>
+                  </div>
+                  <div className={styles.recentAmount} style={{ color }}>
+                    {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :
+                     <Money amount={Math.abs(tx.amount)} colored={false} />}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <ActionFab onTypeSelect={handleTypeSelect} />
@@ -118,12 +223,13 @@ function DashboardContent() {
         initialType={initialType}
         accountId=""
         availableAccounts={accounts}
-        isOwner={true}
+        isOwner={!selectedTransaction || selectedTransaction.createdById === currentUser?.id}
         onSave={(txData, createdById) => {
-           if (selectedTransaction) {
-               deleteTransaction(selectedTransaction.id);
+           if (txData.id) {
+               updateTransaction(txData.id, txData);
+           } else {
+               addTransaction(txData, createdById);
            }
-           addTransaction(txData, createdById);
            setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}

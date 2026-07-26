@@ -4,7 +4,6 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav/BottomNav";
 import { FinanceProvider } from "@/context/FinanceContext";
-import { LiffProvider } from "@/context/LiffContext";
 
 const prompt = Prompt({
   subsets: ["thai", "latin"],
@@ -19,7 +18,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "MyFam - ติดตามการเงินครอบครัว",
-  description: "ติดตามรายรับรายจ่ายครอบครัวผ่าน LINE",
+  description: "ติดตามรายรับรายจ่ายครอบครัว",
 };
 
 export const viewport: Viewport = {
@@ -38,14 +37,12 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className={`${prompt.variable} ${inter.variable}`}>
-        <LiffProvider>
-          <FinanceProvider>
-            <main>
-              {children}
-              <BottomNav />
-            </main>
-          </FinanceProvider>
-        </LiffProvider>
+        <FinanceProvider>
+          <main>
+            {children}
+            <BottomNav />
+          </main>
+        </FinanceProvider>
       </body>
     </html>
   );

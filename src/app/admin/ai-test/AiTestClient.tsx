@@ -12,11 +12,11 @@ const INTENTS = [
 ];
 
 const DEFAULT_MODELS = [
-  { label: 'Qwen3.5 Cloud (Ollama)', value: 'ollama:qwen3.5:cloud' },
-  { label: 'Typhoon 3B (Ollama)', value: 'ollama:scb10x/llama3.2-typhoon2-3b-instruct' },
-  { label: 'Claude Sonnet 4.6 (OpenRouter)', value: 'openrouter:anthropic/claude-sonnet-4-6' },
-  { label: 'GPT-4o (OpenRouter)', value: 'openrouter:openai/gpt-4o' },
-  { label: 'Gemini 2.5 Flash (OpenRouter)', value: 'openrouter:google/gemini-2.5-flash' },
+  { label: 'Qwen3 32B (Ollama Cloud)', value: 'ollama:qwen3:32b' },
+  { label: 'Qwen3 8B (Ollama Cloud)', value: 'ollama:qwen3:8b' },
+  { label: 'Llama 3.2 3B (Ollama Cloud)', value: 'ollama:llama3.2:3b' },
+  { label: 'Gemma 3 4B (Ollama Cloud)', value: 'ollama:gemma3:4b' },
+  { label: 'Typhoon 2 3B (Ollama Cloud)', value: 'ollama:scb10x/llama3.2-typhoon2-3b-instruct' },
 ];
 
 interface TestResult {
@@ -31,7 +31,7 @@ interface TestResult {
 export function AiTestClient() {
   const [models] = useState(DEFAULT_MODELS);
   const [intent, setIntent] = useState('summary');
-  const [model, setModel] = useState('ollama:qwen3.5:cloud');
+  const [model, setModel] = useState('ollama:qwen3:32b');
   const [text, setText] = useState('สรุปยอดเดือนนี้');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);

@@ -14,7 +14,7 @@ import { formatBangkokDate } from "@/lib/timezone";
 export default function BudgetDetailPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { budgets, updateBudgetTransaction, currentUser, users, accounts } = useFinance();
+  const { budgets, updateBudgetTransaction, currentUser, users, accounts, getUserLabel } = useFinance();
 
   const budget = budgets.find((b) => b.id === id);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -123,7 +123,7 @@ export default function BudgetDetailPage() {
         >
           {(creator.displayName ?? creator.name).charAt(0).toUpperCase()}
         </span>
-        {isMe ? "คุณ" : (creator.displayName ?? creator.name)}
+        {isMe ? "คุณ" : getUserLabel(creator.id, creator.name)}
       </span>
     );
   };

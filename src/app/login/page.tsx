@@ -1,18 +1,50 @@
 "use client";
 
-import { useEffect } from "react";
-import { useLiff } from "@/context/LiffContext";
+import { useEffect, useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Image from "next/image";
 
 export default function LoginPage() {
-  const { liffLogin, isLiffReady, isLoggedIn } = useLiff();
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
+  // If already authenticated, go to dashboard
   useEffect(() => {
-    if (isLoggedIn) {
-      window.location.replace("/dashboard");
+    fetch("/api/auth/me", { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((user) => {
+        if (user) router.replace("/dashboard");
+      })
+      .catch(() => {});
+  }, [router]);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "เข้าสู่ระบบไม่สำเร็จ");
+        setLoading(false);
+        return;
+      }
+      router.replace("/dashboard");
+    } catch {
+      setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
+      setLoading(false);
     }
-  }, [isLoggedIn]);
+  }
 
   return (
     <div className={styles.container}>
@@ -23,17 +55,41 @@ export default function LoginPage() {
           <p className={styles.subtitle}>จัดการการเงินครอบครัว</p>
         </div>
 
-        <button
-          className={styles.lineButton}
-          onClick={() => liffLogin()}
-          disabled={!isLiffReady}
-        >
-          เข้าสู่ระบบด้วย LINE
-        </button>
+        <form className={styles.form} onSubmit={handleSubmit}>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="username">ชื่อผู้ใช้</label>
+            <input
+              id="username"
+              className={styles.input}
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoComplete="username"
+              required
+            />
+          </div>
 
-        <p className={styles.hint}>
-          กรุณาเปิดแอปผ่าน LINE เพื่อใช้งาน
-        </p>
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="password">รหัสผ่าน</label>
+            <input
+              id="password"
+              className={styles.input}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+
+          {error && <div className={styles.error}>{error}</div>}
+
+          <button className={styles.submit} type="submit" disabled={loading}>
+            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+          </button>
+        </form>
+
+        <p className={styles.hint}>สำหรับสมาชิกในครอบครัวเท่านั้น</p>
       </div>
     </div>
   );

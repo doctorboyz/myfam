@@ -21,7 +21,7 @@ interface BudgetTransactionModalProps {
 
 export default function BudgetTransactionModal({ isOpen, onClose, budgetId, itemToEdit, canEditItem = true, isBudgetCreator = false }: BudgetTransactionModalProps) {
   const isReadonly = !!itemToEdit && !canEditItem;
-  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser } = useFinance();
+  const { addBudgetTransaction, updateBudgetTransaction, deleteBudgetTransaction, categories, groups, accounts, allAccounts, currentUser, getUserLabel } = useFinance();
 
   const [name, setName] = useState("");
   const [plannedAmount, setPlannedAmount] = useState("");
@@ -274,7 +274,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                                 {accounts
                                 .filter(a => (a.status === 'active' || a.id === accountId) && a.owner === currentUser?.name)
                                 .map(acc => (
-                                    <option key={acc.id} value={acc.id}>{acc.name} - {acc.owner}</option>
+                                    <option key={acc.id} value={acc.id}>{acc.name} - {getUserLabel(acc.ownerId || '', acc.owner)}</option>
                                 ))}
                             </select>
                         </div>
@@ -292,7 +292,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                                     {allAccounts
                                     .filter(a => (a.status === 'active' || a.id === toAccountId) && a.id !== accountId)
                                     .map(acc => (
-                                        <option key={acc.id} value={acc.id}>{acc.name} - {acc.owner}</option>
+                                        <option key={acc.id} value={acc.id}>{acc.name} - {getUserLabel(acc.ownerId || '', acc.owner)}</option>
                                     ))}
                                 </select>
                             </div>

@@ -1,0 +1,116 @@
+.installBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.installBtn:active {
+  opacity: 0.85;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.guide {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 20px;
+  max-width: 360px;
+  width: 100%;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+}
+
+.closeBtn:hover {
+  background: #f0f0f0;
+}
+
+.guideTitle {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  padding-right: 30px;
+}
+
+.steps {
+  margin: 0;
+  padding: 0 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.iconHint {
+  display: inline-block;
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+.arrowHint {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.browserLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--primary);
+  background: #fff;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-top: 12px;
+}
+
+.browserLink:active {
+  background: var(--primary-light);
+}
+
+.browserHint {
+  text-align: center;
+  font-size: var(--font-md);
+  color: var(--secondary-text);
+  margin-top: 8px;
+  line-height: 1.4;
+}

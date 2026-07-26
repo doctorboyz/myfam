@@ -7,7 +7,7 @@ import styles from './BottomNav.module.css';
 
 const navItems = [
   { name: 'หน้าหลัก', path: '/dashboard', icon: LayoutDashboard },
-  { name: 'รายการ', path: '/categories', icon: ClipboardList },
+  { name: 'รายการ', path: '/transactions', icon: ClipboardList },
   { name: 'บัญชี', path: '/accounts', icon: Wallet },
   { name: 'งบประมาณ', path: '/budget', icon: Calculator },
   { name: 'โปรไฟล์', path: '/profile', icon: User },

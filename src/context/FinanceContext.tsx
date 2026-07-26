@@ -14,7 +14,7 @@ interface ApiAccount {
   accountNo?: string;
   ownerId: string;
   status?: string;
-  owner?: { name: string };
+  owner?: { id: string; name: string };
 }
 
 interface ApiTransaction {
@@ -47,6 +47,7 @@ interface FinanceContextType {
   globalBalance: number;
   currentUser: User | null;
   users: User[];
+  getUserLabel: (userId: string, fallbackName: string) => string;
   groups: CategoryGroup[];
   categories: Category[];
   isLoading: boolean;
@@ -55,12 +56,14 @@ interface FinanceContextType {
   addUser: (user: User) => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   removeUser: (id: string) => void;
+  refreshUsers: () => Promise<void>;
 
   getAccountTransactions: (accountId: string) => Transaction[];
   addAccount: (account: Omit<Account, "id" | "balance" | "owner">) => void;
   updateAccount: (id: string, updates: Partial<Account>) => void;
   deleteAccount: (id: string) => void;
   addTransaction: (transaction: Omit<Transaction, "id">, createdById?: string) => void;
+  updateTransaction: (id: string, txData: Partial<Transaction>) => void;
   deleteTransaction: (id: string) => void;
   getFilteredTransactions: (filters: DashboardFilters) => Transaction[];
   
@@ -116,7 +119,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [users, setUsers] = useState<User[]>([]);
-  const [currentUser, setCurrentUser] = useState<User | null>(null); 
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [aliases, setAliases] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   
   // Category & Tag State
@@ -129,19 +133,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     const fetchData = async () => {
       setIsLoading(true);
 
-      // In LIFF mode, wait for LIFF auth to complete before checking session
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (liffId && typeof window !== 'undefined') {
-        // Give LIFF auth up to 3 seconds to complete
-        const maxWait = 3000;
-        const start = Date.now();
-        while (Date.now() - start < maxWait) {
-          const hasCookie = document.cookie.includes('userId=');
-          if (hasCookie) break;
-          await new Promise(r => setTimeout(r, 200));
-        }
-      }
-
       try {
         // 1. Fetch Current User
         try {
@@ -151,7 +142,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 setCurrentUser(userData);
             } else {
                 // Not authenticated - redirect and stop fetching
-                const isPublicRoute = window.location.pathname === '/login' || window.location.pathname === '/link';
+                const isPublicRoute = window.location.pathname === '/login';
                 if (!isPublicRoute) router.push('/login');
                 setIsLoading(false);
                 return;
@@ -169,12 +160,28 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           setUsers(usersData);
         }
 
+        // 2.5. Fetch Aliases for current user
+        try {
+          const aliasRes = await fetch('/api/users/alias');
+          if (aliasRes.ok) {
+            const aliasData = await aliasRes.json();
+            if (aliasData.success && aliasData.aliases) {
+              const map: Record<string, string> = {};
+              aliasData.aliases.forEach((a: { targetId: string; alias: string }) => {
+                map[a.targetId] = a.alias;
+              });
+              setAliases(map);
+            }
+          }
+        } catch (_) { /* non-critical */ }
+
         // 3. Fetch Accounts
         const accountsRes = await fetch('/api/accounts');
         const accountsData = await accountsRes.json();
         const mappedAccounts = accountsData.map((acc: ApiAccount) => ({
             ...acc,
             owner: acc.owner?.name || 'Unknown',
+            ownerId: acc.owner?.id || acc.ownerId,
             status: acc.status || 'active',
             balance: Number(acc.balance)
         }));
@@ -264,6 +271,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const refreshUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) setUsers(await res.json());
+    } catch (error) {
+      console.error("Failed to refresh users", error);
+    }
+  };
+
   // Determine which accounts are visible to the current user
   // Parent see all? Or only "Family" + Own? 
   // User request: "Dashboard of parent has filter... Dashboard of child sees only own"
@@ -345,7 +361,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             const mappedAccounts = accountsData.map((acc: ApiAccount) => ({
                 ...acc,
                 owner: acc.owner?.name || 'Unknown',
-                status: acc.status || 'active'
+                ownerId: acc.owner?.id || acc.ownerId,
+                status: acc.status || 'active',
+                balance: Number(acc.balance)
             }));
             setAccounts(mappedAccounts);
         } catch (error) {
@@ -407,14 +425,64 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const deleteTransaction = async (id: string) => {
       try {
-          await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/transactions/${id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            alert(data.error || 'ไม่สามารถลบรายการนี้ได้');
+            return;
+          }
           setTransactions(transactions.filter(t => t.id !== id));
-          
+
           // Refresh accounts to get updated balances from backend
           await fetchAccounts();
       } catch (error) {
           console.error("Failed to delete transaction", error);
       }
+  };
+
+  const updateTransaction = async (id: string, txData: Partial<Transaction>) => {
+    if (!currentUser) return;
+    try {
+        const categoryObj = txData.category ? categories.find(c => c.name === txData.category) : null;
+        const categoryId = categoryObj?.id || null;
+
+        const payload: Record<string, unknown> = {};
+        if (txData.amount !== undefined) payload.amount = Number(txData.amount);
+        if (txData.date !== undefined) payload.date = txData.date;
+        if (txData.type !== undefined) payload.type = txData.type;
+        if (txData.description !== undefined) payload.description = txData.description;
+        if (txData.accountId !== undefined) payload.accountId = txData.accountId;
+        if (txData.toAccountId !== undefined) payload.toAccountId = txData.toAccountId || null;
+        if (categoryId !== null && txData.category !== undefined) payload.categoryId = categoryId;
+        if (txData.fee !== undefined) payload.fee = Number(txData.fee);
+        if (txData.totalAmount !== undefined) payload.totalAmount = Number(txData.totalAmount);
+        if (txData.tagIds !== undefined) payload.tagIds = txData.tagIds;
+        if (txData.slipImage !== undefined) payload.slipImage = txData.slipImage;
+
+        const res = await fetch(`/api/transactions/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            const updatedTx = await res.json();
+            setTransactions(transactions.map(t =>
+                t.id === id ? {
+                    ...t,
+                    ...updatedTx,
+                    category: txData.category || t.category,
+                    categoryGroup: updatedTx.category?.group?.name || t.categoryGroup,
+                    amount: Number(updatedTx.amount),
+                    fee: updatedTx.fee ? Number(updatedTx.fee) : 0,
+                    totalAmount: updatedTx.totalAmount ? Number(updatedTx.totalAmount) : (Number(updatedTx.amount) + Number(updatedTx.fee || 0)),
+                } : t
+            ));
+            await fetchAccounts();
+        }
+    } catch (error) {
+        console.error("Failed to update transaction", error);
+    }
   };
 
   const addGroup = async (group: { name: string; type: TransactionType }) => {
@@ -847,6 +915,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         setTrashedAccounts(data.map((acc: ApiAccount) => ({
           ...acc,
           owner: acc.owner?.name || 'Unknown',
+          ownerId: acc.owner?.id || acc.ownerId,
           status: acc.status || 'active',
           balance: Number(acc.balance),
         })));
@@ -945,6 +1014,16 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     setTrashedTags(prev => prev.filter(t => t.id !== id));
   };
 
+  const getUserLabel = (userId: string, fallbackName: string): string => {
+    // 1. Check alias set by current user
+    if (aliases[userId]) return aliases[userId];
+    // 2. Check target user's displayName
+    const targetUser = users.find(u => u.id === userId);
+    if (targetUser?.displayName) return targetUser.displayName;
+    // 3. Fallback to provided name
+    return fallbackName;
+  };
+
   return (
     <FinanceContext.Provider value={{
       accounts: accountsForUser, 
@@ -953,16 +1032,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       globalBalance,
       currentUser,
       users,
+      getUserLabel,
       isLoading,
       logout,
       addUser,
       updateUser,
       removeUser,
+      refreshUsers,
       getAccountTransactions,
       addAccount,
       updateAccount,
       deleteAccount,
       addTransaction,
+      updateTransaction,
       deleteTransaction,
       getFilteredTransactions,
       

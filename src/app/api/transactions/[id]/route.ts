@@ -24,6 +24,13 @@ export async function DELETE(
     const id = await parseId(props);
     const userId = await getAuthUserId();
 
+    // Pre-check ownership before entering transaction
+    const existing = await prisma.transaction.findUnique({ where: { id } });
+    if (!existing) return apiError('Transaction not found', 404);
+    if (existing.createdById !== userId) {
+      return apiError('Not authorized to delete this transaction', 403);
+    }
+
     await prisma.$transaction(async (tx) => {
       const transaction = await tx.transaction.findUnique({ where: { id } });
       if (!transaction) throw new Error('Transaction not found');
@@ -76,11 +83,15 @@ export async function PATCH(
 ) {
   try {
     const id = await parseId(props);
+    const userId = await getAuthUserId();
     const body = await request.json();
 
     // Fetch existing transaction to detect status transitions
     const existing = await prisma.transaction.findUnique({ where: { id } });
     if (!existing) return apiError('Transaction not found', 404);
+    if (existing.createdById !== userId) {
+      return apiError('Not authorized to edit this transaction', 403);
+    }
 
     const isCompletingPlanned =
       existing.status === 'planned' && body.status === 'completed';

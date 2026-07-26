@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useFinance } from '@/context/FinanceContext';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
-import { Shield, User, Users, Layers, Tags, Pencil, Check, X, Trash2, AlertTriangle } from 'lucide-react';
+import { PwaInstallButton } from '@/components/PwaInstallButton/PwaInstallButton';
+import { Shield, User, Users, Layers, Tags, Pencil, Check, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import s from './profile.module.css';
 
 export default function Profile() {
-  const { currentUser, updateUser, users, removeUser } = useFinance();
+  const { currentUser, updateUser, users, removeUser, getUserLabel } = useFinance();
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [showDeleteUser, setShowDeleteUser] = useState<string | null>(null);
@@ -123,11 +124,17 @@ export default function Profile() {
             <span className={s.menuItemLabel}>จัดการแท็ก</span>
             <span className={s.menuItemChevron}>›</span>
           </Link>
+          <Link href="/settings/identity" className={s.menuItem}>
+            <Sparkles size={20} className={s.menuItemIcon} />
+            <span className={s.menuItemLabel}>ข้อมูลสำหรับ AI</span>
+            <span className={s.menuItemChevron}>›</span>
+          </Link>
         </div>
       </div>
 
       {/* Footer */}
       <div className={s.footer}>
+        <PwaInstallButton />
         <div className={s.version}>เวอร์ชัน 1.0.0</div>
       </div>
 
@@ -139,7 +146,7 @@ export default function Profile() {
             {otherMembers.map(member => (
               <div key={member.id} className={s.dangerItem}>
                 <div className={s.dangerItemInfo}>
-                  <span className={s.dangerItemName}>{member.displayName ?? member.name}</span>
+                  <span className={s.dangerItemName}>{getUserLabel(member.id, member.name)}</span>
                   <span className={s.dangerItemBalance}>
                     {member.role === 'parent' ? 'ผู้ปกครอง' : 'สมาชิก'}
                   </span>
@@ -162,7 +169,7 @@ export default function Profile() {
             <div className={s.confirmDialog} onClick={(e) => e.stopPropagation()}>
               <h3 className={s.confirmTitle}>ลบผู้ใช้</h3>
               <p className={s.confirmText}>
-                คุณแน่ใจหรือไม่ที่จะลบ <strong>{member.displayName ?? member.name}</strong> และข้อมูลทั้งหมด?
+                คุณแน่ใจหรือไม่ที่จะลบ <strong>{getUserLabel(member.id, member.name)}</strong> และข้อมูลทั้งหมด?
               </p>
               <p className={s.confirmWarning}>
                 <AlertTriangle size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />

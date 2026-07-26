@@ -6,7 +6,7 @@
 
 .description {
   color: var(--secondary-text);
-  font-size: 12px;
+  font-size: var(--font-md);
   line-height: 1.5;
 }
 
@@ -20,12 +20,12 @@
 .stat {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--font-md);
 }
 
 .field label {
   display: block;
-  font-size: 9px;
+  font-size: var(--font-detail);
   font-weight: 500;
   color: var(--secondary-text);
   margin-bottom: 6px;
@@ -43,7 +43,7 @@
 
 .difference {
   text-align: center;
-  font-size: 10px;
+  font-size: var(--font-sm);
   font-weight: 500;
   color: var(--secondary-text);
 }
@@ -55,7 +55,7 @@
   color: var(--card-bg);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 11px;
+  font-size: var(--font-base);
   font-weight: 600;
   cursor: pointer;
 }
@@ -72,7 +72,7 @@
 }
 
 .quickParseLabel {
-  font-size: 10px;
+  font-size: var(--font-sm);
   font-weight: 600;
   color: var(--primary-dark);
 }
@@ -84,10 +84,10 @@
   border-radius: var(--radius-sm);
   background: var(--card-bg);
   color: var(--foreground);
-  font-size: 11px;
+  font-size: var(--font-base);
 }
 
 .quickParseHint {
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--secondary-text);
 }

@@ -18,7 +18,7 @@ interface TransactionDetailModalProps {
   accountId?: string; // Optional: If provided, pre-selects/fixes account
   initialType?: Transaction['type'];
   isOwner: boolean;
-  onSave: (transaction: Omit<Transaction, "id">, createdById?: string) => void;
+  onSave: (transaction: Omit<Transaction, "id"> & { id?: string }, createdById?: string) => void;
   onDelete?: (id: string) => void;
   availableAccounts?: Account[]; // For selecting account
 }
@@ -34,7 +34,7 @@ export default function TransactionDetailModal({
   onDelete,
   availableAccounts = []
 }: TransactionDetailModalProps) {
-  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users, tags } = useFinance();
+  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users, tags, getUserLabel } = useFinance();
 
   // Member selector: only show when family has >1 member
   const showMemberSelector = users.length > 1;
@@ -93,7 +93,7 @@ export default function TransactionDetailModal({
      (a.status === 'active' || a.id === formData.toAccountId)
   );
 
-  const getAccountLabel = (acc: Account) => `${acc.name} - ${acc.owner}`;
+  const getAccountLabel = (acc: Account) => `${acc.name} - ${getUserLabel(acc.ownerId || '', acc.owner)}`;
 
   useEffect(() => {
     if (isOpen) {
@@ -162,6 +162,7 @@ export default function TransactionDetailModal({
     const totalAmount = Number(formData.amount || 0) + Number(formData.fee || 0);
 
     onSave({
+      id: transaction?.id,
       ...formData,
       categoryGroup: groupName,
       accountId: formData.accountId || accountId, // Fallback
@@ -170,7 +171,7 @@ export default function TransactionDetailModal({
       totalAmount,
       tagIds: formData.tagIds || [],
       tags: formData.tagIds ? tags.filter(t => formData.tagIds!.includes(t.id)).map(t => t.name) : [],
-    } as Omit<Transaction, "id">, selectedMemberId);
+    } as Omit<Transaction, "id"> & { id?: string }, selectedMemberId);
 
     onClose();
   };

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 
 export function apiSuccess(data: unknown, status = 200) {
@@ -8,6 +9,13 @@ export function apiSuccess(data: unknown, status = 200) {
 
 export function apiError(message: string, status = 500) {
   return NextResponse.json({ error: message }, { status });
+}
+
+/**
+ * Hash a plaintext password with bcrypt. Used when creating/updating users.
+ */
+export async function hashPassword(plaintext: string): Promise<string> {
+  return bcrypt.hash(plaintext, 10);
 }
 
 export async function getAuthUserId(): Promise<string | null> {

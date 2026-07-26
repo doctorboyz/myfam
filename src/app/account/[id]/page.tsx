@@ -62,7 +62,7 @@ type HistoryTab = 'transactions' | 'reconcile';
 export default function AccountDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
-  const { accounts, getAccountTransactions, updateAccount, deleteAccount, currentUser, addTransaction, deleteTransaction, fetchAccounts } = useFinance();
+  const { accounts, getAccountTransactions, updateAccount, deleteAccount, currentUser, addTransaction, updateTransaction, deleteTransaction, fetchAccounts } = useFinance();
 
   const [isReconcileOpen, setIsReconcileOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -111,7 +111,8 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     return <div style={{ padding: 20 }}>ไม่พบบัญชี หรือไม่มีสิทธิ์เข้าถึง</div>;
   }
 
-  const isOwner = currentUser?.name === account.owner || currentUser?.role === 'parent';
+  const isOwner = currentUser?.name === account.owner;
+  const canEditTransaction = isOwner && (!selectedTransaction || selectedTransaction.createdById === currentUser?.id);
 
   const handleReconcile = async (newBalance: number) => {
     if (!currentUser) return;
@@ -280,12 +281,13 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
         initialType={initialType}
         accountId={id}
         availableAccounts={accounts}
-        isOwner={isOwner}
+        isOwner={canEditTransaction}
         onSave={(txData, createdById) => {
-           if (selectedTransaction) {
-               deleteTransaction(selectedTransaction.id);
+           if (txData.id) {
+               updateTransaction(txData.id, txData);
+           } else {
+               addTransaction(txData, createdById);
            }
-           addTransaction(txData, createdById);
            setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}

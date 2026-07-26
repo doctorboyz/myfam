@@ -1,13 +1,11 @@
 /**
- * AI Model Testing API — runs the full intent pipeline with configurable model.
+ * AI Model Testing API — verifies the Ollama Cloud connection with mock data.
  *
  * POST { intent, model, text }
- * → loads intent example, generates mock data, calls aiChat, returns response + timing.
+ * → generates mock data, calls aiChat, returns response + timing.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import { join } from 'path';
 import { aiChat } from '@/lib/ai-client';
 
 // ── Mock Data ──────────────────────────────────────────────────────
@@ -82,36 +80,22 @@ function mockData(intent: string) {
   }
 }
 
-// ── Intent Example Loading ─────────────────────────────────────────
-
-const exampleCache = new Map<string, string>();
-
-async function loadIntentExample(intent: string): Promise<string> {
-  const cached = exampleCache.get(intent);
-  if (cached) return cached;
-
-  const filePath = join(process.cwd(), 'src/intent', `${intent}.md`);
-  const content = await readFile(filePath, 'utf-8');
-  exampleCache.set(intent, content);
-  return content;
-}
-
 // ── GET: Available intents + models ────────────────────────────────
 
 export async function GET() {
   return NextResponse.json({
     intents: ['balance', 'recent', 'summary', 'budget', 'categories', 'help'],
     models: [
-      { label: 'Qwen3.5 Cloud (Ollama)', value: 'ollama:qwen3.5:cloud' },
-      { label: 'Typhoon 3B (Ollama)', value: 'ollama:scb10x/llama3.2-typhoon2-3b-instruct' },
-      { label: 'Claude Sonnet 4.6 (OpenRouter)', value: 'openrouter:anthropic/claude-sonnet-4-6' },
-      { label: 'GPT-4o (OpenRouter)', value: 'openrouter:openai/gpt-4o' },
-      { label: 'Gemini 2.5 Flash (OpenRouter)', value: 'openrouter:google/gemini-2.5-flash' },
+      { label: 'Qwen3 32B (Ollama Cloud)', value: 'ollama:qwen3:32b' },
+      { label: 'Qwen3 8B (Ollama Cloud)', value: 'ollama:qwen3:8b' },
+      { label: 'Llama 3.2 3B (Ollama Cloud)', value: 'ollama:llama3.2:3b' },
+      { label: 'Gemma 3 4B (Ollama Cloud)', value: 'ollama:gemma3:4b' },
+      { label: 'Typhoon 2 3B (Ollama Cloud)', value: 'ollama:scb10x/llama3.2-typhoon2-3b-instruct' },
     ],
   });
 }
 
-// ── POST: Run intent pipeline ──────────────────────────────────────
+// ── POST: Run prompt against Ollama Cloud ──────────────────────────
 
 export async function POST(request: NextRequest) {
   const { intent, model, text } = await request.json();
@@ -123,15 +107,9 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const [intentExample, data] = await Promise.all([
-      intent === 'help' ? Promise.resolve('') : loadIntentExample(intent),
-      Promise.resolve(mockData(intent)),
-    ]);
+    const data = mockData(intent);
 
     const prompt = `คุณคือ Fammee Oracle ผู้ช่วยการเงินครอบครัว MyFam
-
-## Intent Example (แนวทางการตอบ)
-${intentExample || 'ตอบเป็นภาษาไทย ให้เป็นธรรมชาติ อ่านง่าย และเป็นมิตร'}
 
 ## ข้อมูลจากฐานข้อมูล (query แล้ว)
 \`\`\`json

@@ -121,3 +121,132 @@
   color: var(--secondary-text);
   font-size: var(--font-sm);
 }
+
+/* Section with header + "see all" link */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+}
+
+.sectionHeader a {
+  font-size: var(--font-sm);
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: var(--weight-medium);
+}
+
+.sectionBlock {
+  padding: 0 var(--section-margin);
+  margin-bottom: var(--space-xl);
+}
+
+/* Recent transactions */
+.recentList {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.recentItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.recentIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.recentIconExpense { background: var(--danger-bg); color: var(--danger); }
+.recentIconIncome { background: rgba(0, 179, 134, 0.12); color: var(--success); }
+.recentIconTransfer { background: var(--input-bg); color: var(--primary); }
+
+.recentInfo { flex: 1; min-width: 0; }
+.recentCategory {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recentDate {
+  font-size: var(--font-xs);
+  color: var(--secondary-text);
+  margin-top: 2px;
+}
+
+.recentAmount {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-number);
+  flex-shrink: 0;
+}
+
+.emptyHint {
+  text-align: center;
+  padding: var(--space-xl);
+  color: var(--secondary-text);
+  font-size: var(--font-sm);
+  background: var(--card-bg);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+/* Budget progress */
+.budgetList { display: grid; gap: var(--space-md); }
+
+.budgetCard {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.budgetRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.budgetTitle {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 60%;
+}
+
+.budgetAmounts {
+  font-size: var(--font-sm);
+  font-family: var(--font-number);
+  color: var(--secondary-text);
+}
+
+.budgetBar {
+  height: 6px;
+  background: var(--input-bg);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.budgetFill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+  transition: width 0.3s var(--ease-out);
+}
+
+.budgetFillOver { background: var(--danger); }

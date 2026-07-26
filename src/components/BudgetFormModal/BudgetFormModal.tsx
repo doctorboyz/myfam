@@ -15,7 +15,7 @@ interface BudgetFormModalProps {
 }
 
 export default function BudgetFormModal({ isOpen, onClose, budgetToEdit, defaultPurpose = "spending" }: BudgetFormModalProps) {
-  const { addBudget, updateBudget, deleteBudget, accounts, users, currentUser } = useFinance();
+  const { addBudget, updateBudget, deleteBudget, accounts, users, currentUser, getUserLabel } = useFinance();
   const router = useRouter();
   const [title, setTitle] = useState(budgetToEdit?.title || "");
   const [description, setDescription] = useState(budgetToEdit?.description || "");
@@ -177,7 +177,7 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit, default
               {users
                 .filter((u) => u.id !== currentUser?.id)
                 .map((u) => (
-                  <option key={u.id} value={u.id}>{u.name}</option>
+                  <option key={u.id} value={u.id}>{getUserLabel(u.id, u.name)}</option>
                 ))}
             </select>
           </div>

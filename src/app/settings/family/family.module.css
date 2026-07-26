@@ -251,6 +251,17 @@
   color: var(--primary);
 }
 
+/* Error banner */
+.errorBanner {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: var(--font-sm);
+  text-align: center;
+}
+
 /* Invite button */
 .inviteBtn {
   display: flex;

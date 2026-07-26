@@ -7,7 +7,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   margin-bottom: 16px;
-  font-size: 11px;
+  font-size: var(--font-base);
   color: var(--secondary-text);
 }
 
@@ -17,13 +17,13 @@
 
 .label {
   display: block;
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--secondary-text);
   margin-bottom: 6px;
 }
 
 .hint {
-  font-size: 9px;
+  font-size: var(--font-detail);
   color: var(--primary);
   font-weight: 500;
   margin-left: 4px;
@@ -34,7 +34,7 @@
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  font-size: 11px;
+  font-size: var(--font-base);
   background-color: var(--background);
   color: var(--foreground);
   transition: border-color 0.2s;
@@ -89,7 +89,7 @@
   border: none;
   background-color: var(--background);
   color: var(--secondary-text);
-  font-size: 11px;
+  font-size: var(--font-base);
   font-weight: 600;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -101,7 +101,7 @@
   border: none;
   background-color: var(--primary);
   color: var(--card-bg);
-  font-size: 11px;
+  font-size: var(--font-base);
   font-weight: 600;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -121,7 +121,7 @@
   padding: 10px 12px;
   background-color: var(--danger-bg);
   color: var(--danger);
-  font-size: 11px;
+  font-size: var(--font-base);
   font-weight: 600;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
@@ -141,7 +141,7 @@
   padding: 10px 12px;
   background-color: var(--success-bg);
   color: var(--success);
-  font-size: 11px;
+  font-size: var(--font-base);
   font-weight: 600;
   border-radius: var(--radius-md);
   border: 1px solid transparent;
@@ -166,7 +166,7 @@
   background: none;
   border: none;
   color: var(--secondary-text);
-  font-size: 11px;
+  font-size: var(--font-base);
   cursor: pointer;
   display: flex;
   align-items: center;

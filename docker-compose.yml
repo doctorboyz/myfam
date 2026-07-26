@@ -4,9 +4,7 @@ services:
     build:
       context: .
       args:
-        NEXT_PUBLIC_LIFF_ID: ${NEXT_PUBLIC_LIFF_ID}
         NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
-        NEXT_PUBLIC_LINE_BASIC_ID: ${NEXT_PUBLIC_LINE_BASIC_ID}
     container_name: myfam-app
     restart: unless-stopped
     ports:
@@ -17,15 +15,12 @@ services:
       - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
       - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
       - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
-      - OLLAMA_BASE_URL=http://host.docker.internal:11434
-      - OLLAMA_TEXT_MODEL=${OLLAMA_TEXT_MODEL:-qwen2.5:7b}
-      - OLLAMA_VISION_MODEL=${OLLAMA_VISION_MODEL:-qwen3.5:cloud}
-      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - OPENROUTER_BASE_URL=${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
-      - AI_RESPONSE_MODEL=${AI_RESPONSE_MODEL:-ollama:qwen2.5:7b}
-      - AI_INTENT_MODEL=${AI_INTENT_MODEL:-ollama:qwen2.5:7b}
-      - AI_EXTRACT_TEXT_MODEL=${AI_EXTRACT_TEXT_MODEL:-ollama:qwen2.5:7b}
-      - AI_EXTRACT_SLIP_MODEL=${AI_EXTRACT_SLIP_MODEL:-ollama:qwen3.5:cloud}
+      - OLLAMA_API_KEY=${OLLAMA_API_KEY}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://api.ollama.com}
+      - AI_RESPONSE_MODEL=${AI_RESPONSE_MODEL:-ollama:qwen3:32b}
+      - AI_INTENT_MODEL=${AI_INTENT_MODEL:-ollama:qwen3:32b}
+      - AI_EXTRACT_TEXT_MODEL=${AI_EXTRACT_TEXT_MODEL:-ollama:qwen3:32b}
+      - AI_EXTRACT_SLIP_MODEL=${AI_EXTRACT_SLIP_MODEL:-ollama:qwen3:32b}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     depends_on:
       myfam-db:

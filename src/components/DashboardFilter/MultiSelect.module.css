@@ -10,7 +10,7 @@
     border-radius: var(--radius-md);
     padding: 10px 12px;
     padding-right: 28px;
-    font-size: 9px;
+    font-size: var(--font-detail);
     color: var(--foreground);
     cursor: pointer;
     display: flex;
@@ -100,7 +100,7 @@
 }
 
 .groupTitle {
-    font-size: 9px;
+    font-size: var(--font-detail);
     font-weight: 600;
     color: var(--secondary-text);
     padding: 4px 8px;
@@ -144,7 +144,7 @@
 }
 
 .optionLabel {
-    font-size: 9px;
+    font-size: var(--font-detail);
     color: var(--foreground);
     white-space: nowrap;
     overflow: hidden;
@@ -153,18 +153,18 @@
 }
 
 .optionLabelSmall {
-    font-size: 9px;
+    font-size: var(--font-detail);
 }
 
 .optionLabelTiny {
-    font-size: 9px;
+    font-size: var(--font-detail);
 }
 
 .footer {
     padding: 8px;
     border-top: 1px solid var(--border);
     text-align: center;
-    font-size: 9px;
+    font-size: var(--font-detail);
     color: var(--primary);
     font-weight: 500;
     cursor: pointer;

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, pickFields, getAuthUser } from '@/lib/api';
+import { apiSuccess, apiError, parseId, pickFields, getAuthUser, hashPassword } from '@/lib/api';
 
 export async function PATCH(
   request: Request,
@@ -9,6 +9,11 @@ export async function PATCH(
     const id = await parseId(props);
     const body = await request.json();
     const data = pickFields(body, ['name', 'role', 'color', 'avatar']);
+
+    // Allow password reset
+    if (typeof body.password === 'string' && body.password.length > 0) {
+      data.password = await hashPassword(body.password);
+    }
 
     const updatedUser = await prisma.user.update({
       where: { id },

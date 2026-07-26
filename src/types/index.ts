@@ -12,6 +12,7 @@ export interface User {
   color: string;
   familyId: string;
   lineLink?: { lineUserId: string } | null;
+  identity?: string | null; // JSON: UserIdentity
 }
 
 export interface Account {
@@ -22,6 +23,7 @@ export interface Account {
   color: string;
   icon?: string;
   owner: string;
+  ownerId?: string;
   accountNo?: string;
   alias?: string;
   status: 'active' | 'archived';

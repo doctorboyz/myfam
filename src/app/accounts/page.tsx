@@ -44,7 +44,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: stri
 type Tab = 'accounts' | 'trash';
 
 export default function AccountsPage() {
-  const { accounts, addAccount, addTransaction, deleteTransaction, currentUser,
+  const { accounts, addAccount, addTransaction, updateTransaction, deleteTransaction, currentUser,
     trashedAccounts, fetchTrashedAccounts, restoreAccount, permanentDeleteAccount } = useFinance();
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -227,7 +227,11 @@ export default function AccountsPage() {
         availableAccounts={myAccounts}
         isOwner={true}
         onSave={(txData, createdById) => {
-          addTransaction(txData, createdById);
+          if (txData.id) {
+            updateTransaction(txData.id, txData);
+          } else {
+            addTransaction(txData, createdById);
+          }
           setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}

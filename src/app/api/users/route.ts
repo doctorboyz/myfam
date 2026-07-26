@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
+import { apiSuccess, apiError, getAuthUser, hashPassword } from '@/lib/api';
 import { resolveDisplayNames } from '@/lib/display-name';
 
 export async function GET() {
@@ -29,12 +29,30 @@ export async function POST(request: Request) {
   try {
     const currentUser = await getAuthUser();
     if (!currentUser) return apiError('Not authenticated', 401);
+    if (currentUser.role !== 'parent' && !currentUser.isAdmin) {
+      return apiError('Not authorized', 403);
+    }
 
-    const { name, role, color, avatar } = await request.json();
+    const { username, password, role, color, avatar } = await request.json();
+
+    if (!username || !password) {
+      return apiError('Username and password are required', 400);
+    }
+
+    // Username must be unique within the family
+    const existing = await prisma.user.findFirst({
+      where: { name: username, familyId: currentUser.familyId },
+    });
+    if (existing) {
+      return apiError('Username already exists', 400);
+    }
+
+    const hashed = await hashPassword(password);
 
     const newUser = await prisma.user.create({
       data: {
-        name,
+        name: username,
+        password: hashed,
         role: role || 'child',
         color: color || '#000000',
         avatar,
