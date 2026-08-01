@@ -75,6 +75,7 @@ model User {
   isAdmin   Boolean  @default(false) @map("is_admin")
   avatar    String?
   color     String   @default("#000000")
+  displayName String? @map("display_name")
   familyId  String   @map("family_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -84,7 +85,6 @@ model User {
   transactions Transaction[]
   categories   Category[]
   budgets      Budget[]
-  lineLink        LineLink?
   tags            Tag[]
   inviteCodes     InviteCode[]
   createdInvites  InviteCode[] @relation("InviteCreator")
@@ -285,19 +285,6 @@ model TransactionTag {
   @@map("transaction_tags")
 
   createdAt DateTime @default(now()) @map("created_at")
-}
-
-model LineLink {
-  id          String   @id @default(uuid())
-  lineUserId  String   @unique @map("line_user_id")
-  userId      String   @unique @map("user_id")
-  displayName String?  @map("display_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("line_links")
 }
 
 model Budget {

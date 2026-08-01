@@ -34,9 +34,14 @@ export async function GET(request: Request) {
       include: transactionInclude,
     });
 
-    // Map to include tag names for frontend compatibility
-    const mapped = transactions.map(tx => ({
+    // Map to include tag names for frontend compatibility.
+    // NOTE: slipImage (base64, up to several MB each) is intentionally excluded
+    // from the list payload — it is fetched on demand from /api/transactions/[id]
+    // when a transaction detail is opened. Including it here made every page load
+    // pull ~7MB and stalled the app on slower connections.
+    const mapped = transactions.map(({ slipImage: _slipImage, ...tx }) => ({
       ...tx,
+      slipImage: null,
       tags: tx.tagRecords.map((tr: { tag: { name: string } }) => tr.tag.name),
       tagIds: tx.tagRecords.map((tr: { tagId: string }) => tr.tagId),
     }));

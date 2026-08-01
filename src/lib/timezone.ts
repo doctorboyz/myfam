@@ -1,8 +1,7 @@
 /**
  * Timezone utilities for consistent GMT+7 (Bangkok) time display.
  * All user-facing dates/times should use these helpers so that
- * LIFF users inside LINE (who may be in different timezones)
- * always see Bangkok time.
+ * users (who may be in different timezones) always see Bangkok time.
  */
 
 const BANGKOK_TZ = 'Asia/Bangkok';

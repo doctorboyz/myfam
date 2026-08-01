@@ -1,4 +1,4 @@
-/* Global Styles — MAKE by KBank inspired, LIFF-first */
+/* Global Styles — MAKE by KBank inspired, mobile-first PWA */
 :root {
   /* Color Palette — Warmer green primary, modern accents */
   --background: #f5f5f7;
@@ -132,7 +132,7 @@ body {
   min-height: 100dvh;
   font-weight: var(--weight-regular);
   line-height: 1.5;
-  /* Prevent browser from auto-scaling text (especially in LIFF WebView) */
+  /* Prevent browser from auto-scaling text in mobile WebViews */
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
 }
@@ -147,7 +147,7 @@ main {
   min-height: 100dvh;
   position: relative;
   padding-top: var(--safe-top);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px + var(--liff-extra-bottom));
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px);
 }
 
 a {

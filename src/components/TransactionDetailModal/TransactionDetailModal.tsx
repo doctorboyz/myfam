@@ -50,6 +50,10 @@ export default function TransactionDetailModal({
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
   const [quickParseText, setQuickParseText] = useState("");
   const [showLightbox, setShowLightbox] = useState(false);
+  // Slip image is stripped from the list payload for performance; lazy-load it
+  // from the per-transaction endpoint when an existing transaction is opened.
+  const [loadedSlipImage, setLoadedSlipImage] = useState<string | null>(null);
+  const effectiveSlipImage = loadedSlipImage ?? transaction?.slipImage ?? null;
   const [formData, setFormData] = useState<Partial<Transaction>>({
     amount: 0,
     category: "",
@@ -134,7 +138,35 @@ export default function TransactionDetailModal({
         setIsEditing(true);
       }
     }
-  }, [isOpen, transaction, initialType, accountId, availableAccounts, getGroupsByType, getCategoriesByGroup]); 
+  }, [isOpen, transaction, initialType, accountId, availableAccounts, getGroupsByType, getCategoriesByGroup]);
+
+  // Lazy-load the slip image for an existing transaction when the modal opens.
+  // The list endpoint omits slipImage (it can be several MB per row), so we
+  // fetch it here only when needed to view/edit a transaction.
+  useEffect(() => {
+    if (!isOpen || !transaction?.id) {
+      setLoadedSlipImage(null);
+      return;
+    }
+    // If the transaction already carries a slipImage (e.g. just created/saved),
+    // use it directly and skip the extra request.
+    if (transaction.slipImage) {
+      setLoadedSlipImage(transaction.slipImage);
+      return;
+    }
+    let cancelled = false;
+    setLoadedSlipImage(null);
+    fetch(`/api/transactions/${transaction.id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.slipImage) return;
+        setLoadedSlipImage(data.slipImage);
+        // Keep edit-form in sync so the slip preview reflects the loaded image.
+        setFormData((prev) => ({ ...prev, slipImage: data.slipImage }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isOpen, transaction]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -278,11 +310,11 @@ export default function TransactionDetailModal({
                 </div>
               </div>
             )}
-             {transaction.slipImage && (
+             {effectiveSlipImage && (
               <div className={styles.metaRow}>
                 <span className={styles.label}>สลิป</span>
                 <img
-                  src={transaction.slipImage}
+                  src={effectiveSlipImage}
                   alt="สลิป"
                   className={styles.slipThumb}
                   onClick={() => setShowLightbox(true)}
@@ -304,9 +336,9 @@ export default function TransactionDetailModal({
         </div>
 
         {/* Image lightbox */}
-        {showLightbox && transaction.slipImage && (
+        {showLightbox && effectiveSlipImage && (
           <div className={styles.lightbox} onClick={() => setShowLightbox(false)}>
-            <img src={transaction.slipImage} alt="สลิป" className={styles.lightboxImg} />
+            <img src={effectiveSlipImage} alt="สลิป" className={styles.lightboxImg} />
             <button className={styles.lightboxClose} onClick={() => setShowLightbox(false)} aria-label="ปิด">
               <X size={24} />
             </button>

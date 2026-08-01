@@ -11,7 +11,6 @@ export interface User {
   avatar?: string;
   color: string;
   familyId: string;
-  lineLink?: { lineUserId: string } | null;
   identity?: string | null; // JSON: UserIdentity
 }
 

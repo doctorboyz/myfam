@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, getAuthUserId } from '@/lib/api';
+import { apiSuccess, apiError, parseId, getAuthUserId, getAuthUser } from '@/lib/api';
 
 const transactionInclude = {
   category: { include: { group: true } },
@@ -14,6 +14,36 @@ function mapTagRecords(tx: { tagRecords: { tag: { name: string }; tagId: string 
     tags: tx.tagRecords.map(tr => tr.tag.name),
     tagIds: tx.tagRecords.map(tr => tr.tagId),
   };
+}
+
+// Fetch a single transaction (including slipImage) for the detail view.
+// The list endpoint omits slipImage to keep its payload small; the detail
+// modal calls this to lazy-load the slip image on demand.
+export async function GET(
+  request: Request,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const id = await parseId(props);
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
+    const transaction = await prisma.transaction.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        createdBy: { familyId: currentUser.familyId },
+      },
+      include: transactionInclude,
+    });
+
+    if (!transaction) return apiError('Transaction not found', 404);
+
+    return apiSuccess(mapTagRecords(transaction));
+  } catch (error) {
+    console.error('Failed to fetch transaction:', error);
+    return apiError('Failed to fetch transaction');
+  }
 }
 
 export async function DELETE(

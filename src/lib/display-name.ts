@@ -2,16 +2,16 @@
  * Display name resolver with many-to-many alias support.
  *
  * Rules:
- * - Viewing yourself → your LINE display name (LineLink.displayName) or User.name
+ * - Viewing yourself → your display name (User.displayName) or User.name
  * - Viewing others → alias set by viewer, fallback to User.name
  */
 
 import { prisma } from './prisma';
 
-type UserWithLineLink = {
+type UserWithDisplayName = {
   id: string;
   name: string;
-  lineLink?: { displayName: string | null } | null;
+  displayName?: string | null;
 };
 
 /**
@@ -19,11 +19,11 @@ type UserWithLineLink = {
  */
 export async function resolveDisplayName(
   viewerId: string,
-  targetUser: UserWithLineLink,
+  targetUser: UserWithDisplayName,
 ): Promise<string> {
-  // Viewing yourself: prefer LINE display name
+  // Viewing yourself: prefer display name
   if (viewerId === targetUser.id) {
-    return targetUser.lineLink?.displayName ?? targetUser.name;
+    return targetUser.displayName ?? targetUser.name;
   }
 
   // Viewing others: check alias set by viewer
@@ -40,7 +40,7 @@ export async function resolveDisplayName(
  */
 export async function resolveDisplayNames(
   viewerId: string,
-  users: UserWithLineLink[],
+  users: UserWithDisplayName[],
 ): Promise<Map<string, string>> {
   const targetIds = users.map((u) => u.id);
 
@@ -53,7 +53,7 @@ export async function resolveDisplayNames(
   const result = new Map<string, string>();
   for (const user of users) {
     if (user.id === viewerId) {
-      result.set(user.id, user.lineLink?.displayName ?? user.name);
+      result.set(user.id, user.displayName ?? user.name);
     } else {
       result.set(user.id, aliasMap.get(user.id) ?? user.name);
     }

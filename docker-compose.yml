@@ -12,9 +12,6 @@ services:
     environment:
       - DATABASE_URL=postgresql://myfam:${POSTGRES_PASSWORD}@myfam-db:5432/myfam
       - NODE_ENV=production
-      - LINE_CHANNEL_ID=${LINE_CHANNEL_ID}
-      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}
-      - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
       - OLLAMA_API_KEY=${OLLAMA_API_KEY}
       - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-https://api.ollama.com}
       - AI_RESPONSE_MODEL=${AI_RESPONSE_MODEL:-ollama:qwen3:32b}

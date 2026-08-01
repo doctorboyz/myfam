@@ -61,8 +61,7 @@ export async function DELETE(
     // 5. Tags
     // 6. Categories (user-created)
     // 7. Accounts
-    // 8. LineLink
-    // 9. User
+    // 8. User
     await prisma.$transaction(async (tx) => {
       // Get all transaction IDs for this user
       const transactionIds = await tx.transaction.findMany({
@@ -114,11 +113,6 @@ export async function DELETE(
       // Delete Accounts owned by this user (cascade deletes reconciliations)
       await tx.account.deleteMany({
         where: { ownerId: id },
-      });
-
-      // Delete LineLink for this user
-      await tx.lineLink.deleteMany({
-        where: { userId: id },
       });
 
       // Finally, delete the user

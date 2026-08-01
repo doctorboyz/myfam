@@ -9,7 +9,17 @@ export async function GET() {
 
     const users = await prisma.user.findMany({
       where: { familyId: currentUser.familyId },
-      include: { lineLink: { select: { lineUserId: true, displayName: true } } },
+      select: {
+        id: true,
+        name: true,
+        role: true,
+        isAdmin: true,
+        avatar: true,
+        color: true,
+        familyId: true,
+        displayName: true,
+        // Explicitly exclude password hash from the list response
+      },
     });
 
     const displayMap = await resolveDisplayNames(currentUser.id, users);
