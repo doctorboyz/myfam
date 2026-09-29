@@ -17,6 +17,7 @@ import {
   extractFromText,
   type CategoryContextItem,
 } from './extract';
+import { getBangkokDateString } from '@/lib/timezone';
 
 const categories: CategoryContextItem[] = [
   { id: 'cat-food', name: 'ค่าอาหาร', groupName: 'อาหาร', groupType: 'expense' },
@@ -143,6 +144,24 @@ describe('validateExtracted — confidence gate', () => {
   it('rejects empty description and future dates', () => {
     expect(validateExtracted({ ...good, description: '' }).missingFields).toContain('description');
     expect(validateExtracted({ ...good, date: '2099-01-01' }).missingFields).toContain('date');
+  });
+
+  it('accepts today’s Bangkok date when the process runs UTC and Bangkok is already tomorrow', () => {
+    // Production containers run UTC. Between 00:00–07:00 Bangkok (17:00–24:00 UTC)
+    // the Bangkok calendar date is "tomorrow" from the container's viewpoint, so
+    // comparing the Bangkok date against a container-local timestamp wrongly flags
+    // every transaction as having a future date.
+    const originalTz = process.env.TZ;
+    process.env.TZ = 'UTC';
+    vi.setSystemTime(new Date('2026-09-29T22:55:00Z')); // 2026-09-30 05:55 in Bangkok
+    try {
+      const v = validateExtracted({ ...good, date: getBangkokDateString() });
+      expect(v.valid).toBe(true);
+    } finally {
+      vi.useRealTimers();
+      if (originalTz === undefined) delete process.env.TZ;
+      else process.env.TZ = originalTz;
+    }
   });
 });
 

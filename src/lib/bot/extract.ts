@@ -210,11 +210,17 @@ export function validateExtracted(extracted: ExtractedTransaction): ValidationRe
 
   if (!extracted.amount || extracted.amount <= 0) missingFields.push('amount');
 
-  const parsedDate = new Date(extracted.date);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const minDate = new Date('2020-01-01');
-  if (isNaN(parsedDate.getTime()) || parsedDate > today || parsedDate < minDate) {
+  // Compare calendar dates, not timestamps: dates are Bangkok-day strings, while
+  // new Date() is container-local (UTC in production). Between 00:00–07:00 Bangkok
+  // the local "today" is still yesterday from the container's viewpoint, which would
+  // wrongly flag every transaction as having a future date.
+  const todayStr = getBangkokDateString();
+  const minDateStr = '2020-01-01';
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(extracted.date) ||
+    extracted.date > todayStr ||
+    extracted.date < minDateStr
+  ) {
     missingFields.push('date');
   }
 
