@@ -60,6 +60,8 @@ export async function extractFromSlip(
 
 สำคัญมาก: ค่า type ต้องเป็นภาษาอังกฤษเท่านั้น ได้แก่ "expense" หรือ "income" หรือ "transfer" ห้ามใช้ภาษาอื่น
 
+สำคัญมาก: สลิปไทยพิมพ์วันที่เป็น พ.ศ. (เช่น 9 พ.ค. 2569, 09/05/2569) — ต้องแปลงเป็น ค.ศ. โดยลบ 543 จากปี ก่อนใส่ในช่อง date (2569 - 543 = 2026) ห้ามส่งปี พ.ศ. ตรงๆ
+
 ตอบเป็น JSON เท่านั้น:
 {"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าอ่านจำนวนเงินไม่ได้ให้ใส่ amount=0

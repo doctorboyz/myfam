@@ -128,21 +128,33 @@ export function matchCategory(
 }
 
 /**
+ * Thai slips print years in Buddhist era (พ.ศ.) and models often pass them
+ * through unconverted. Years ≥ 2400 can only be พ.ศ. (Gregorian 2400 is
+ * centuries in the future), so normalize them to ค.ศ. by subtracting 543.
+ */
+function gregorianYear(year: number): number {
+  return year >= 2400 ? year - 543 : year;
+}
+
+/**
  * Parse date strings from AI responses into YYYY-MM-DD format.
- * Handles: YYYY-MM-DD, DD/MM/YYYY, DD/MM/YY.
+ * Handles: YYYY-MM-DD, DD/MM/YYYY, DD/MM/YY, and Buddhist-era years.
  */
 export function parseDate(dateStr: string): string {
   const today = getBangkokDateString();
   if (!dateStr) return today;
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+  const iso = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    return `${gregorianYear(Number(iso[1]))}-${iso[2]}-${iso[3]}`;
+  }
 
   const dmy = dateStr.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
   if (dmy) {
     const day = dmy[1].padStart(2, '0');
     const month = dmy[2].padStart(2, '0');
-    const year = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
-    return `${year}-${month}-${day}`;
+    const rawYear = dmy[3].length === 2 ? `20${dmy[3]}` : dmy[3];
+    return `${gregorianYear(Number(rawYear))}-${month}-${day}`;
   }
 
   // Native Date parsing as fallback

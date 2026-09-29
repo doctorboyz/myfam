@@ -146,6 +146,17 @@ describe('validateExtracted — confidence gate', () => {
     expect(validateExtracted({ ...good, date: '2099-01-01' }).missingFields).toContain('date');
   });
 
+  it('converts Buddhist-era (พ.ศ.) dates from slips to ค.ศ.', () => {
+    // Thai slips print พ.ศ.; models often pass the year through unconverted.
+    expect(parseDate('2569-05-09')).toBe('2026-05-09');
+    expect(parseDate('09/05/2569')).toBe('2026-05-09');
+  });
+
+  it('leaves Gregorian years untouched', () => {
+    expect(parseDate('2026-05-09')).toBe('2026-05-09');
+    expect(parseDate('09/05/26')).toBe('2026-05-09');
+  });
+
   it('accepts today’s Bangkok date when the process runs UTC and Bangkok is already tomorrow', () => {
     // Production containers run UTC. Between 00:00–07:00 Bangkok (17:00–24:00 UTC)
     // the Bangkok calendar date is "tomorrow" from the container's viewpoint, so
