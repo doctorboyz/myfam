@@ -1,13 +1,11 @@
 import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
-
-const transactionInclude = {
-  category: { include: { group: true } },
-  account: true,
-  toAccount: true,
-  tagRecords: { include: { tag: true } },
-};
+import {
+  createTransaction,
+  mapTransactionForClient,
+  transactionInclude,
+} from '@/lib/transaction-mutations';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -57,68 +55,25 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const isPlanned = body.status === 'planned';
-
-    const result = await prisma.$transaction(async (tx) => {
-      const tagIds: string[] = body.tagIds || [];
-
-      const transaction = await tx.transaction.create({
-        data: {
-          amount: isPlanned ? 0 : body.amount,
-          planAmount: isPlanned ? body.amount : (body.planAmount || null),
-          date: new Date(body.date),
-          type: body.type,
-          status: isPlanned ? 'planned' : 'completed',
-          description: body.description,
-          accountId: body.accountId || null,
-          toAccountId: body.toAccountId || null,
-          categoryId: body.categoryId,
-          budgetId: body.budgetId || null,
-          createdById: body.createdById,
-          fee: body.fee || 0,
-          totalAmount: (Number(body.amount || 0) + Number(body.fee || 0)),
-          slipImage: body.slipImage || null,
-          tagRecords: tagIds.length > 0 ? {
-            create: tagIds.map((tagId: string) => ({ tagId })),
-          } : undefined,
-        },
-        include: transactionInclude,
-      });
-
-      // Only adjust balances for completed transactions with an account
-      if (!isPlanned && body.accountId) {
-        const amount = Number(body.amount);
-        const fee = body.fee ? Number(body.fee) : 0;
-
-        if (body.type === 'income') {
-          await tx.account.update({
-            where: { id: body.accountId },
-            data: { balance: { increment: amount - fee } },
-          });
-        } else {
-          await tx.account.update({
-            where: { id: body.accountId },
-            data: { balance: { decrement: amount + fee } },
-          });
-        }
-
-        if (body.type === 'transfer' && body.toAccountId) {
-          await tx.account.update({
-            where: { id: body.toAccountId },
-            data: { balance: { increment: amount } },
-          });
-        }
-      }
-
-      return transaction;
+    const result = await createTransaction({
+      amount: body.amount,
+      date: body.date,
+      type: body.type,
+      status: body.status === 'planned' ? 'planned' : 'completed',
+      description: body.description,
+      accountId: body.accountId || null,
+      toAccountId: body.toAccountId || null,
+      categoryId: body.categoryId,
+      budgetId: body.budgetId || null,
+      createdById: body.createdById,
+      fee: body.fee || 0,
+      planAmount: body.planAmount || null,
+      slipImage: body.slipImage || null,
+      tagIds: body.tagIds || [],
     });
 
     // Map tag records for frontend
-    const mapped = {
-      ...result,
-      tags: result.tagRecords.map((tr: { tag: { name: string } }) => tr.tag.name),
-      tagIds: result.tagRecords.map((tr: { tagId: string }) => tr.tagId),
-    };
+    const mapped = mapTransactionForClient(result);
 
     return apiSuccess(mapped, 201);
   } catch (error) {

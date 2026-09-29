@@ -90,6 +90,10 @@ model User {
   createdInvites  InviteCode[] @relation("InviteCreator")
   identity        String?       // JSON: UserIdentity
 
+  // Telegram bot
+  telegramLink TelegramLink?
+  botSessions  BotSession[]
+
   // Alias relations
   aliasesSet       UserAlias[] @relation("AliasOwner")
   aliasesReceived  UserAlias[] @relation("AliasTarget")
@@ -330,7 +334,38 @@ model InviteCode {
 
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   family     Family @relation(fields: [familyId], references: [id])
-  createdBy  User   @relation("InviteCreator", fields: [createdById], references: [id])
+  createdBy   User   @relation("InviteCreator", fields: [createdById], references: [id])
 
   @@map("invite_codes")
+}
+
+// Telegram bot: one Telegram account ↔ one MyFam user
+model TelegramLink {
+  id             String   @id @default(uuid())
+  telegramUserId String   @unique @map("telegram_user_id")
+  userId         String   @unique @map("user_id")
+  displayName    String?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("telegram_links")
+}
+
+// Telegram bot: DB-backed session state (survives deploys, TTL 10 minutes)
+model BotSession {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  kind      String   // 'transaction' | 'reconcile' | 'failure'
+  step      String
+  payload   Json
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind])
+  @@index([expiresAt])
+  @@map("bot_sessions")
 }

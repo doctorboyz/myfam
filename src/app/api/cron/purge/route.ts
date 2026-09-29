@@ -25,6 +25,7 @@ export async function GET(request: Request) {
       tags: 0,
       transactionTags: 0,
       reconciliations: 0,
+      botSessions: 0,
     };
 
     // Delete in dependency order
@@ -83,6 +84,10 @@ export async function GET(request: Request) {
       where: { deletedAt: { lt: sevenDaysAgo } },
     });
     results.accounts = deletedAccounts.count;
+
+    // 9. Expired bot sessions (Telegram bot session store)
+    const { purgeExpiredSessions } = await import('@/lib/bot/session');
+    results.botSessions = await purgeExpiredSessions();
 
     return NextResponse.json({ success: true, purged: results });
   } catch (error) {
