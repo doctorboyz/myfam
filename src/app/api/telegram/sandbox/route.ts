@@ -58,13 +58,18 @@ export async function POST(request: Request) {
     replies.push({ text, keyboard });
   };
 
-  // Simulate the update Telegram would deliver
-  const fakeTelegramId = -1; // sandbox link for this MyFam user
-  await prisma.telegramLink.upsert({
-    where: { telegramUserId: String(fakeTelegramId) },
-    create: { telegramUserId: String(fakeTelegramId), userId: user.id, displayName: 'Sandbox' },
-    update: { userId: user.id, displayName: 'Sandbox' },
-  });
+  // Simulate the update Telegram would deliver. Members bound directly
+  // (no /start) already have a real link — reuse it; upserting the throwaway
+  // link would violate the unique(userId) constraint (P2002).
+  const existingLink = await prisma.telegramLink.findUnique({ where: { userId: user.id } });
+  const telegramId = existingLink ? Number(existingLink.telegramUserId) : -1;
+  if (!existingLink) {
+    await prisma.telegramLink.upsert({
+      where: { telegramUserId: String(telegramId) },
+      create: { telegramUserId: String(telegramId), userId: user.id, displayName: 'Sandbox' },
+      update: { userId: user.id, displayName: 'Sandbox' },
+    });
+  }
 
   const update =
     body.type === 'text'
@@ -72,8 +77,8 @@ export async function POST(request: Request) {
           update_id: Date.now(),
           message: {
             message_id: Date.now(),
-            from: { id: fakeTelegramId, first_name: 'Sandbox', is_bot: false },
-            chat: { id: fakeTelegramId, type: 'private' as const, first_name: 'Sandbox' },
+            from: { id: telegramId, first_name: 'Sandbox', is_bot: false },
+            chat: { id: telegramId, type: 'private' as const, first_name: 'Sandbox' },
             date: Math.floor(Date.now() / 1000),
             text: body.text,
           },
@@ -82,8 +87,8 @@ export async function POST(request: Request) {
           update_id: Date.now(),
           message: {
             message_id: Date.now(),
-            from: { id: fakeTelegramId, first_name: 'Sandbox', is_bot: false },
-            chat: { id: fakeTelegramId, type: 'private' as const, first_name: 'Sandbox' },
+            from: { id: telegramId, first_name: 'Sandbox', is_bot: false },
+            chat: { id: telegramId, type: 'private' as const, first_name: 'Sandbox' },
             date: Math.floor(Date.now() / 1000),
             photo: [
               { file_id: body.photoBase64!, file_unique_id: 'sandbox', width: 512, height: 512 },
