@@ -18,6 +18,10 @@ services:
       - AI_INTENT_MODEL=${AI_INTENT_MODEL:-ollama:qwen3:32b}
       - AI_EXTRACT_TEXT_MODEL=${AI_EXTRACT_TEXT_MODEL:-ollama:qwen3:32b}
       - AI_EXTRACT_SLIP_MODEL=${AI_EXTRACT_SLIP_MODEL:-ollama:qwen3:32b}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_WEBHOOK_SECRET=${TELEGRAM_WEBHOOK_SECRET:-}
+      - TELEGRAM_BOT_ENABLED=${TELEGRAM_BOT_ENABLED:-true}
+      - TELEGRAM_SLIP_ENABLED=${TELEGRAM_SLIP_ENABLED:-false}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL:-https://myfam.doctorboyz.com}
     depends_on:
       myfam-db:

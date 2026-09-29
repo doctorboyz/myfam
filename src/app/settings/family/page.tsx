@@ -24,6 +24,7 @@ export default function FamilyManagement() {
   const [error, setError] = useState<string | null>(null);
   const [aliases, setAliases] = useState<Record<string, string>>({});
   const [aliasDraft, setAliasDraft] = useState('');
+  const [telegramCode, setTelegramCode] = useState<{ code: string; displayName: string } | null>(null);
 
   useEffect(() => {
     refreshUsers();
@@ -165,6 +166,25 @@ export default function FamilyManagement() {
     await refreshUsers();
   };
 
+  const handleTelegramCode = async (userId: string) => {
+    setError(null);
+    try {
+      const res = await fetch('/api/telegram/link-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'สร้างรหัส Telegram ไม่สำเร็จ');
+        return;
+      }
+      setTelegramCode({ code: data.code, displayName: data.displayName });
+    } catch {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่');
+    }
+  };
+
   return (
     <div className={s.page}>
       <header className={s.header}>
@@ -258,6 +278,9 @@ export default function FamilyManagement() {
               </div>
               <div className={s.actions}>
                 <button className={s.editBtn} onClick={() => startEdit(user)}>แก้ไข</button>
+                <button className={s.telegramBtn} onClick={() => handleTelegramCode(user.id)}>
+                  รหัส Telegram
+                </button>
                 {user.id !== currentUser.id && (
                   <button className={s.deleteBtn} onClick={() => handleDelete(user.id)} aria-label="ลบสมาชิก">
                     <Trash2 size={16} />
@@ -325,6 +348,21 @@ export default function FamilyManagement() {
       )}
 
       {error && <div className={s.errorBanner}>{error}</div>}
+
+      {telegramCode && (
+        <div className={s.codeBanner}>
+          <div className={s.codeText}>
+            รหัสเชื่อม Telegram ของ <strong>{telegramCode.displayName}</strong>:
+          </div>
+          <div className={s.codeValue}>{telegramCode.code}</div>
+          <div className={s.codeHint}>
+            ให้ส่งข้อความนี้ไปที่ Telegram ของเขา:
+            <code> /start {telegramCode.code}</code>
+          </div>
+          <div className={s.codeHint}>รหัสหมดอายุใน 7 วัน และใช้ได้ครั้งเดียว</div>
+          <button className={s.codeClose} onClick={() => setTelegramCode(null)}>ปิด</button>
+        </div>
+      )}
 
       {mode === 'idle' && (
         <button className={s.addBtn} onClick={startAdd}>

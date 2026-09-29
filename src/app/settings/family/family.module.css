@@ -399,3 +399,54 @@
 .sendLineBtn:active {
   transform: scale(0.98);
 }
+.telegramBtn {
+  padding: 6px 12px;
+  border: 1px solid var(--border, #d0d0d0);
+  border-radius: var(--radius-sm);
+  background: var(--surface, #f5f5f5);
+  color: var(--text, #333);
+  font-size: var(--font-sm);
+  cursor: pointer;
+}
+
+.telegramBtn:hover {
+  background: var(--surface-hover, #eaeaea);
+}
+
+.codeBanner {
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--success-bg, #e8f5e9);
+  color: var(--text, #333);
+  font-size: var(--font-sm);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.codeValue {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.codeHint code {
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.codeClose {
+  margin: 4px auto 0;
+  padding: 6px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface, #fff);
+  color: var(--text, #333);
+  cursor: pointer;
+  font-size: var(--font-sm);
+}
