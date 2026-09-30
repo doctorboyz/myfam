@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId } from '@/lib/api';
+import { apiSuccess, apiError, parseId, getAuthUser } from '@/lib/api';
 
 export async function PATCH(
   request: Request,
@@ -7,6 +7,9 @@ export async function PATCH(
 ) {
   try {
     const id = await parseId(props);
+
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
 
     const budget = await prisma.budget.update({
       where: { id },

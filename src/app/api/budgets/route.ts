@@ -60,10 +60,26 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
     const { title, purpose, period, limit, startDate, endDate, createdById, targetAccountId, rewardForUserId } = await request.json();
 
-    if (!createdById) {
-      return apiError('createdById is required', 400);
+    // Parents may create budgets on behalf of a family member;
+    // children always create as themselves.
+    let resolvedCreatedById = currentUser.id;
+    if (createdById && createdById !== currentUser.id) {
+      if (currentUser.role !== 'parent' && !currentUser.isAdmin) {
+        return apiError('Not authorized to create a budget for another member', 403);
+      }
+      const target = await prisma.user.findUnique({
+        where: { id: createdById },
+        select: { familyId: true },
+      });
+      if (!target || target.familyId !== currentUser.familyId) {
+        return apiError('Not authorized to create a budget for another member', 403);
+      }
+      resolvedCreatedById = createdById;
     }
 
     const newBudget = await prisma.budget.create({
@@ -74,7 +90,7 @@ export async function POST(request: Request) {
         limit,
         startDate: startDate ? new Date(startDate) : undefined,
         endDate: endDate ? new Date(endDate) : undefined,
-        createdById,
+        createdById: resolvedCreatedById,
         targetAccountId: targetAccountId ?? undefined,
         rewardForUserId: rewardForUserId ?? undefined,
         status: 'active',

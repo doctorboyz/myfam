@@ -32,6 +32,11 @@ export async function getAuthUser() {
   });
 }
 
+/** Parent or admin — members allowed to act on behalf of the whole family. */
+export function isParentOrAdmin(user: { role: string; isAdmin: boolean } | null): boolean {
+  return !!user && (user.role === 'parent' || user.isAdmin);
+}
+
 export async function parseId(props: { params: Promise<{ id: string }> }): Promise<string> {
   const params = await props.params;
   return params.id;

@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId } from '@/lib/api';
+import { apiSuccess, apiError, parseId, getAuthUser } from '@/lib/api';
 
 export async function DELETE(
   request: Request,
@@ -7,6 +7,12 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
+
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+    if (currentUser.role !== 'parent' && !currentUser.isAdmin) {
+      return apiError('Not authorized', 403);
+    }
 
     // Permanent delete — only for items already soft-deleted
     const account = await prisma.account.findUnique({ where: { id } });

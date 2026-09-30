@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, pickFields, getAuthUser, hashPassword } from '@/lib/api';
+import { apiSuccess, apiError, parseId, pickFields, getAuthUser, hashPassword, isParentOrAdmin } from '@/lib/api';
 
 export async function PATCH(
   request: Request,
@@ -7,10 +7,30 @@ export async function PATCH(
 ) {
   try {
     const id = await parseId(props);
-    const body = await request.json();
-    const data = pickFields(body, ['name', 'role', 'color', 'avatar']);
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
 
-    // Allow password reset
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) return apiError('User not found', 404);
+    if (targetUser.familyId !== currentUser.familyId) {
+      return apiError('Not authorized', 403);
+    }
+
+    const body = await request.json();
+    const isSelf = currentUser.id === id;
+    const privileged = isParentOrAdmin(currentUser);
+    if (!isSelf && !privileged) {
+      return apiError('Not authorized', 403);
+    }
+
+    // Members may edit their own profile fields; only parents/admins may
+    // change roles — and never their own role (prevents self-lockout).
+    const allowedKeys = privileged && !isSelf
+      ? ['name', 'role', 'color', 'avatar']
+      : ['name', 'color', 'avatar'];
+    const data = pickFields(body, allowedKeys) as Record<string, unknown>;
+
+    // Allow password reset (own password, or a parent resetting a child's)
     if (typeof body.password === 'string' && body.password.length > 0) {
       data.password = await hashPassword(body.password);
     }

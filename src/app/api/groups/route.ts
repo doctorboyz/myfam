@@ -1,8 +1,15 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError } from '@/lib/api';
+import { apiSuccess, apiError, getAuthUser, isParentOrAdmin } from '@/lib/api';
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+    // Category groups shape the whole family's config — parents only.
+    if (!isParentOrAdmin(currentUser)) {
+      return apiError('Not authorized', 403);
+    }
+
     const { name, type } = await request.json();
 
     if (!name || !type) {

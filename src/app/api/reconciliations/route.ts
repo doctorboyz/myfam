@@ -1,5 +1,24 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError } from '@/lib/api';
+import { apiSuccess, apiError, getAuthUser, isParentOrAdmin } from '@/lib/api';
+
+/**
+ * Load an account and verify the session user may reconcile it:
+ * same family, and either the owner or a parent/admin.
+ */
+async function getReconcilableAccount(accountId: string, currentUser: { id: string; familyId: string | null } & { role: string; isAdmin: boolean }) {
+  const account = await prisma.account.findUnique({
+    where: { id: accountId },
+    include: { owner: { select: { familyId: true } } },
+  });
+  if (!account) return { error: apiError('Account not found', 404) };
+  if (account.owner.familyId !== currentUser.familyId) {
+    return { error: apiError('Not authorized', 403) };
+  }
+  if (account.ownerId !== currentUser.id && !isParentOrAdmin(currentUser)) {
+    return { error: apiError('Not authorized', 403) };
+  }
+  return { account };
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,6 +29,12 @@ export async function GET(request: Request) {
   }
 
   try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
+    const { error } = await getReconcilableAccount(accountId, currentUser);
+    if (error) return error;
+
     const reconciliations = await prisma.reconciliation.findMany({
       where: { deletedAt: null, accountId },
       orderBy: { createdAt: 'desc' },
@@ -24,11 +49,17 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { accountId, newBalance, performedById, note } = await request.json();
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
 
-    if (!accountId || newBalance === undefined || !performedById) {
-      return apiError('accountId, newBalance, and performedById are required', 400);
+    const { accountId, newBalance, note } = await request.json();
+
+    if (!accountId || newBalance === undefined) {
+      return apiError('accountId and newBalance are required', 400);
     }
+
+    const { error } = await getReconcilableAccount(accountId, currentUser);
+    if (error) return error;
 
     const result = await prisma.$transaction(async (tx) => {
       const account = await tx.account.findUnique({ where: { id: accountId } });
@@ -45,7 +76,7 @@ export async function POST(request: Request) {
           newBalance: newBal,
           difference,
           note: note || null,
-          performedById,
+          performedById: currentUser.id,
         },
       });
 

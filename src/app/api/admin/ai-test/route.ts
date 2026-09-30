@@ -7,6 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { aiChat } from '@/lib/ai-client';
+import { getAuthUser } from '@/lib/api';
 
 // ── Mock Data ──────────────────────────────────────────────────────
 
@@ -83,6 +84,11 @@ function mockData(intent: string) {
 // ── GET: Available intents + models ────────────────────────────────
 
 export async function GET() {
+  const currentUser = await getAuthUser();
+  if (!currentUser?.isAdmin) {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  }
+
   return NextResponse.json({
     intents: ['balance', 'recent', 'summary', 'budget', 'categories', 'help'],
     models: [
@@ -98,6 +104,11 @@ export async function GET() {
 // ── POST: Run prompt against Ollama Cloud ──────────────────────────
 
 export async function POST(request: NextRequest) {
+  const currentUser = await getAuthUser();
+  if (!currentUser?.isAdmin) {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 });
+  }
+
   const { intent, model, text } = await request.json();
 
   if (!intent || !model || !text) {

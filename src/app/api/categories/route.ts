@@ -1,8 +1,11 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError } from '@/lib/api';
+import { apiSuccess, apiError, getAuthUser } from '@/lib/api';
 
 export async function GET() {
   try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
     const [groups, categories] = await Promise.all([
       prisma.categoryGroup.findMany({ where: { deletedAt: null }, orderBy: { type: 'asc' } }),
       prisma.category.findMany({ where: { deletedAt: null }, orderBy: { name: 'asc' } }),
@@ -17,7 +20,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { name, groupId, userId } = await request.json();
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
+    const { name, groupId } = await request.json();
 
     if (!name || !groupId) {
       return apiError('Name and Group are required', 400);
@@ -27,7 +33,7 @@ export async function POST(request: Request) {
       data: {
         name,
         groupId,
-        userId: userId || null,
+        userId: currentUser.id,
       },
     });
 

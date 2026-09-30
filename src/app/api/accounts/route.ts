@@ -17,6 +17,10 @@ export async function GET(request: Request) {
     if (userId) {
       where.ownerId = userId;
     }
+    // Children may only list their own accounts.
+    if (currentUser.role !== 'parent' && !currentUser.isAdmin) {
+      where.ownerId = currentUser.id;
+    }
 
     const accounts = await prisma.account.findMany({
       where,
@@ -32,8 +36,27 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
     const { name, type, balance, color, ownerId, icon, alias, accountNo } = await request.json();
     const initialBalance = Number(balance) || 0;
+
+    // Parents may create accounts for family members; children only for themselves.
+    let resolvedOwnerId = currentUser.id;
+    if (ownerId && ownerId !== currentUser.id) {
+      if (currentUser.role !== 'parent' && !currentUser.isAdmin) {
+        return apiError('Not authorized to create an account for another member', 403);
+      }
+      const owner = await prisma.user.findUnique({
+        where: { id: ownerId },
+        select: { familyId: true },
+      });
+      if (!owner || owner.familyId !== currentUser.familyId) {
+        return apiError('Not authorized to create an account for another member', 403);
+      }
+      resolvedOwnerId = ownerId;
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       const account = await tx.account.create({
@@ -45,7 +68,7 @@ export async function POST(request: Request) {
           icon,
           alias,
           accountNo,
-          ownerId,
+          ownerId: resolvedOwnerId,
         },
       });
 
@@ -57,7 +80,7 @@ export async function POST(request: Request) {
             newBalance: initialBalance,
             difference: initialBalance,
             note: 'ยอดเริ่มต้น',
-            performedById: ownerId,
+            performedById: currentUser.id,
           },
         });
 
