@@ -25,6 +25,25 @@ script นี้เรียก Bot API สองตัว:
 ส่วนคำพิมพ์ภาษาไทย ("ยอด", "รายการ", "สรุป", "ปรับยอด", "ลบล่าสุด") จับผ่าน fuzzy
 match ใน `src/lib/bot/commands.ts` อยู่แล้ว — ไม่ต้องลงทะเบียนเป็น command
 
+### 1.2 Mini App login (กด "เปิด MyFam" แล้วเข้าได้เลย ไม่ต้องกรอกรหัส)
+
+สมาชิกที่ **link บัญชี Telegram กับ MyFam แล้ว** (ส่ง `/link` ในบอท) กดปุ่ม
+**"เปิด MyFam"** แล้วเข้าสู่ระบบอัตโนมัติ — ไม่ต้องกรอก username/รหัสผ่าน:
+
+1. ปุ่มเปิด `https://myfam.doctorboyz.com` → ถ้ายังไม่มี session middleware ส่งไป `/login`
+2. หน้า `/login` โหลด `telegram-web-app.js` แล้วส่ง `WebApp.initData` (ลายเซ็นของ Telegram)
+   ไปที่ `POST /api/auth/telegram`
+3. Server ตรวจ HMAC-SHA256 (`src/lib/telegram/init-data.ts`):
+   `secret_key = HMAC(key="WebAppData", data=TELEGRAM_BOT_TOKEN)` + อายุ initData ≤ 24 ชม.
+   (กัน replay)
+4. หา `TelegramLink` จาก Telegram user id → ออก httpOnly cookie `userId` เหมือน login ด้วยรหัสผ่าน
+
+ข้อกำหนด:
+- **ต้อง link ก่อน** — ถ้า Telegram account ยังไม่ได้ link จะเห็นหน้ากรอกรหัสผ่านปกติ
+  (server ตอบ 403 + แนะนำส่ง `/link` ในบอท)
+- ลายเซ็นผูกกับ bot token — **ถ้าเปลี่ยน `TELEGRAM_BOT_TOKEN` ต้อง deploy ใหม่ทั้ง web + bot**
+- ทดสอบด้วย vitest: `src/lib/telegram/init-data.test.ts`, `src/app/api/auth/telegram/route.test.ts`
+
 ## 2. Environment Variables
 
 ใน `.env`:
