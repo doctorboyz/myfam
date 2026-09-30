@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { Account, Transaction, User, DashboardFilters, Category, CategoryGroup, TransactionType, Budget, BudgetTransaction, Tag } from '@/types';
 
@@ -51,6 +51,9 @@ interface FinanceContextType {
   groups: CategoryGroup[];
   categories: Category[];
   isLoading: boolean;
+  loadError: string | null;
+  /** Full refetch of all finance data (user, accounts, transactions, categories, tags, budgets). */
+  refreshData: () => Promise<void>;
   // User Management
   logout: () => Promise<void>;
   addUser: (user: User) => void;
@@ -122,6 +125,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [aliases, setAliases] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Category & Tag State
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
@@ -129,103 +133,130 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const [tags, setTags] = useState<Tag[]>([]);
 
   // Fetch Data
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
+  // - AbortController: a slow fetch must not write stale state after a
+  //   re-run or unmount (previous cause of "โหลดไม่เสถียร").
+  // - Exposed as refreshData so pages (e.g. /login) can trigger a full
+  //   reload after the session changes — the provider survives client-side
+  //   navigation, so the mount-only effect never re-ran after login.
+  // - loadError: a fetch failure now surfaces as UI state with a retry
+  //   instead of an empty page that looks like "no data".
+  const abortRef = useRef<AbortController | null>(null);
 
+  const refreshData = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setIsLoading(true);
+    setLoadError(null);
+
+    try {
+      // 1. Fetch Current User
       try {
-        // 1. Fetch Current User
-        try {
-            const userRes = await fetch('/api/auth/me');
-            if (userRes.ok) {
-                const userData = await userRes.json();
-                setCurrentUser(userData);
-            } else {
-                // Not authenticated - redirect and stop fetching
-                const isPublicRoute = window.location.pathname === '/login';
-                if (!isPublicRoute) router.push('/login');
-                setIsLoading(false);
-                return;
-            }
-        } catch (error) {
-            console.error("Auth check failed", error);
-            setIsLoading(false);
-            return;
+        const userRes = await fetch('/api/auth/me', { signal: controller.signal });
+        if (userRes.ok) {
+          const userData = await userRes.json();
+          setCurrentUser(userData);
+        } else {
+          // Not authenticated - redirect and stop fetching
+          const isPublicRoute = window.location.pathname === '/login';
+          if (!isPublicRoute) router.push('/login');
+          return;
         }
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') return;
+        console.error("Auth check failed", error);
+        setLoadError('ตรวจสอบสิทธิ์ไม่สำเร็จ');
+        return;
+      }
 
-        // 2. Fetch Users (family members)
-        const usersRes = await fetch('/api/users');
-        if (usersRes.ok) {
-          const usersData = await usersRes.json();
-          setUsers(usersData);
-        }
+      // 2. Fetch Users (family members)
+      const usersRes = await fetch('/api/users', { signal: controller.signal });
+      if (!usersRes.ok) throw new Error('โหลดรายชื่อสมาชิกไม่สำเร็จ');
+      setUsers(await usersRes.json());
 
-        // 2.5. Fetch Aliases for current user
-        try {
-          const aliasRes = await fetch('/api/users/alias');
-          if (aliasRes.ok) {
-            const aliasData = await aliasRes.json();
-            if (aliasData.success && aliasData.aliases) {
-              const map: Record<string, string> = {};
-              aliasData.aliases.forEach((a: { targetId: string; alias: string }) => {
-                map[a.targetId] = a.alias;
-              });
-              setAliases(map);
-            }
+      // 2.5. Fetch Aliases for current user (non-critical)
+      try {
+        const aliasRes = await fetch('/api/users/alias', { signal: controller.signal });
+        if (aliasRes.ok) {
+          const aliasData = await aliasRes.json();
+          if (aliasData.success && aliasData.aliases) {
+            const map: Record<string, string> = {};
+            aliasData.aliases.forEach((a: { targetId: string; alias: string }) => {
+              map[a.targetId] = a.alias;
+            });
+            setAliases(map);
           }
-        } catch (_) { /* non-critical */ }
+        }
+      } catch (_) { /* non-critical */ }
 
-        // 3. Fetch Accounts
-        const accountsRes = await fetch('/api/accounts');
-        const accountsData = await accountsRes.json();
-        const mappedAccounts = accountsData.map((acc: ApiAccount) => ({
-            ...acc,
-            owner: acc.owner?.name || 'Unknown',
-            ownerId: acc.owner?.id || acc.ownerId,
-            status: acc.status || 'active',
-            balance: Number(acc.balance)
-        }));
-        setAccounts(mappedAccounts);
+      // 3. Fetch Accounts
+      const accountsRes = await fetch('/api/accounts', { signal: controller.signal });
+      if (!accountsRes.ok) throw new Error('โหลดบัญชีไม่สำเร็จ');
+      const accountsData = await accountsRes.json();
+      const mappedAccounts = accountsData.map((acc: ApiAccount) => ({
+          ...acc,
+          owner: acc.owner?.name || 'Unknown',
+          ownerId: acc.owner?.id || acc.ownerId,
+          status: acc.status || 'active',
+          balance: Number(acc.balance)
+      }));
+      setAccounts(mappedAccounts);
 
-        // 4. Fetch Transactions
-        const txRes = await fetch('/api/transactions');
-        const txData = await txRes.json();
-        // Map Prisma Transaction to Frontend Transaction
-        const mappedTx = txData.map((tx: ApiTransaction) => ({
-            ...tx,
-            categoryGroup: tx.category?.group?.name || 'Unknown',
-            categoryId: tx.categoryId || tx.category?.id || null,
-            category: tx.category?.name || 'Unknown',
-            amount: Number(tx.amount),
-            fee: tx.fee ? Number(tx.fee) : 0,
-            totalAmount: tx.totalAmount ? Number(tx.totalAmount) : (Number(tx.amount) + Number(tx.fee || 0)),
-            tags: tx.tags || [],
-            tagIds: tx.tagIds || [],
-        }));
-        setTransactions(mappedTx);
+      // 4. Fetch Transactions
+      const txRes = await fetch('/api/transactions', { signal: controller.signal });
+      if (!txRes.ok) throw new Error('โหลดรายการไม่สำเร็จ');
+      const txData = await txRes.json();
+      // Map Prisma Transaction to Frontend Transaction
+      const mappedTx = txData.map((tx: ApiTransaction) => ({
+          ...tx,
+          categoryGroup: tx.category?.group?.name || 'Unknown',
+          categoryId: tx.categoryId || tx.category?.id || null,
+          category: tx.category?.name || 'Unknown',
+          amount: Number(tx.amount),
+          fee: tx.fee ? Number(tx.fee) : 0,
+          totalAmount: tx.totalAmount ? Number(tx.totalAmount) : (Number(tx.amount) + Number(tx.fee || 0)),
+          tags: tx.tags || [],
+          tagIds: tx.tagIds || [],
+      }));
+      setTransactions(mappedTx);
 
-        // 5. Fetch Categories & Groups
-        const catRes = await fetch('/api/categories');
+      // 5. Fetch Categories & Groups
+      const catRes = await fetch('/api/categories', { signal: controller.signal });
+      if (catRes.ok) {
         const catData = await catRes.json();
         if (catData.groups) setGroups(catData.groups);
         if (catData.categories) setCategories(catData.categories);
+      }
 
-        // 6. Fetch Tags
-        const tagsRes = await fetch('/api/tags');
-        if (tagsRes.ok) {
-          const tagsData = await tagsRes.json();
-          setTags(tagsData);
-        }
+      // 6. Fetch Tags
+      const tagsRes = await fetch('/api/tags', { signal: controller.signal });
+      if (tagsRes.ok) {
+        setTags(await tagsRes.json());
+      }
 
-      } catch (error) {
-        console.error("Failed to fetch data", error);
-      } finally {
+      // 7. Fetch Budgets (was a separate mount-only effect that fetched
+      //    before auth was known and silently swallowed the 401)
+      const budgetRes = await fetch('/api/budgets', { signal: controller.signal });
+      if (budgetRes.ok) {
+        setBudgets(await budgetRes.json());
+      }
+
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return;
+      console.error("Failed to fetch data", error);
+      setLoadError(error instanceof Error ? error.message : 'โหลดข้อมูลไม่สำเร็จ');
+    } finally {
+      if (abortRef.current === controller) {
         setIsLoading(false);
-        }
-    };
-
-    fetchData();
+      }
+    }
   }, [router]);
+
+  useEffect(() => {
+    refreshData();
+    return () => abortRef.current?.abort();
+  }, [refreshData]);
 
   // User CRUD - TODO: Implement API Calls
   const addUser = async (user: User) => {
@@ -237,32 +268,37 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
           const newUser = await res.json();
-          setUsers([...users, newUser]);
+          setUsers(prev => [...prev, newUser]);
       }
   };
 
   const updateUser = async (id: string, updates: Partial<User>) => {
+    // Snapshot for rollback so a failed PATCH never leaves UI and DB out of sync.
+    const usersBefore = users;
+    const meBefore = currentUser;
     try {
         // Optimistic Update
-        setUsers(users.map(u => u.id === id ? { ...u, ...updates } : u));
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...updates } : u));
         if (currentUser?.id === id) {
             setCurrentUser(prev => prev ? ({ ...prev, ...updates }) : null);
         }
 
-        await fetch(`/api/users/${id}`, {
+        const res = await fetch(`/api/users/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)
         });
+        if (!res.ok) throw new Error(`update failed (${res.status})`);
     } catch (error) {
         console.error("Failed to update user", error);
-        // TODO: Revert on error
+        setUsers(usersBefore);
+        if (meBefore) setCurrentUser(meBefore);
     }
   };
 
   const removeUser = async (id: string) => {
     try {
-        setUsers(users.filter(u => u.id !== id));
+        setUsers(prev => prev.filter(u => u.id !== id));
         await fetch(`/api/users/${id}`, {
             method: 'DELETE'
         });
@@ -321,7 +357,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 owner: currentUser.name,
                 status: savedAccount.status || 'active'
             };
-            setAccounts([...accounts, mappedAccount]);
+            setAccounts(prev => [...prev, mappedAccount]);
         }
     } catch (error) {
         console.error("Failed to add account", error);
@@ -347,7 +383,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const deleteAccount = async (id: string) => {
     try {
         await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
-        setAccounts(accounts.filter((acc) => acc.id !== id));
+        setAccounts(prev => prev.filter((acc) => acc.id !== id));
     } catch (error) {
         console.error("Failed to delete account", error);
     }
@@ -412,7 +448,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                 tagIds: savedTx.tagIds || [],
             };
             
-            setTransactions([newTx, ...transactions]);
+            setTransactions(prev => [newTx, ...prev]);
             
             // Refresh accounts to get updated balances from backend
             await fetchAccounts();
@@ -431,7 +467,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             alert(data.error || 'ไม่สามารถลบรายการนี้ได้');
             return;
           }
-          setTransactions(transactions.filter(t => t.id !== id));
+          setTransactions(prev => prev.filter(t => t.id !== id));
 
           // Refresh accounts to get updated balances from backend
           await fetchAccounts();
@@ -467,7 +503,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
         if (res.ok) {
             const updatedTx = await res.json();
-            setTransactions(transactions.map(t =>
+            setTransactions(prev => prev.map(t =>
                 t.id === id ? {
                     ...t,
                     ...updatedTx,
@@ -668,7 +704,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const newTag = await res.json();
-        setTags([...tags, newTag]);
+        setTags(prev => [...prev, newTag]);
         return newTag;
       }
       return null;
@@ -681,7 +717,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   const deleteTag = async (id: string) => {
     try {
       await fetch(`/api/tags/${id}`, { method: 'DELETE' });
-      setTags(tags.filter(t => t.id !== id));
+      setTags(prev => prev.filter(t => t.id !== id));
     } catch (error) {
       console.error("Failed to delete tag", error);
     }
@@ -696,7 +732,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       });
       if (res.ok) {
         const updated = await res.json();
-        setTags(tags.map(t => t.id === id ? { ...t, ...updated } : t));
+        setTags(prev => prev.map(t => t.id === id ? { ...t, ...updated } : t));
       }
     } catch (error) {
       console.error("Failed to update tag", error);
@@ -705,22 +741,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   // Budget State
   const [budgets, setBudgets] = useState<Budget[]>([]);
-
-  // Fetch Budgets on Load
-  useEffect(() => {
-      const fetchBudgets = async () => {
-          try {
-              const res = await fetch('/api/budgets');
-              if (res.ok) {
-                  const data = await res.json();
-                  setBudgets(data);
-              }
-          } catch (error) {
-              console.error("Failed to fetch budgets", error);
-          }
-      };
-      fetchBudgets();
-  }, []);
+  // Budgets are fetched inside refreshData (post-auth) — the old separate
+  // mount-only effect fired before the session was known and silently
+  // swallowed its own 401.
 
   const addBudget = async (budget: Omit<Budget, 'id'>) => {
     if (!currentUser) return;
@@ -732,8 +755,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify(payload)
         });
         if (res.ok) {
-            const newBudget = await res.json();
-            setBudgets([...budgets, newBudget]);
+          const newBudget = await res.json();
+          setBudgets(prev => [...prev, newBudget]);
         }
     } catch (error) {
         console.error("Failed to add budget", error);
@@ -742,7 +765,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const updateBudget = async (id: string, updates: Partial<Budget>) => {
     try {
-        setBudgets(budgets.map(b => b.id === id ? { ...b, ...updates } : b)); // Optimistic
+        setBudgets(prev => prev.map(b => b.id === id ? { ...b, ...updates } : b)); // Optimistic
         await fetch(`/api/budgets/${id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
@@ -755,7 +778,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const deleteBudget = async (id: string) => {
     try {
-        setBudgets(budgets.filter(b => b.id !== id)); // Optimistic
+        setBudgets(prev => prev.filter(b => b.id !== id)); // Optimistic
         
         // Use API to delete (which handles Archive + Void Pending)
         // If we just remove from state, fine. But we want to persist.
@@ -829,7 +852,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
                    createdById: currentUser.id,
                };
 
-               setBudgets(budgets.map(b => b.id === budgetId ? { ...b, items: [...b.items, newItem] } : b));
+               setBudgets(prev => prev.map(b => b.id === budgetId ? { ...b, items: [...b.items, newItem] } : b));
            }
       } catch (e) {
           console.error("Add budget tx failed", e);
@@ -888,7 +911,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
 
   const deleteBudgetTransaction = async (budgetId: string, itemId: string) => {
        await fetch(`/api/transactions/${itemId}`, { method: 'DELETE' });
-       setBudgets(budgets.map(b => b.id === budgetId ? { ...b, items: b.items.filter(i => i.id !== itemId) } : b));
+       setBudgets(prev => prev.map(b => b.id === budgetId ? { ...b, items: b.items.filter(i => i.id !== itemId) } : b));
   };
 
   const logout = async () => {
@@ -1034,6 +1057,8 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       users,
       getUserLabel,
       isLoading,
+      loadError,
+      refreshData,
       logout,
       addUser,
       updateUser,

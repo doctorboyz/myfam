@@ -4,9 +4,11 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Image from "next/image";
+import { useFinance } from "@/context/FinanceContext";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { refreshData } = useFinance();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -39,6 +41,10 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+      // The provider survives client-side navigation and never re-ran its
+      // mount effect — pull fresh data *before* navigating so /dashboard
+      // doesn't render with a stale (null) user.
+      await refreshData();
       router.replace("/dashboard");
     } catch {
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");

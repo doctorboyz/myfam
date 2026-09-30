@@ -10,6 +10,7 @@ import ActionFab, { TransactionType as FabType } from "@/components/ActionFab/Ac
 import Money from "@/components/Money/Money";
 import { getBangkokDate, formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
 import styles from "./page.module.css";
+import { PageGate } from "@/components/PageLoadState";
 
 export default function TransactionsPage() {
   const { currentUser, users, accounts, addTransaction, updateTransaction, deleteTransaction, getFilteredTransactions } = useFinance();
@@ -73,7 +74,7 @@ export default function TransactionsPage() {
     transfer: { label: 'โอน', color: 'var(--primary)', sign: '' },
   };
 
-  if (!currentUser) return <div style={{ padding: 20 }}>กำลังโหลด...</div>;
+  if (!currentUser) return <PageGate />;
 
   return (
     <div className={styles.container}>

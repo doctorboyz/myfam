@@ -2,7 +2,9 @@
 
 import React from "react";
 import { use, useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useFinance } from "@/context/FinanceContext";
+import { PageGate } from "@/components/PageLoadState";
 import BalanceCard from "@/components/BalanceCard/BalanceCard";
 import TransactionList from "@/components/TransactionList/TransactionList";
 import ReconcileModal from "@/components/ReconcileModal/ReconcileModal";
@@ -62,7 +64,8 @@ type HistoryTab = 'transactions' | 'reconcile';
 export default function AccountDetails({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const { id } = resolvedParams;
-  const { accounts, getAccountTransactions, updateAccount, deleteAccount, currentUser, addTransaction, updateTransaction, deleteTransaction, fetchAccounts } = useFinance();
+  const router = useRouter();
+  const { accounts, getAccountTransactions, updateAccount, deleteAccount, currentUser, addTransaction, updateTransaction, deleteTransaction, fetchAccounts, isLoading } = useFinance();
 
   const [isReconcileOpen, setIsReconcileOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -73,7 +76,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
 
   const handleDeleteAccount = async () => {
     await deleteAccount(id);
-    window.location.href = '/accounts';
+    router.push('/accounts');
   };
 
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -106,6 +109,10 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchReconciliations();
   }, [fetchReconciliations]);
+
+  if (isLoading) {
+    return <PageGate />;
+  }
 
   if (!account) {
     return <div style={{ padding: 20 }}>ไม่พบบัญชี หรือไม่มีสิทธิ์เข้าถึง</div>;

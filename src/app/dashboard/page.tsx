@@ -6,7 +6,7 @@ import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import { useState, useMemo, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Transaction, DashboardFilters as FilterType, Budget } from "@/types";
 import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
@@ -15,6 +15,7 @@ import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } f
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
 
 import Money from "@/components/Money/Money";
+import { PageGate } from "@/components/PageLoadState";
 
 function DashboardContent() {
   const { globalBalance, currentUser, addTransaction, updateTransaction, deleteTransaction, accounts, users, getFilteredTransactions, budgets } = useFinance();
@@ -22,16 +23,19 @@ function DashboardContent() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
   const searchParams = useSearchParams();
+const router = useRouter();
 
-  // Handle ?action=add from Rich Menu links — auto-open the add modal
+  // Handle ?action=add from Rich Menu links — auto-open the add modal,
+  // then strip the param so back-nav doesn't re-open the modal.
   useEffect(() => {
     const action = searchParams.get('action');
     if (action === 'add') {
       setInitialType('expense');
       setSelectedTransaction(null);
       setIsTxModalOpen(true);
+      router.replace('/dashboard', { scroll: false });
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   // Initial filters with Default Date Range (This Month) in Bangkok timezone
   const [filters, setFilters] = useState<FilterType>(() => {
@@ -108,7 +112,7 @@ function DashboardContent() {
       setIsTxModalOpen(true);
   };
 
-  if (!currentUser) return <div className={styles.loading}>กำลังโหลด...</div>;
+  if (!currentUser) return <PageGate variant="dashboard" />;
 
   return (
     <div className={styles.container}>

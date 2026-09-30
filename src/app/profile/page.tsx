@@ -7,6 +7,7 @@ import { PwaInstallButton } from '@/components/PwaInstallButton/PwaInstallButton
 import { Shield, User, Users, Layers, Tags, Pencil, Check, X, Trash2, AlertTriangle, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import s from './profile.module.css';
+import { PageGate } from '@/components/PageLoadState';
 
 export default function Profile() {
   const { currentUser, updateUser, users, removeUser, getUserLabel } = useFinance();
@@ -15,7 +16,7 @@ export default function Profile() {
   const [showDeleteUser, setShowDeleteUser] = useState<string | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
 
-  if (!currentUser) return <div className={s.page}>กำลังโหลดโปรไฟล์...</div>;
+  if (!currentUser) return <div className={s.page}><PageGate /></div>;
 
   const isParent = currentUser.role === 'parent';
   const isAdmin = currentUser.isAdmin;

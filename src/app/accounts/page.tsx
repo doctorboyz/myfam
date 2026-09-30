@@ -9,6 +9,7 @@ import AccountFormModal from "@/components/AccountFormModal/AccountFormModal";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import Money from "@/components/Money/Money";
+import { PageGate } from "@/components/PageLoadState";
 import { Plus } from "lucide-react";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
@@ -76,6 +77,8 @@ export default function AccountsPage() {
   };
 
   const myTrashedAccounts = trashedAccounts.filter(a => a.owner === currentUser?.name);
+
+  if (!currentUser) return <PageGate />;
 
   return (
     <div className={styles.container}>
