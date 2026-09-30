@@ -250,3 +250,202 @@
 }
 
 .budgetFillOver { background: var(--danger); }
+/* Month selector */
+.monthNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--section-margin);
+  margin-bottom: var(--space-md);
+}
+
+.monthBtn {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--input-bg);
+  border-radius: 50%;
+  background: var(--card-bg);
+  color: var(--foreground);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.monthBtn:hover {
+  background: var(--input-bg);
+}
+
+.monthLabel {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  color: var(--foreground);
+  min-width: 130px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.monthNow {
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-medium);
+  font-family: var(--font-sans);
+  cursor: pointer;
+  padding: 8px;
+  min-height: 36px;
+}
+
+/* Period summary tiles */
+.summaryTiles {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+  padding: 0 var(--section-margin);
+  margin-bottom: var(--space-md);
+}
+
+.tile {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tileLabel {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  opacity: 0.6;
+}
+
+.tileAmount {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.tileIncome .tileAmount { color: var(--success); }
+.tileExpense .tileAmount { color: var(--danger); }
+
+/* Uncategorized warning chip */
+.uncategorizedChip {
+  display: block;
+  margin: 0 var(--section-margin) var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--card-radius);
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: var(--font-sm);
+  font-weight: var(--weight-medium);
+  text-decoration: none;
+}
+
+/* Top expense categories */
+.topCatList {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.topCatItem {
+  display: grid;
+  grid-template-columns: 20px minmax(70px, 110px) 1fr auto;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.topCatRank {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  opacity: 0.5;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.topCatName {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topCatBar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--input-bg);
+  overflow: hidden;
+}
+
+.topCatFill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--primary);
+}
+
+.topCatAmount {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Per-person breakdown */
+.personList {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.personRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: var(--space-sm);
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.personName {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personIn {
+  font-size: var(--font-sm);
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}
+
+.personOut {
+  font-size: var(--font-sm);
+  color: var(--danger);
+  font-variant-numeric: tabular-nums;
+}
+
+.personNet {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  grid-column: 1 / -1;
+  text-align: right;
+  margin-top: -4px;
+}
+
+@media (min-width: 640px) {
+  .personRow {
+    grid-template-columns: 1fr auto auto auto;
+  }
+
+  .personNet {
+    grid-column: auto;
+    text-align: left;
+    margin-top: 0;
+  }
+}
