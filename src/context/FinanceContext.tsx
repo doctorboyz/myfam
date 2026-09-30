@@ -325,7 +325,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
   // BUT "Family" account usually implies shared.
   // Let's stick to: Parent sees ALL. Child sees Own.
   
-  const accountsForUser = currentUser ? (currentUser.role === 'parent' ? accounts : accounts.filter(a => a.owner === currentUser.name)) : [];
+  const accountsForUser = currentUser ? (currentUser.role === 'parent' ? accounts : accounts.filter(a => a.ownerId === currentUser.id)) : [];
 
   // Global Balance = Sum of accounts accessible to the user
   const globalBalance = accountsForUser.reduce((sum, acc) => sum + acc.balance, 0);
@@ -572,17 +572,15 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
        const account = accounts.find(a => a.id === tx.accountId);
        // Transactions without an account (e.g. planned budget items) stay
        // visible — attribute them to whoever recorded them.
-       const ownerName = account
-           ? account.owner
-           : users.find(u => u.id === tx.createdById)?.name;
+       const ownerId = account ? (account.ownerId || '') : (tx.createdById || '');
 
-       // Default: show only current user's account transactions
-       // Parent can see others by explicitly selecting users in filter
+       // Parent default = whole family (matching globalBalance); members
+       // see their own. Selecting specific users narrows for anyone.
        if (filters.users.length > 0) {
-           if (!ownerName || !filters.users.includes(ownerName)) return false;
-       } else {
-           // No user filter = show only own transactions
-           if (!ownerName || ownerName !== currentUser.name) return false;
+           if (!ownerId || !filters.users.includes(ownerId)) return false;
+       } else if (!(currentUser.role === 'parent' || currentUser.isAdmin) && ownerId !== currentUser.id) {
+           // No user filter = members see only their own
+           return false;
        }
        
        // 2. Type Filter

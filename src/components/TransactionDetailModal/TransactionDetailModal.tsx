@@ -40,11 +40,7 @@ export default function TransactionDetailModal({
   const showMemberSelector = users.length > 1;
   const [selectedMemberId, setSelectedMemberId] = useState<string>(currentUser?.id || '');
 
-  // Derived: selected member name (for filtering accounts)
-  const selectedMemberName = useMemo(() => {
-    const member = users.find(u => u.id === selectedMemberId);
-    return member?.name || currentUser?.name || '';
-  }, [users, selectedMemberId, currentUser]);
+  // Derived: selected member id — accounts are matched by ownerId
   const [isEditing, setIsEditing] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [isCreateCategoryOpen, setIsCreateCategoryOpen] = useState(false);
@@ -89,7 +85,7 @@ export default function TransactionDetailModal({
   // Filter From Accounts: Must be selected member's + Active (or currently selected)
   const fromAccounts = availableAccounts.filter(a =>
     (a.status === 'active' || a.id === formData.accountId) &&
-    (a.owner === selectedMemberName)
+    (a.ownerId === selectedMemberId)
   );
 
   // Filter To Accounts: Any Active (or currently selected)
@@ -125,7 +121,7 @@ export default function TransactionDetailModal({
         // Default to the current member's own account — the member selector
         // starts on the current user, so the first family account may belong
         // to someone else and would be hidden by the from-accounts filter.
-        const ownAccount = availableAccounts.find(a => a.owner === (currentUser?.name || ''));
+        const ownAccount = availableAccounts.find(a => a.ownerId === currentUser?.id);
         const defaultAccountId = accountId || ownAccount?.id || (availableAccounts.length > 0 ? availableAccounts[0].id : "");
 
         setFormData({

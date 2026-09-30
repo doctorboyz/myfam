@@ -11,6 +11,7 @@ import TransactionDetailModal from "@/components/TransactionDetailModal/Transact
 import Money from "@/components/Money/Money";
 import { PageGate } from "@/components/PageLoadState";
 import { Plus } from "lucide-react";
+import type { Account, User } from "@/types";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   bank: 'บัญชีธนาคาร',
@@ -45,7 +46,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number; color?: stri
 type Tab = 'accounts' | 'trash';
 
 export default function AccountsPage() {
-  const { accounts, addAccount, addTransaction, updateTransaction, deleteTransaction, currentUser,
+  const { accounts, addAccount, addTransaction, updateTransaction, deleteTransaction, currentUser, users, getUserLabel,
     trashedAccounts, fetchTrashedAccounts, restoreAccount, permanentDeleteAccount } = useFinance();
   const [isAddAccountOpen, setIsAddAccountOpen] = useState(false);
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -53,8 +54,6 @@ export default function AccountsPage() {
   const [tab, setTab] = useState<Tab>('accounts');
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [confirmInput, setConfirmInput] = useState('');
-
-  const myAccounts = accounts.filter(a => a.owner === currentUser?.name);
 
   const getIcon = (iconName?: string, type?: string) => {
     if (iconName && ICON_MAP[iconName]) return ICON_MAP[iconName];
@@ -76,9 +75,57 @@ export default function AccountsPage() {
     if (newTab === 'trash') fetchTrashedAccounts();
   };
 
-  const myTrashedAccounts = trashedAccounts.filter(a => a.owner === currentUser?.name);
+  const myAccounts = accounts.filter(a => a.ownerId === currentUser?.id);
+  const myTrashedAccounts = trashedAccounts.filter(a => a.ownerId === currentUser?.id);
 
   if (!currentUser) return <PageGate />;
+
+  const isParent = currentUser.role === 'parent' || currentUser.isAdmin;
+
+  // ดูบัญชีลูก: parents see the whole family grouped by person.
+  const accountGroups: Array<{ user: User; accounts: Account[] }> = isParent
+    ? users
+        .map(u => ({ user: u, accounts: accounts.filter(a => a.ownerId === u.id) }))
+        .filter(g => g.accounts.length > 0)
+    : [];
+
+  const renderAccountCard = (account: Account, trashed = false) => {
+    const Icon = getIcon(account.icon, account.type);
+    const card = (
+      <>
+        <div className={styles.iconBox} style={{ backgroundColor: account.color }}>
+          <Icon size={24} color="white" />
+        </div>
+        <div className={styles.info}>
+          <div className={styles.name}>{account.name}</div>
+          <div className={styles.typeLabel}>{ACCOUNT_TYPE_LABELS[account.type] || account.type}</div>
+          <div className={styles.balance}>
+            <Money amount={account.balance} />
+          </div>
+        </div>
+      </>
+    );
+    if (trashed) {
+      return (
+        <div key={account.id} className={styles.card} style={{ borderLeftColor: account.color, opacity: 0.7 }}>
+          {card}
+          <div className={styles.trashActions}>
+            <button className={styles.restoreBtn} onClick={() => restoreAccount(account.id)} aria-label="กู้คืน">
+              <RotateCcw size={16} />
+            </button>
+            <button className={styles.permDeleteBtn} onClick={() => setConfirmDelete(account.id)} aria-label="ลบถาวร">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={{ borderLeftColor: account.color }}>
+        {card}
+      </Link>
+    );
+  };
 
   return (
     <div className={styles.container}>
@@ -109,59 +156,45 @@ export default function AccountsPage() {
       </div>
 
       {tab === 'accounts' ? (
-        <div className={styles.grid}>
-          {myAccounts.length === 0 ? (
-            <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+        isParent ? (
+          /* ดูบัญชีลูก: family accounts grouped by person */
+          accountGroups.length === 0 ? (
+            <div className={styles.grid}>
+              <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+            </div>
           ) : (
-            myAccounts.map((account) => {
-              const Icon = getIcon(account.icon, account.type);
+            accountGroups.map(({ user, accounts: memberAccounts }) => {
+              const memberTotal = memberAccounts.reduce((sum, a) => sum + a.balance, 0);
               return (
-                <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={{ borderLeftColor: account.color }}>
-                  <div className={styles.iconBox} style={{ backgroundColor: account.color }}>
-                    <Icon size={24} color="white" />
+                <div key={user.id} className={styles.personSection}>
+                  <div className={styles.personHeader}>
+                    <span className={styles.personName}>{getUserLabel(user.id, user.name)}</span>
+                    <span className={styles.personMeta}>
+                      {memberAccounts.length} บัญชี · <Money amount={memberTotal} colored={false} />
+                    </span>
                   </div>
-                  <div className={styles.info}>
-                    <div className={styles.name}>{account.name}</div>
-                    <div className={styles.typeLabel}>{ACCOUNT_TYPE_LABELS[account.type] || account.type}</div>
-                    <div className={styles.balance}>
-                      <Money amount={account.balance} />
-                    </div>
+                  <div className={styles.grid}>
+                    {memberAccounts.map(a => renderAccountCard(a))}
                   </div>
-                </Link>
+                </div>
               );
             })
-          )}
-        </div>
+          )
+        ) : (
+          <div className={styles.grid}>
+            {myAccounts.length === 0 ? (
+              <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+            ) : (
+              myAccounts.map(account => renderAccountCard(account))
+            )}
+          </div>
+        )
       ) : (
         <div className={styles.grid}>
           {myTrashedAccounts.length === 0 ? (
             <div className={styles.empty}>ถังขยะว่างเปล่า</div>
           ) : (
-            myTrashedAccounts.map((account) => {
-              const Icon = getIcon(account.icon, account.type);
-              return (
-                <div key={account.id} className={styles.card} style={{ borderLeftColor: account.color, opacity: 0.7 }}>
-                  <div className={styles.iconBox} style={{ backgroundColor: account.color }}>
-                    <Icon size={24} color="white" />
-                  </div>
-                  <div className={styles.info}>
-                    <div className={styles.name}>{account.name}</div>
-                    <div className={styles.typeLabel}>{ACCOUNT_TYPE_LABELS[account.type] || account.type}</div>
-                    <div className={styles.balance}>
-                      <Money amount={account.balance} />
-                    </div>
-                  </div>
-                  <div className={styles.trashActions}>
-                    <button className={styles.restoreBtn} onClick={() => restoreAccount(account.id)} aria-label="กู้คืน">
-                      <RotateCcw size={16} />
-                    </button>
-                    <button className={styles.permDeleteBtn} onClick={() => setConfirmDelete(account.id)} aria-label="ลบถาวร">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })
+            myTrashedAccounts.map(account => renderAccountCard(account, true))
           )}
         </div>
       )}

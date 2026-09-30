@@ -272,7 +272,7 @@ export default function BudgetTransactionModal({ isOpen, onClose, budgetId, item
                             >
                                 <option value="" disabled>เลือกบัญชี</option>
                                 {accounts
-                                .filter(a => (a.status === 'active' || a.id === accountId) && a.owner === currentUser?.name)
+                                .filter(a => (a.status === 'active' || a.id === accountId) && a.ownerId === currentUser?.id)
                                 .map(acc => (
                                     <option key={acc.id} value={acc.id}>{acc.name} - {getUserLabel(acc.ownerId || '', acc.owner)}</option>
                                 ))}

@@ -120,7 +120,7 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
 
   // Parents manage the whole family's accounts/transactions; members their own.
   const isParent = !!currentUser && (currentUser.role === 'parent' || currentUser.isAdmin);
-  const isOwner = isParent || currentUser?.name === account.owner;
+  const isOwner = isParent || account.ownerId === currentUser?.id;
   const canEditTransaction = isOwner && (!selectedTransaction || isParent || selectedTransaction.createdById === currentUser?.id);
 
   const handleReconcile = async (newBalance: number) => {

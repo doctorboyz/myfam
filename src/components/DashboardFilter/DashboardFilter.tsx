@@ -25,8 +25,8 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
 
   // --- Filter Options Preparation ---
 
-  // 1. Users
-  const userOptions = users.map(u => ({ id: u.name, label: u.name })); // Using name as ID for now based on context
+  // 1. Users — filter by user ID (owner names change when edited)
+  const userOptions = users.map(u => ({ id: u.id, label: getUserLabel(u.id, u.name) }));
 
   // 2. Types
   const typeOptions = [
@@ -38,7 +38,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
   // 3. Accounts
   // Filter accounts based on selected users if any, otherwise show all available (security check handled in context)
   const availableAccounts = filters.users.length > 0
-    ? accounts.filter(a => filters.users.includes(a.owner))
+    ? accounts.filter(a => filters.users.includes(a.ownerId || ''))
     : accounts;
     
   const accountOptions = availableAccounts.map(a => ({ id: a.id, label: a.name, group: getUserLabel(a.ownerId || '', a.owner) }));

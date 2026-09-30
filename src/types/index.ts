@@ -134,7 +134,7 @@ export interface DateRange {
 }
 
 export interface DashboardFilters {
-  users: string[]; // User names
+  users: string[]; // User IDs (stable across renames)
   dateRange: DateRange;
   types: TransactionType[];
   categories: string[]; // Category IDs

@@ -299,3 +299,29 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* ดูบัญชีลูก — family accounts grouped by person (parent view) */
+.personSection {
+  margin-top: var(--space-md);
+}
+
+.personHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.personName {
+  font-size: var(--font-md);
+  font-weight: var(--weight-semibold);
+  color: var(--foreground);
+}
+
+.personMeta {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  opacity: 0.6;
+  font-variant-numeric: tabular-nums;
+}
