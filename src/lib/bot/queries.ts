@@ -79,25 +79,40 @@ export async function handleBalanceQuery(user: BotUser): Promise<string> {
     return 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน';
   }
 
-  const label = (a: (typeof accounts)[number]) =>
-    user.role === 'parent' && a.owner ? `${a.name} (${a.owner.name})` : a.name;
+  // Report per person with their name as the section header —
+  // a child's query only ever holds their own accounts.
+  const byPerson = new Map<string, typeof accounts>();
+  for (const a of accounts) {
+    const person = a.owner?.name ?? user.name;
+    if (!byPerson.has(person)) byPerson.set(person, []);
+    byPerson.get(person)!.push(a);
+  }
 
-  const lines = accounts.map((a) => {
-    const bal = Number(a.balance);
-    const prefix = bal < 0 ? '⚠️ ' : '💳 ';
-    return `${prefix}${label(a)}: ${FMT_AMOUNT.format(bal)} บาท`;
-  });
+  const lines: string[] = ['📊 ยอดคงเหลือ'];
+  for (const [person, personAccounts] of byPerson) {
+    lines.push(`\n👤 ${person}`);
+    for (const a of personAccounts) {
+      const bal = Number(a.balance);
+      const prefix = bal < 0 ? '⚠️ ' : '💳 ';
+      lines.push(`${prefix}${a.name}: ${FMT_AMOUNT.format(bal)} บาท`);
+    }
+    const subtotal = personAccounts.reduce((sum, a) => sum + Number(a.balance), 0);
+    lines.push(`➕ รวม: ${FMT_AMOUNT.format(subtotal)} บาท`);
+  }
+
   const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   lines.push(`\n💰 รวมทุกบัญชี: ${FMT_AMOUNT.format(total)} บาท`);
 
   const negativeAccounts = accounts.filter((a) => Number(a.balance) < 0);
   if (negativeAccounts.length > 0) {
-    const negLines = negativeAccounts.map((a) => `⚠️ ${label(a)}: ${FMT_AMOUNT.format(Number(a.balance))} บาท`);
+    const negLines = negativeAccounts.map(
+      (a) => `⚠️ ${a.name} (${a.owner?.name ?? user.name}): ${FMT_AMOUNT.format(Number(a.balance))} บาท`,
+    );
     lines.push(`\n🚨 ยอดติดลบ:\n${negLines.join('\n')}`);
     lines.push('💡 พิมพ์ "ปรับยอด" เพื่อปรับยอดเงินในบัญชี');
   }
 
-  return `📊 ยอดคงเหลือ\n${lines.join('\n')}`;
+  return lines.join('\n');
 }
 
 // ── Recent ───────────────────────────────────────────────────────
@@ -137,48 +152,68 @@ export async function handleSummaryQuery(user: BotUser, range: SummaryRange): Pr
   const start = summaryRangeStart(range);
   const label = summaryRangeLabel(range);
 
-  const [income, expense, topTx] = await Promise.all([
-    prisma.transaction.aggregate({
-      where: { ...scope, deletedAt: null, type: 'income', status: 'completed', date: { gte: start } },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.aggregate({
-      where: { ...scope, deletedAt: null, type: 'expense', status: 'completed', date: { gte: start } },
-      _sum: { amount: true },
-    }),
-    prisma.transaction.findMany({
-      where: { ...scope, deletedAt: null, type: 'expense', status: 'completed', date: { gte: start } },
-      include: { category: { include: { group: true } } },
-      orderBy: { amount: 'desc' },
-      take: 30,
-    }),
-  ]);
+  // One fetch, grouped per person in JS — the family is small enough that
+  // row-level aggregation beats N per-person DB aggregates.
+  const txs = await prisma.transaction.findMany({
+    where: { ...scope, deletedAt: null, status: 'completed', date: { gte: start } },
+    include: {
+      category: { include: { group: true } },
+      createdBy: { select: { name: true } },
+    },
+    orderBy: { date: 'desc' },
+    take: 1000,
+  });
 
-  const totalIncome = Number(income._sum.amount ?? 0);
-  const totalExpense = Number(expense._sum.amount ?? 0);
-  const balance = totalIncome - totalExpense;
-
-  let result = `📊 สรุปยอด${label}\n🟢 รายรับ: ${FMT_AMOUNT.format(totalIncome)} บาท\n🔴 รายจ่าย: ${FMT_AMOUNT.format(totalExpense)} บาท\n💰 คงเหลือ: ${FMT_AMOUNT.format(balance)} บาท`;
-
-  // Top-3 expense categories
-  const catMap = new Map<string, number>();
-  for (const tx of topTx) {
-    const name = tx.category?.group?.name || tx.category?.name || 'อื่นๆ';
-    catMap.set(name, (catMap.get(name) || 0) + Number(tx.amount));
+  if (txs.length === 0) {
+    return `📊 สรุปยอด${label}\nยังไม่มีรายการในช่วงนี้`;
   }
-  const topCats = Array.from(catMap.entries())
-    .map(([name, amount]) => ({ name, amount }))
-    .sort((a, b) => b.amount - a.amount)
-    .slice(0, 3);
 
-  if (topCats.length > 0) {
-    result += `\n\n🏆 จ่ายมากสุด (${label})`;
-    for (const [i, c] of topCats.entries()) {
-      result += `\n${i + 1}. ${c.name}: ${FMT_AMOUNT.format(c.amount)} บาท`;
+  // Sum per person (header = the person's name), top-3 expense categories each
+  const byPerson = new Map<
+    string,
+    { income: number; expense: number; cats: Map<string, number> }
+  >();
+  for (const tx of txs) {
+    const person = tx.createdBy?.name ?? user.name;
+    if (!byPerson.has(person)) byPerson.set(person, { income: 0, expense: 0, cats: new Map() });
+    const sums = byPerson.get(person)!;
+    const amount = Number(tx.amount);
+    if (tx.type === 'income') {
+      sums.income += amount;
+    } else if (tx.type === 'expense') {
+      sums.expense += amount;
+      const cat = tx.category?.group?.name || tx.category?.name || 'อื่นๆ';
+      sums.cats.set(cat, (sums.cats.get(cat) || 0) + amount);
     }
   }
 
-  if (balance < 0) result += `\n\n🚨 ยอดรวมติดลบ`;
+  // biggest spender first
+  const people = Array.from(byPerson.entries()).sort((a, b) => b[1].expense - a[1].expense);
+
+  let result = `📊 สรุปยอด${label}`;
+  for (const [person, sums] of people) {
+    result += `\n\n👤 ${person}\n🟢 รายรับ: ${FMT_AMOUNT.format(sums.income)} บาท\n🔴 รายจ่าย: ${FMT_AMOUNT.format(sums.expense)} บาท\n💰 สุทธิ: ${FMT_AMOUNT.format(sums.income - sums.expense)} บาท`;
+    const topCats = Array.from(sums.cats.entries())
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3);
+    if (topCats.length > 0) {
+      const catList = topCats
+        .map((c, i) => `${i + 1}. ${c.name} ${FMT_AMOUNT.format(c.amount)}`)
+        .join(' | ');
+      result += `\n🏆 จ่ายมากสุด: ${catList}`;
+    }
+  }
+
+  // roll-up for the parent, whose scope covers the whole family
+  if (user.role === 'parent') {
+    const familyIncome = Array.from(byPerson.values()).reduce((s, p) => s + p.income, 0);
+    const familyExpense = Array.from(byPerson.values()).reduce((s, p) => s + p.expense, 0);
+    const familyNet = familyIncome - familyExpense;
+    result += `\n\n🏠 รวมทั้งครอบครัว: รับ ${FMT_AMOUNT.format(familyIncome)} | จ่าย ${FMT_AMOUNT.format(familyExpense)} | สุทธิ ${FMT_AMOUNT.format(familyNet)} บาท`;
+    if (familyNet < 0) result += `\n\n🚨 ยอดรวมติดลบ`;
+  }
+
   return result;
 }
 

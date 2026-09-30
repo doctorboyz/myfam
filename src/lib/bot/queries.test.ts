@@ -68,16 +68,18 @@ describe('summaryRangeStart — Bangkok anchoring', () => {
 });
 
 describe('handleBalanceQuery', () => {
-  it('lists accounts with th-TH formatting and a total', async () => {
+  it('child view: own accounts under their name header with a subtotal', async () => {
     vi.mocked(prisma.account.findMany).mockResolvedValue([
       { id: 'a1', name: 'กสิกร', alias: 'kbank', balance: 12500 },
       { id: 'a2', name: ' PromptPay', alias: null, balance: -200 },
     ] as never);
 
     const text = await handleBalanceQuery(USER);
+    expect(text).toContain('👤 Lita'); // person header
     expect(text).toContain('กสิกร');
     expect(text).toContain(FMT_AMOUNT.format(12500));
-    expect(text).toContain(FMT_AMOUNT.format(12300)); // 12500 - 200
+    expect(text).toContain(`➕ รวม: ${FMT_AMOUNT.format(12300)}`); // per-person subtotal
+    expect(text).toContain(FMT_AMOUNT.format(12300)); // grand total
     expect(text).toContain('ยอดติดลบ');
     expect(text).toContain('ปรับยอด');
   });
@@ -95,7 +97,7 @@ describe('handleBalanceQuery', () => {
     expect(where.where.ownerId).toBe('user-1');
   });
 
-  it('parent sees family-wide accounts labeled with owner names', async () => {
+  it('parent view: family accounts grouped per person under name headers', async () => {
     // causal: the query must scope by owner.familyId for a parent —
     // ownerId scoping would silently hide children's balances
     const findFamilyAccounts = async (args: any): Promise<never> => {
@@ -107,15 +109,24 @@ describe('handleBalanceQuery', () => {
       }
       return [
         { id: 'a1', name: 'ทรูมันนี่', balance: 194.52, owner: { name: 'Lita' } },
-        { id: 'a2', name: 'Butjet', balance: 9991, owner: { name: 'Tukkie' } },
+        { id: 'a2', name: 'Butjet', balance: 9991, owner: { name: 'Lita' } },
+        { id: 'a3', name: 'Cash', balance: -450, owner: { name: 'Tukkie' } },
       ] as never;
     };
     vi.mocked(prisma.account.findMany).mockImplementation(findFamilyAccounts as never);
 
     const text = await handleBalanceQuery(PARENT);
-    expect(text).toContain('ทรูมันนี่ (Lita)');
-    expect(text).toContain('Butjet (Tukkie)');
-    expect(text).toContain(FMT_AMOUNT.format(194.52 + 9991));
+    // per-person sections with name headers, not "(owner)" suffixes
+    expect(text).toContain('👤 Lita');
+    expect(text).toContain('👤 Tukkie');
+    expect(text).toContain('💳 ทรูมันนี่: 194.52 บาท');
+    expect(text).toContain('💳 Butjet: 9,991 บาท');
+    expect(text).toContain('⚠️ Cash: -450 บาท');
+    // per-person subtotals
+    expect(text).toContain(`➕ รวม: ${FMT_AMOUNT.format(194.52 + 9991)}`);
+    expect(text).toContain(`➕ รวม: ${FMT_AMOUNT.format(-450)}`);
+    // grand total
+    expect(text).toContain(`💰 รวมทุกบัญชี: ${FMT_AMOUNT.format(194.52 + 9991 - 450)}`);
   });
 });
 
@@ -140,22 +151,41 @@ describe('handleRecentQuery', () => {
 });
 
 describe('handleSummaryQuery', () => {
-  it('aggregates income/expense and ranks top categories', async () => {
-    vi.mocked(prisma.transaction.aggregate)
-      .mockResolvedValueOnce({ _sum: { amount: 45000 } } as never)
-      .mockResolvedValueOnce({ _sum: { amount: 12500 } } as never);
+  it('child view: one per-person section, no family-total line', async () => {
     vi.mocked(prisma.transaction.findMany).mockResolvedValue([
-      { amount: 5000, category: { group: { name: 'อาหาร' } } },
-      { amount: 4000, category: { group: { name: 'อาหาร' } } },
-      { amount: 3000, category: { group: { name: 'เดินทาง' } } },
+      { type: 'income', amount: 45000, createdBy: { name: 'Lita' }, category: { group: { name: 'รายรับ' } } },
+      { type: 'expense', amount: 5000, createdBy: { name: 'Lita' }, category: { group: { name: 'อาหาร' } } },
     ] as never);
 
     const text = await handleSummaryQuery(USER, 'month');
-    expect(text).toContain(FMT_AMOUNT.format(45000));
-    expect(text).toContain(FMT_AMOUNT.format(12500));
-    expect(text).toContain(FMT_AMOUNT.format(32500)); // net
-    expect(text).toContain('1. อาหาร');
-    expect(text.indexOf('อาหาร')).toBeLessThan(text.indexOf('เดินทาง'));
+    expect(text).toContain('👤 Lita');
+    expect(text).toContain(`🟢 รายรับ: ${FMT_AMOUNT.format(45000)} บาท`);
+    expect(text).toContain(`🔴 รายจ่าย: ${FMT_AMOUNT.format(5000)} บาท`);
+    expect(text).toContain(`💰 สุทธิ: ${FMT_AMOUNT.format(40000)} บาท`);
+    expect(text).toContain(`1. อาหาร ${FMT_AMOUNT.format(5000)}`);
+    expect(text).not.toContain('รวมทั้งครอบครัว');
+  });
+
+  it('parent view: a section per person, biggest spender first, family total at the end', async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([
+      { type: 'income', amount: 45000, createdBy: { name: 'Lita' }, category: { group: { name: 'รายรับ' } } },
+      { type: 'expense', amount: 5000, createdBy: { name: 'Lita' }, category: { group: { name: 'อาหาร' } } },
+      { type: 'expense', amount: 4000, createdBy: { name: 'Tukkie' }, category: { group: { name: 'อาหาร' } } },
+      { type: 'expense', amount: 3000, createdBy: { name: 'Tukkie' }, category: { group: { name: 'เดินทาง' } } },
+    ] as never);
+
+    const text = await handleSummaryQuery(PARENT, 'month');
+    // Tukkie spent more (7,000) → section comes before Lita
+    expect(text.indexOf('👤 Tukkie')).toBeLessThan(text.indexOf('👤 Lita'));
+    expect(text).toContain(`🔴 รายจ่าย: ${FMT_AMOUNT.format(7000)} บาท`);
+    expect(text).toContain(`💰 สุทธิ: ${FMT_AMOUNT.format(-7000)} บาท`);
+    // family roll-up
+    expect(text).toContain(`🏠 รวมทั้งครอบครัว: รับ ${FMT_AMOUNT.format(45000)} | จ่าย ${FMT_AMOUNT.format(12000)} | สุทธิ ${FMT_AMOUNT.format(33000)} บาท`);
+  });
+
+  it('empty range → guidance message', async () => {
+    vi.mocked(prisma.transaction.findMany).mockResolvedValue([]);
+    expect(await handleSummaryQuery(PARENT, 'month')).toContain('ยังไม่มีรายการ');
   });
 });
 
