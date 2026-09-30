@@ -157,3 +157,164 @@
   padding: var(--space-2xl);
   font-size: var(--font-sm);
 }
+/* ── Bulk category-assign mode ─────────────────────────────── */
+
+.selectToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card-bg);
+  color: var(--foreground);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: background 150ms ease-out, color 150ms ease-out;
+}
+
+.selectToggle:hover {
+  background: var(--bg-secondary);
+}
+
+.selectToggleActive {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.txItemSelectable {
+  cursor: pointer;
+}
+
+.checkbox {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  margin-right: var(--space-sm);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  transition: background 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+}
+
+.checkboxChecked {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+}
+
+.bulkBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) calc(var(--space-lg) + env(safe-area-inset-left)) var(--space-md) calc(var(--space-lg) + env(safe-area-inset-left));
+  padding-bottom: calc(var(--space-md) + env(safe-area-inset-bottom));
+  background: var(--card-bg);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.bulkInfo {
+  font-size: var(--font-sm);
+  color: var(--foreground);
+  font-weight: var(--weight-semibold);
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.bulkBtn {
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--primary);
+  color: white;
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  min-height: 44px;
+  cursor: pointer;
+  transition: opacity 150ms ease-out;
+}
+
+.bulkBtn:hover {
+  opacity: 0.9;
+}
+
+.bulkBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.bulkBtnGhost {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  font-size: var(--font-sm);
+  min-height: 44px;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+
+.bulkBtnGhost:hover {
+  background: var(--bg-secondary);
+}
+
+.bulkForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.bulkTypeRow {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.bulkTypeBtn {
+  flex: 1;
+  padding: var(--space-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--foreground);
+  font-size: var(--font-sm);
+  min-height: 44px;
+  cursor: pointer;
+  transition: background 150ms ease-out, border-color 150ms ease-out;
+}
+
+.bulkTypeBtnActive {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: white;
+  font-weight: var(--weight-semibold);
+}
+
+.bulkHint {
+  font-size: var(--font-sm);
+  color: var(--secondary-text);
+  margin: 0;
+}
+
+.bulkFormActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}

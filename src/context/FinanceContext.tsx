@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Account, Transaction, User, DashboardFilters, Category, CategoryGroup, TransactionType, Budget, BudgetTransaction, Tag } from '@/types';
+import { Account, Transaction, User, DashboardFilters, Category, CategoryGroup, TransactionType, Budget, BudgetTransaction, Tag, UNCATEGORIZED_FILTER } from '@/types';
 
 // API response types (before mapping to frontend types)
 interface ApiAccount {
@@ -67,6 +67,8 @@ interface FinanceContextType {
   deleteAccount: (id: string) => void;
   addTransaction: (transaction: Omit<Transaction, "id">, createdById?: string) => void;
   updateTransaction: (id: string, txData: Partial<Transaction>) => void;
+  /** Assign one category to many transactions at once; returns rows updated. */
+  bulkAssignCategory: (ids: string[], categoryId: string) => Promise<number>;
   deleteTransaction: (id: string) => void;
   getFilteredTransactions: (filters: DashboardFilters) => Transaction[];
   
@@ -521,6 +523,44 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * Bulk-assign a category via /api/transactions/bulk-category (server
+   * enforces family scope + creator-or-parent). Category changes carry no
+   * balance effect, so a local state patch is enough — no account refetch.
+   */
+  const bulkAssignCategory = async (ids: string[], categoryId: string): Promise<number> => {
+    if (ids.length === 0) return 0;
+    try {
+        const res = await fetch('/api/transactions/bulk-category', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ids, categoryId })
+        });
+        if (res.ok) {
+            const { updated } = await res.json();
+            const cat = categories.find(c => c.id === categoryId);
+            const group = cat ? groups.find(g => g.id === cat.groupId) : undefined;
+            if (cat) {
+                setTransactions(prev => prev.map(t =>
+                    ids.includes(t.id)
+                        ? {
+                            ...t,
+                            categoryId: cat.id,
+                            category: cat.name,
+                            categoryGroup: group?.name || t.categoryGroup,
+                        }
+                        : t
+                ));
+            }
+            return updated ?? 0;
+        }
+        return 0;
+    } catch (error) {
+        console.error("Failed to bulk assign category", error);
+        return 0;
+    }
+  };
+
   const addGroup = async (group: { name: string; type: TransactionType }) => {
     try {
         const res = await fetch('/api/groups', {
@@ -596,8 +636,13 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
        // 4. Category Filter — the filter passes category IDs (see
        // DashboardFilter), so match on categoryId; fall back to the name
        // for rows that predate categoryId on the client shape.
+       // UNCATEGORIZED_FILTER is the "ไม่มีหมวดหมู่" pseudo-option.
        if (filters.categories && filters.categories.length > 0) {
-           if (
+           const wantsUncategorized = filters.categories.includes(UNCATEGORIZED_FILTER);
+           const hasCategory = !!(tx.categoryId || tx.category);
+           if (wantsUncategorized && !hasCategory) {
+               // passes — the row is uncategorized and that's what was asked for
+           } else if (
                !filters.categories.includes(tx.categoryId || '') &&
                !filters.categories.includes(tx.category)
            ) return false;
@@ -1070,6 +1115,7 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       deleteAccount,
       addTransaction,
       updateTransaction,
+      bulkAssignCategory,
       deleteTransaction,
       getFilteredTransactions,
       

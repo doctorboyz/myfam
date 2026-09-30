@@ -1,6 +1,6 @@
 "use client";
 
-import { User, DashboardFilters as FilterType, TransactionType } from '@/types';
+import { User, DashboardFilters as FilterType, TransactionType, UNCATEGORIZED_FILTER } from '@/types';
 import styles from './DashboardFilter.module.css';
 import { useFinance } from "@/context/FinanceContext";
 import { getBangkokDate, getBangkokDateString } from '@/lib/timezone';
@@ -47,13 +47,17 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
   // Based on selected types. If no type selected, show all? Or show grouped by type.
   const selectedTypes = filters.types.length > 0 ? filters.types : ['income', 'expense', 'transfer'];
   
-  const categoryOptions = selectedTypes.flatMap(type => {
+  const categoryOptions = [
+      // Pseudo-option for rows missing a category — the report-validation
+      // view the family uses to find rows to fix (see UNCATEGORIZED_FILTER).
+      { id: UNCATEGORIZED_FILTER, label: 'ไม่มีหมวดหมู่', group: '' },
+      ...selectedTypes.flatMap(type => {
       const groups = getGroupsByType(type as TransactionType);
       return groups.flatMap(group => {
           const cats = getCategoriesByGroup(group.id);
           return cats.map(c => ({ id: c.id, label: c.name, group: group.name }));
       });
-  });
+  })];
 
   // --- Handlers ---
 

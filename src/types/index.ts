@@ -140,3 +140,6 @@ export interface DashboardFilters {
   categories: string[]; // Category IDs
   accounts: string[];
 }
+
+/** Filter pseudo-ID matching rows with no category (ไม่มีหมวดหมู่). */
+export const UNCATEGORIZED_FILTER = '__none__';
