@@ -167,6 +167,13 @@ describe('text flow: message → confirm → saved with correct balance', () => 
     mockTx.transaction.create.mockImplementation(async (args: any) => ({ id: 'tx-2', ...args.data }));
 
     await handleTextMessage(USER, sender, 'รับเงิน 1000 บาท ค่าธรรมเนียม 20');
+    // No category — ยืนยัน is blocked until one is picked or explicitly skipped
+    await handleTextMessage(USER, sender, 'ยืนยัน');
+    expect(replies.some((r) => r.text.includes('ยังไม่ได้เลือกหมวดหมู่'))).toBe(true);
+    expect(mockTx.transaction.create).not.toHaveBeenCalled();
+
+    // Explicit ข้ามหมวด opts out, then ยืนยัน saves without a category
+    await handleTextMessage(USER, sender, 'ข้ามหมวด');
     await handleTextMessage(USER, sender, 'ยืนยัน');
 
     expect(mockTx.account.update).toHaveBeenCalledWith({
@@ -175,6 +182,7 @@ describe('text flow: message → confirm → saved with correct balance', () => 
     });
     const createData = mockTx.transaction.create.mock.calls[0][0].data;
     expect(createData.totalAmount).toBe(1020);
+    expect(createData.categoryId).toBeNull();
   });
 });
 

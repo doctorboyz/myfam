@@ -10,6 +10,7 @@ import CategorySelector from "../CategorySelector/CategorySelector";
 import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
 import { compressImage } from "@/lib/compressImage";
 import { parseTransaction } from "@/lib/transaction-parser";
+import { buildNewTransactionForm, validateTransactionForm } from "./formDefaults";
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -34,7 +35,7 @@ export default function TransactionDetailModal({
   onDelete,
   availableAccounts = []
 }: TransactionDetailModalProps) {
-  const { getGroupsByType, getCategoriesByGroup, categories, groups, allAccounts, currentUser, transactions, users, tags, getUserLabel } = useFinance();
+  const { categories, groups, allAccounts, currentUser, transactions, users, tags, getUserLabel } = useFinance();
 
   // Member selector: only show when family has >1 member
   const showMemberSelector = users.length > 1;
@@ -113,34 +114,25 @@ export default function TransactionDetailModal({
         });
         setIsEditing(false);
       } else {
-        // Add new
-        const initialGroups = getGroupsByType(initialType || "expense");
-        const firstGroup = initialGroups[0];
-        const firstCats = firstGroup ? getCategoriesByGroup(firstGroup.id) : [];
-
-        // Default to the current member's own account — the member selector
-        // starts on the current user, so the first family account may belong
-        // to someone else and would be hidden by the from-accounts filter.
-        const ownAccount = availableAccounts.find(a => a.ownerId === currentUser?.id);
-        const defaultAccountId = accountId || ownAccount?.id || (availableAccounts.length > 0 ? availableAccounts[0].id : "");
-
-        setFormData({
-            accountId: defaultAccountId,
-            toAccountId: "",
-            amount: 0,
-            fee: 0,
-            category: firstCats[0]?.name || "",
-            categoryGroup: firstGroup?.name || "",
-            date: new Date().toISOString().split('T')[0],
+        // Add new — defaults live in formDefaults.ts (tested there).
+        // The category intentionally starts empty: pre-picking the first
+        // category silently misfiled every quick-add as กาแฟ โกโก้.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setFormData(
+          buildNewTransactionForm({
+            groups,
+            categories,
             type: initialType || "expense",
-            description: "",
-            slipImage: "",
-            tagIds: []
-        });
+            accountId,
+            availableAccounts,
+            currentUserId: currentUser?.id,
+            today: new Date().toISOString().split('T')[0],
+          }),
+        );
         setIsEditing(true);
       }
     }
-  }, [isOpen, transaction, initialType, accountId, availableAccounts, getGroupsByType, getCategoriesByGroup]);
+  }, [isOpen, transaction, initialType, accountId, availableAccounts, categories, groups, currentUser]);
 
   // Lazy-load the slip image for an existing transaction when the modal opens.
   // The list endpoint omits slipImage (it can be several MB per row), so we
@@ -183,13 +175,17 @@ export default function TransactionDetailModal({
         if (groupObj) groupName = groupObj.name;
     }
     
-    // Validation
-    if (formData.type === 'transfer' && !formData.toAccountId) {
-        alert("กรุณาเลือกบัญชีปลายทาง");
-        return;
-    }
-    if (formData.type === 'transfer' && formData.accountId === formData.toAccountId) {
-        alert("บัญชีต้นทางและปลายทางต้องไม่เหมือนกัน");
+    // Validation (rules + messages in formDefaults.ts, tested there).
+    // Categories are what make reports trustworthy — income/expense rows
+    // must carry one; transfers between own accounts don't need one.
+    const validationError = validateTransactionForm({
+      type: formData.type || 'expense',
+      accountId: formData.accountId || '',
+      toAccountId: formData.toAccountId || '',
+      category: formData.category || '',
+    });
+    if (validationError) {
+        alert(validationError);
         return;
     }
     

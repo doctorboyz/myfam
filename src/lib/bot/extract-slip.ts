@@ -11,6 +11,7 @@ import { getBangkokDateString } from '@/lib/timezone';
 import {
   parseExtractedTransaction,
   matchCategory,
+  formatCategoryList,
   type CategoryContextItem,
   type ExtractedTransaction,
 } from './extract';
@@ -45,12 +46,11 @@ export async function extractFromSlip(
   }
 
   const resizedBase64 = await resizeImageBase64(imageBase64, 512);
-  const groups = [...new Set(categories.map((c) => `${c.groupName}(${c.groupType})`))];
-  const groupList = groups.join(', ');
+  const categoryList = formatCategoryList(categories);
 
   const prompt = `อ่านสลิป/ใบเสร็จ/QR payment นี้แล้วสกัดข้อมูลธุรกรรม
 วันนี้: ${getBangkokDateString()}
-กลุ่มหมวด: ${groupList}
+หมวดหมู่: ${categoryList}
 
 สำคัญ: พิจารณา type จากสลิปอย่างรอบคอบ:
 - expense (เราจ่ายออก): เห็นชื่อเราเป็น "ผู้โอน" หรือ "จากบ/ช", มีคำว่า "โอนเงิน", "จ่าย", "ชำระ", PromptPay ที่เราแสกนจ่าย
@@ -63,10 +63,10 @@ export async function extractFromSlip(
 สำคัญมาก: สลิปไทยพิมพ์วันที่เป็น พ.ศ. (เช่น 9 พ.ค. 2569, 09/05/2569) — ต้องแปลงเป็น ค.ศ. โดยลบ 543 จากปี ก่อนใส่ในช่อง date (2569 - 543 = 2026) ห้ามส่งปี พ.ศ. ตรงๆ
 
 ตอบเป็น JSON เท่านั้น:
-{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวดจากด้านบน","merchantName":"ชื่อร้าน","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
+{"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"ชื่อร้านหรือรายการ","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อหมวดหมู่ย่อยจากด้านบน","merchantName":"ชื่อร้าน","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าอ่านจำนวนเงินไม่ได้ให้ใส่ amount=0
 accountName: ถ้าสลิประบุบัญชี (เช่น "จากบัญชี xxx", "เข้าบัญชี xxx", "xxx ไทยพาณิชย์") ให้สกัดชื่อบัญชี ถ้าไม่ระบุให้ใส่ null
-เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
+เลือก categoryGroupName เป็นชื่อหมวดหมู่ย่อยที่ตรงกับรายการมากที่สุดจากหมวดหมู่ด้านบน ถ้าไม่มีหมวดย่อยที่ตรง ให้ใส่ชื่อกลุ่มหมวดแทน`;
 
   const result = await aiChat({
     model: AI_EXTRACT_SLIP_MODEL,

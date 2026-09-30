@@ -147,6 +147,8 @@ async function handleSkipCategory(user: BotUser, sender: BotSender): Promise<voi
   const extracted = { ...(session.payload.extracted as unknown as ExtractedTransaction) };
   delete (extracted as Partial<ExtractedTransaction>).categoryId;
   delete (extracted as Partial<ExtractedTransaction>).categoryGroupName;
+  // Explicit skip: the confirm flow lets ยืนยัน through without a category.
+  extracted.categorySkipped = true;
 
   await setSession(user.id, 'transaction', 'awaiting_confirm', {
     ...session.payload,

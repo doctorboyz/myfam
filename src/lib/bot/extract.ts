@@ -21,6 +21,8 @@ export interface ExtractedTransaction {
   fee?: number;
   confidence: number;
   needsConfirmation?: boolean;
+  /** True when the user explicitly chose ข้ามหมวด — ยืนยัน allows a null category. */
+  categorySkipped?: boolean;
 }
 
 export interface CategoryContextItem {
@@ -31,6 +33,24 @@ export interface CategoryContextItem {
 }
 
 /**
+ * Compact category reference for extraction prompts: "group(type): leaf, leaf".
+ * Sending leaf names lets the AI answer with a specific category, which
+ * matchCategory resolves exactly; group names remain the fallback.
+ */
+export function formatCategoryList(categories: CategoryContextItem[]): string {
+  const byGroup = new Map<string, string[]>();
+  for (const c of categories) {
+    const key = `${c.groupName}(${c.groupType})`;
+    const leaves = byGroup.get(key) ?? [];
+    leaves.push(c.name);
+    byGroup.set(key, leaves);
+  }
+  return [...byGroup.entries()]
+    .map(([group, leaves]) => `${group}: ${leaves.join(', ')}`)
+    .join(' | ');
+}
+
+/**
  * Extract transaction data from a Thai text message using the text model.
  * Example: "ซื้อข้าวผัด 85 บาท" → { amount: 85, description: "ซื้อข้าวผัด", type: "expense" }
  */
@@ -38,9 +58,9 @@ export async function extractFromText(
   text: string,
   categories: CategoryContextItem[],
 ): Promise<ExtractedTransaction> {
-  // Only send top-level group names (not every category) to keep the prompt short
-  const groups = [...new Set(categories.map((c) => `${c.groupName}(${c.groupType})`))];
-  const groupList = groups.join(', ');
+  // Send group names with their leaf categories so the AI can answer with
+  // the most specific category (matchCategory resolves leaf answers exactly).
+  const categoryList = formatCategoryList(categories);
   const today = getBangkokDateString();
 
   const systemPrompt = `คุณคือ AI สกัดข้อมูลธุรกรรมการเงินจากข้อความภาษาไทย
@@ -57,7 +77,7 @@ export async function extractFromText(
   const userPrompt = `สกัดข้อมูลธุรกรรมจาก: "${text}"
 
 วันนี้: ${today}
-กลุ่มหมวด: ${groupList}
+หมวดหมู่: ${categoryList}
 
 ตัวอย่าง:
 "ซื้อข้าวผัด 85 บาท" → {"amount":85,"date":"${today}","description":"ซื้อข้าวผัด","type":"expense","categoryGroupName":"อาหาร","merchantName":null,"accountName":null,"confidence":0.95,"needsConfirmation":false}
@@ -73,7 +93,7 @@ export async function extractFromText(
 {"amount":จำนวนเงิน,"date":"YYYY-MM-DD","description":"คำอธิบาย","type":"expenseหรือincomeหรือtransfer","categoryGroupName":"ชื่อกลุ่มหมวด","merchantName":"ชื่อร้านหรือnull","accountName":"ชื่อบัญชีหรือnull","confidence":0ถึง1,"needsConfirmation":trueหรือfalse}
 ถ้าไม่มีจำนวนเงิน ให้ใส่ amount=0
 accountName: ถ้าข้อความระบุบัญชี (เช่น "จากบัญชีกสิกร", "เข้ากระเป๋าสตางค์") ให้สกัดชื่อบัญชี ถ้าไม่ระบุให้ใส่ null
-เลือก categoryGroupName ที่ตรงกับรายการมากที่สุดจากกลุ่มหมวดด้านบน`;
+เลือก categoryGroupName เป็นชื่อหมวดหมู่ย่อยที่ตรงกับรายการมากที่สุดจากหมวดหมู่ด้านบน (เช่น กินข้าว แทนกลุ่ม อาหารและเครื่องดื่ม) ถ้าไม่มีหมวดย่อยที่ตรง ให้ใส่ชื่อกลุ่มหมวดแทน`;
 
   const result = await aiChat({
     model: AI_EXTRACT_TEXT_MODEL,
@@ -90,8 +110,13 @@ accountName: ถ้าข้อความระบุบัญชี (เช�
 }
 
 /**
- * Match AI-returned categoryGroupName against known categories.
- * Three tiers: exact → case-insensitive → includes.
+ * Match the AI-returned category answer against known categories.
+ *
+ * A leaf (subcategory) answer resolves to that specific category. A group
+ * answer only auto-resolves when the group has exactly one leaf — with
+ * several leaves the choice belongs to the user, so categoryId stays null
+ * (the confirm flow asks via เปลี่ยนหมวด) instead of silently picking
+ * whichever leaf came first (causal test: extract.test.ts).
  */
 export function matchCategory(
   extracted: ExtractedTransaction,
@@ -99,31 +124,39 @@ export function matchCategory(
 ): void {
   if (!extracted.categoryGroupName) return;
 
-  const aiGroup = extracted.categoryGroupName.trim();
+  const answer = extracted.categoryGroupName.trim();
+  const answerLower = answer.toLowerCase();
 
-  // 1. Exact match on groupName or name
-  let match = categories.find(
-    (c) => c.groupName === aiGroup || c.name === aiGroup,
-  );
-
-  // 2. Case-insensitive match
-  if (!match) {
-    const aiLower = aiGroup.toLowerCase();
-    match = categories.find(
-      (c) => c.groupName.toLowerCase() === aiLower || c.name.toLowerCase() === aiLower,
-    );
+  // 1. Leaf match — exact, case-insensitive, then includes
+  let leaf = categories.find((c) => c.name === answer);
+  if (!leaf) {
+    leaf = categories.find((c) => c.name.toLowerCase() === answerLower);
+  }
+  if (!leaf) {
+    leaf = categories.find((c) => c.name.includes(answer) || answer.includes(c.name));
+  }
+  if (leaf) {
+    extracted.categoryId = leaf.id;
+    extracted.categoryGroupName = leaf.groupName;
+    return;
   }
 
-  // 3. Includes match — AI response contains or is contained in a category name
-  if (!match) {
-    match = categories.find(
-      (c) => aiGroup.includes(c.groupName) || c.groupName.includes(aiGroup),
+  // 2. Group match — exact, case-insensitive, then includes
+  let group = categories.find((c) => c.groupName === answer);
+  if (!group) {
+    group = categories.find((c) => c.groupName.toLowerCase() === answerLower);
+  }
+  if (!group) {
+    group = categories.find(
+      (c) => answer.includes(c.groupName) || c.groupName.includes(answer),
     );
   }
-
-  if (match) {
-    extracted.categoryId = match.id;
-    extracted.categoryGroupName = match.groupName;
+  if (group) {
+    const leaves = categories.filter((c) => c.groupName === group!.groupName);
+    extracted.categoryGroupName = group.groupName;
+    if (leaves.length === 1) {
+      extracted.categoryId = leaves[0].id;
+    }
   }
 }
 

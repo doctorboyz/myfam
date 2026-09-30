@@ -187,3 +187,51 @@ describe('extractFromText — AI wiring (mocked)', () => {
     expect(result.type).toBe('expense');
   });
 });
+describe('matchCategory — group answers never pick an arbitrary leaf', () => {
+  // Real-world shape: the food group has many leaves and /api/categories
+  // ordering puts กาแฟ โกโก้ before กินข้าว. A group-name answer used to
+  // resolve to whichever leaf came first, silently misfiling transactions.
+  const multiLeafCats: CategoryContextItem[] = [
+    { id: 'cat-coffee', name: 'กาแฟ โกโก้', groupName: 'อาหารและเครื่องดื่ม', groupType: 'expense' },
+    { id: 'cat-rice', name: 'กินข้าว', groupName: 'อาหารและเครื่องดื่ม', groupType: 'expense' },
+    { id: 'cat-fun', name: 'เกม/เติมเกม', groupName: 'ความบันเทิง', groupType: 'expense' },
+  ];
+
+  it('group answer with multiple leaves leaves categoryId null but keeps the group', () => {
+    const e = parseExtractedTransaction(
+      '{"amount":100,"date":"2026-09-29","description":"เติมเกม","type":"expense","categoryGroupName":"อาหารและเครื่องดื่ม","confidence":0.9}',
+    );
+    matchCategory(e, multiLeafCats);
+    expect(e.categoryId).toBeNull();
+    expect(e.categoryGroupName).toBe('อาหารและเครื่องดื่ม');
+  });
+
+  it('group answer with exactly one leaf resolves to that leaf', () => {
+    const singleLeaf: CategoryContextItem[] = [
+      { id: 'cat-food', name: 'ค่าอาหาร', groupName: 'อาหาร', groupType: 'expense' },
+    ];
+    const e = parseExtractedTransaction(
+      '{"amount":85,"date":"2026-09-29","description":"ข้าว","type":"expense","categoryGroupName":"อาหาร","confidence":0.9}',
+    );
+    matchCategory(e, singleLeaf);
+    expect(e.categoryId).toBe('cat-food');
+  });
+
+  it('leaf answer resolves to the specific leaf, not the first of the group', () => {
+    const e = parseExtractedTransaction(
+      '{"amount":420,"date":"2026-09-29","description":"เติมเกม","type":"expense","categoryGroupName":"เกม/เติมเกม","confidence":0.9}',
+    );
+    matchCategory(e, multiLeafCats);
+    expect(e.categoryId).toBe('cat-fun');
+    expect(e.categoryGroupName).toBe('ความบันเทิง');
+  });
+
+  it('partial leaf answer matches by includes', () => {
+    const e = parseExtractedTransaction(
+      '{"amount":55,"date":"2026-09-29","description":"กาแฟ","type":"expense","categoryGroupName":"กาแฟ","confidence":0.9}',
+    );
+    matchCategory(e, multiLeafCats);
+    expect(e.categoryId).toBe('cat-coffee');
+    expect(e.categoryGroupName).toBe('อาหารและเครื่องดื่ม');
+  });
+});

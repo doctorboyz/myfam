@@ -47,6 +47,19 @@ function toExtracted(raw: unknown): ExtractedTransaction {
   return raw as ExtractedTransaction;
 }
 
+/**
+ * Categories are the validation that makes reports trustworthy: income and
+ * expense rows need one before ยืนยัน, unless the user explicitly typed
+ * ข้ามหมวด (extracted.categorySkipped). Transfers between own accounts
+ * don't need a category.
+ */
+function needsCategoryPick(extracted: ExtractedTransaction): boolean {
+  return extracted.type !== 'transfer' && !extracted.categoryId && !extracted.categorySkipped;
+}
+
+const MISSING_CATEGORY_MESSAGE =
+  '⚠️ ยังไม่ได้เลือกหมวดหมู่ — กด "เปลี่ยนหมวด" เพื่อเลือกหมวดหมู่ย่อย หรือพิมพ์ "ข้ามหมวด" ถ้าไม่ต้องการหมวดหมู่';
+
 /** Create the transaction, reply with confirmation, clear state. */
 async function createAndReply(
   user: BotUser,
@@ -76,6 +89,11 @@ export async function promptAccountSelection(
   extracted: ExtractedTransaction,
   slip?: { imageBase64?: string | null; imageHash?: string | null },
 ): Promise<void> {
+  if (needsCategoryPick(extracted)) {
+    await sender(MISSING_CATEGORY_MESSAGE, confirmKeyboard());
+    return;
+  }
+
   const accounts = await getUserAccounts(user.id);
 
   if (accounts.length === 0) {
@@ -220,6 +238,18 @@ export async function handleDirection(
     needsConfirmation: false,
   };
 
+  // Direction turned the transfer into income/expense — it now needs a
+  // category like any other. Back to the confirm step so the user can
+  // เปลี่ยนหมวด (or ข้ามหมวด) before pressing ยืนยัน again.
+  if (needsCategoryPick(extracted)) {
+    await setSession(user.id, 'transaction', 'awaiting_confirm', {
+      ...session.payload,
+      extracted: extracted as unknown as Record<string, unknown>,
+    });
+    await sender(MISSING_CATEGORY_MESSAGE, confirmKeyboard());
+    return;
+  }
+
   await createAndReply(user, sender, extracted, {
     accountId: session.payload.singleAccountId,
     slip: { imageBase64: session.payload.imageBase64, imageHash: session.payload.imageHash },
@@ -342,6 +372,9 @@ export async function handleCategorySelected(
     ...extracted,
     categoryGroupName: groupName,
     categoryId: subcats.length === 1 ? subcats[0].id : null,
+    // Entering the picker cancels an earlier ข้ามหมวด — the confirm flow
+    // should keep asking for a leaf until one is picked or skipped again.
+    categorySkipped: false,
   };
 
   if (subcats.length > 1) {
@@ -438,6 +471,11 @@ export async function handleCorrection(
     type: reExtracted.confidence > 0.5 ? reExtracted.type : pending.type,
     categoryGroupName: reExtracted.categoryGroupName || pending.categoryGroupName,
     categoryId: reExtracted.categoryId || pending.categoryId,
+    // A re-extracted answer means the user is re-deciding the category —
+    // an earlier ข้ามหมวด no longer applies when a concrete answer came back.
+    categorySkipped: reExtracted.categoryId || reExtracted.categoryGroupName
+      ? false
+      : pending.categorySkipped,
     merchantName: reExtracted.merchantName || pending.merchantName,
   };
 
