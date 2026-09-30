@@ -29,6 +29,7 @@ const { prisma } = await import('@/lib/prisma');
 const { FMT_AMOUNT, truncateMessage, TELEGRAM_MAX_LEN } = await import('./format');
 
 const USER = { id: 'user-1', name: 'Lita', role: 'child', familyId: 'fam-1' };
+const PARENT = { id: 'user-p', name: 'Tukkie', role: 'parent', familyId: 'fam-1' };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -85,6 +86,36 @@ describe('handleBalanceQuery', () => {
     vi.mocked(prisma.account.findMany).mockResolvedValue([]);
     const text = await handleBalanceQuery(USER);
     expect(text).toContain('ยังไม่มีบัญชี');
+  });
+
+  it('child scope stays own-accounts (ownerId), not family-wide', async () => {
+    vi.mocked(prisma.account.findMany).mockResolvedValue([]);
+    await handleBalanceQuery(USER);
+    const where = (vi.mocked(prisma.account.findMany).mock.calls[0] as unknown[])[0] as { where: { ownerId?: string } };
+    expect(where.where.ownerId).toBe('user-1');
+  });
+
+  it('parent sees family-wide accounts labeled with owner names', async () => {
+    // causal: the query must scope by owner.familyId for a parent —
+    // ownerId scoping would silently hide children's balances
+    const findFamilyAccounts = async (args: any): Promise<never> => {
+      if (args?.where?.ownerId) {
+        throw Object.assign(
+          new Error('balance query used child-only ownerId scope for a parent'),
+          { code: 'TEST-SCOPE' },
+        );
+      }
+      return [
+        { id: 'a1', name: 'ทรูมันนี่', balance: 194.52, owner: { name: 'Lita' } },
+        { id: 'a2', name: 'Butjet', balance: 9991, owner: { name: 'Tukkie' } },
+      ] as never;
+    };
+    vi.mocked(prisma.account.findMany).mockImplementation(findFamilyAccounts as never);
+
+    const text = await handleBalanceQuery(PARENT);
+    expect(text).toContain('ทรูมันนี่ (Lita)');
+    expect(text).toContain('Butjet (Tukkie)');
+    expect(text).toContain(FMT_AMOUNT.format(194.52 + 9991));
   });
 });
 

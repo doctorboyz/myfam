@@ -26,6 +26,17 @@ export function getDataScope(user: Pick<BotUser, 'id' | 'role' | 'familyId'>) {
   return { createdById: user.id };
 }
 
+/**
+ * Account scope mirroring getDataScope: parent sees every active account in
+ * the family (children's too), children see their own only.
+ */
+export function getAccountScope(user: Pick<BotUser, 'id' | 'role' | 'familyId'>) {
+  if (user.role === 'parent') {
+    return { owner: { familyId: user.familyId }, status: 'active' as const };
+  }
+  return { ownerId: user.id, status: 'active' as const };
+}
+
 export async function findDefaultAccount(userId: string) {
   return prisma.account.findFirst({
     where: { ownerId: userId, status: 'active' },

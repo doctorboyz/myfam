@@ -5,7 +5,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { FMT_AMOUNT } from './format';
-import { getDataScope, type BotUser } from './record';
+import { getDataScope, getAccountScope, type BotUser } from './record';
 import { getBangkokDateString } from '@/lib/timezone';
 
 export type SummaryRange = 'day' | 'week' | 'month';
@@ -69,25 +69,30 @@ export function summaryRangeLabel(range: SummaryRange): string {
 
 export async function handleBalanceQuery(user: BotUser): Promise<string> {
   const accounts = await prisma.account.findMany({
-    where: { ownerId: user.id, status: 'active' },
-    orderBy: { createdAt: 'asc' },
+    where: getAccountScope(user),
+    // group family members' accounts together in the parent view
+    orderBy: [{ owner: { name: 'asc' } }, { createdAt: 'asc' }],
+    include: { owner: { select: { name: true } } },
   });
 
   if (accounts.length === 0) {
     return 'ยังไม่มีบัญชี กรุณาสร้างบัญชีในแอป MyFam ก่อน';
   }
 
+  const label = (a: (typeof accounts)[number]) =>
+    user.role === 'parent' && a.owner ? `${a.name} (${a.owner.name})` : a.name;
+
   const lines = accounts.map((a) => {
     const bal = Number(a.balance);
     const prefix = bal < 0 ? '⚠️ ' : '💳 ';
-    return `${prefix}${a.name}: ${FMT_AMOUNT.format(bal)} บาท`;
+    return `${prefix}${label(a)}: ${FMT_AMOUNT.format(bal)} บาท`;
   });
   const total = accounts.reduce((sum, a) => sum + Number(a.balance), 0);
   lines.push(`\n💰 รวมทุกบัญชี: ${FMT_AMOUNT.format(total)} บาท`);
 
   const negativeAccounts = accounts.filter((a) => Number(a.balance) < 0);
   if (negativeAccounts.length > 0) {
-    const negLines = negativeAccounts.map((a) => `⚠️ ${a.name}: ${FMT_AMOUNT.format(Number(a.balance))} บาท`);
+    const negLines = negativeAccounts.map((a) => `⚠️ ${label(a)}: ${FMT_AMOUNT.format(Number(a.balance))} บาท`);
     lines.push(`\n🚨 ยอดติดลบ:\n${negLines.join('\n')}`);
     lines.push('💡 พิมพ์ "ปรับยอด" เพื่อปรับยอดเงินในบัญชี');
   }
