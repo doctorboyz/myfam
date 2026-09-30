@@ -1,12 +1,6 @@
 import { prisma } from '@/lib/prisma';
-import { apiSuccess, apiError, parseId, getAuthUserId, getAuthUser } from '@/lib/api';
-
-const transactionInclude = {
-  category: { include: { group: true } },
-  account: true,
-  toAccount: true,
-  tagRecords: { include: { tag: true } },
-};
+import { apiSuccess, apiError, parseId, getAuthUser, isParentOrAdmin } from '@/lib/api';
+import { softDeleteTransaction, transactionInclude } from '@/lib/transaction-mutations';
 
 function mapTagRecords(tx: { tagRecords: { tag: { name: string }; tagId: string }[] }) {
   return {
@@ -14,6 +8,30 @@ function mapTagRecords(tx: { tagRecords: { tag: { name: string }; tagId: string 
     tags: tx.tagRecords.map(tr => tr.tag.name),
     tagIds: tx.tagRecords.map(tr => tr.tagId),
   };
+}
+
+/**
+ * Validate that the accounts referenced in a patch belong to the editor's
+ * family (and, for children, to the child themselves) — same rules as POST.
+ */
+async function validateAccounts(
+  accountIds: string[],
+  currentUser: { id: string; familyId: string; role: string; isAdmin: boolean }
+): Promise<string | null> {
+  if (accountIds.length === 0) return null;
+  const accounts = await prisma.account.findMany({
+    where: { id: { in: accountIds }, deletedAt: null },
+    select: { id: true, ownerId: true, owner: { select: { familyId: true } } },
+  });
+  for (const acc of accounts) {
+    if (acc.owner.familyId !== currentUser.familyId) {
+      return 'Not authorized';
+    }
+    if (!isParentOrAdmin(currentUser) && acc.ownerId !== currentUser.id) {
+      return 'Not authorized to use another member account';
+    }
+  }
+  return null;
 }
 
 // Fetch a single transaction (including slipImage) for the detail view.
@@ -52,53 +70,21 @@ export async function DELETE(
 ) {
   try {
     const id = await parseId(props);
-    const userId = await getAuthUserId();
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
 
-    // Pre-check ownership before entering transaction
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    // Pre-check family scope and ownership before touching balances.
+    // Parents manage the whole family's ledger; members delete their own.
+    const existing = await prisma.transaction.findFirst({
+      where: { id, deletedAt: null, createdBy: { familyId: currentUser.familyId } },
+    });
     if (!existing) return apiError('Transaction not found', 404);
-    if (existing.createdById !== userId) {
+    if (existing.createdById !== currentUser.id && !isParentOrAdmin(currentUser)) {
       return apiError('Not authorized to delete this transaction', 403);
     }
 
-    await prisma.$transaction(async (tx) => {
-      const transaction = await tx.transaction.findUnique({ where: { id } });
-      if (!transaction) throw new Error('Transaction not found');
-
-      // Only revert balances for completed transactions (not planned/void)
-      if (transaction.status === 'completed' && transaction.accountId) {
-        const amount = Number(transaction.amount);
-        const fee = transaction.fee ? Number(transaction.fee) : 0;
-
-        if (transaction.type === 'income') {
-          await tx.account.update({
-            where: { id: transaction.accountId },
-            data: { balance: { decrement: amount - fee } },
-          });
-        } else {
-          await tx.account.update({
-            where: { id: transaction.accountId },
-            data: { balance: { increment: amount + fee } },
-          });
-        }
-
-        if (transaction.type === 'transfer' && transaction.toAccountId) {
-          await tx.account.update({
-            where: { id: transaction.toAccountId },
-            data: { balance: { decrement: amount } },
-          });
-        }
-      }
-
-      // Soft delete
-      await tx.transaction.update({
-        where: { id },
-        data: {
-          deletedAt: new Date(),
-          deletedById: userId,
-        },
-      });
-    });
+    const deleted = await softDeleteTransaction(id, currentUser.id);
+    if (!deleted) return apiError('Transaction not found', 404);
 
     return apiSuccess({ success: true });
   } catch (error) {
@@ -113,15 +99,25 @@ export async function PATCH(
 ) {
   try {
     const id = await parseId(props);
-    const userId = await getAuthUserId();
+    const currentUser = await getAuthUser();
+    if (!currentUser) return apiError('Not authenticated', 401);
+
     const body = await request.json();
 
     // Fetch existing transaction to detect status transitions
-    const existing = await prisma.transaction.findUnique({ where: { id } });
+    const existing = await prisma.transaction.findFirst({
+      where: { id, deletedAt: null, createdBy: { familyId: currentUser.familyId } },
+    });
     if (!existing) return apiError('Transaction not found', 404);
-    if (existing.createdById !== userId) {
+    // Parents manage the whole family's ledger; members edit their own.
+    if (existing.createdById !== currentUser.id && !isParentOrAdmin(currentUser)) {
       return apiError('Not authorized to edit this transaction', 403);
     }
+
+    // Accounts must stay within the family (children: their own) — same as POST.
+    const patchAccountIds = [body.accountId, body.toAccountId].filter(Boolean) as string[];
+    const accountError = await validateAccounts(patchAccountIds, currentUser);
+    if (accountError) return apiError(accountError, 403);
 
     const isCompletingPlanned =
       existing.status === 'planned' && body.status === 'completed';
@@ -179,7 +175,7 @@ export async function PATCH(
 
     // Standard update (non-status-transition)
     const updateData: Record<string, unknown> = {};
-    const allowedFields = ['description', 'slipImage', 'status', 'categoryId', 'date', 'planAmount', 'fee', 'totalAmount'];
+    const allowedFields = ['description', 'slipImage', 'status', 'categoryId', 'date', 'planAmount'];
     for (const key of allowedFields) {
       if (body[key] !== undefined) {
         updateData[key] = body[key];
@@ -190,6 +186,33 @@ export async function PATCH(
     if (updateData.date) {
       updateData.date = new Date(updateData.date as string);
     }
+
+    // Balance-affecting fields: amount/fee/type/accounts. For completed
+    // transactions we revert the old effect and apply the new one inside
+    // one DB transaction, using the same formulas as create/delete
+    // (see src/lib/transaction-mutations.ts).
+    const oldAmount = Number(existing.amount);
+    const oldFee = Number(existing.fee || 0);
+    const nextAmount = body.amount != null ? Number(body.amount) : oldAmount;
+    const nextFee = body.fee != null ? Number(body.fee) : oldFee;
+    const nextType = body.type ?? existing.type;
+    const nextAccountId = body.accountId !== undefined ? (body.accountId || null) : existing.accountId;
+    const nextToAccountId = body.toAccountId !== undefined ? (body.toAccountId || null) : existing.toAccountId;
+
+    if (body.amount !== undefined || body.fee !== undefined) {
+      if (existing.status === 'planned') {
+        // Planned rows keep amount=0 until completion; edits go to planAmount.
+        if (body.amount !== undefined) updateData.planAmount = nextAmount;
+        if (body.fee !== undefined) updateData.fee = nextFee;
+      } else {
+        updateData.amount = nextAmount;
+        updateData.fee = nextFee;
+        updateData.totalAmount = nextAmount + nextFee;
+      }
+    }
+    if (body.type !== undefined) updateData.type = nextType;
+    if (body.accountId !== undefined) updateData.accountId = nextAccountId;
+    if (body.toAccountId !== undefined) updateData.toAccountId = nextToAccountId;
 
     // Handle tagIds: replace tag records
     if (body.tagIds !== undefined) {
@@ -202,11 +225,67 @@ export async function PATCH(
       }
     }
 
-    const transaction = await prisma.transaction.update({
-      where: { id },
-      data: updateData,
-      include: transactionInclude,
-    });
+    const balanceChanged =
+      existing.status === 'completed' &&
+      (body.amount !== undefined || body.fee !== undefined || body.type !== undefined ||
+        body.accountId !== undefined || body.toAccountId !== undefined);
+
+    let transaction;
+    if (balanceChanged && existing.accountId) {
+      transaction = await prisma.$transaction(async (tx) => {
+        // Revert the old effect
+        if (existing.type === 'income') {
+          await tx.account.update({
+            where: { id: existing.accountId! },
+            data: { balance: { decrement: oldAmount - oldFee } },
+          });
+        } else {
+          await tx.account.update({
+            where: { id: existing.accountId! },
+            data: { balance: { increment: oldAmount + oldFee } },
+          });
+        }
+        if (existing.type === 'transfer' && existing.toAccountId) {
+          await tx.account.update({
+            where: { id: existing.toAccountId },
+            data: { balance: { decrement: oldAmount } },
+          });
+        }
+
+        // Apply the new effect
+        if (nextAccountId) {
+          if (nextType === 'income') {
+            await tx.account.update({
+              where: { id: nextAccountId },
+              data: { balance: { increment: nextAmount - nextFee } },
+            });
+          } else {
+            await tx.account.update({
+              where: { id: nextAccountId },
+              data: { balance: { decrement: nextAmount + nextFee } },
+            });
+          }
+          if (nextType === 'transfer' && nextToAccountId) {
+            await tx.account.update({
+              where: { id: nextToAccountId },
+              data: { balance: { increment: nextAmount } },
+            });
+          }
+        }
+
+        return tx.transaction.update({
+          where: { id },
+          data: updateData,
+          include: transactionInclude,
+        });
+      });
+    } else {
+      transaction = await prisma.transaction.update({
+        where: { id },
+        data: updateData,
+        include: transactionInclude,
+      });
+    }
 
     return apiSuccess(mapTagRecords(transaction));
   } catch (error) {

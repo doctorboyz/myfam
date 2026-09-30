@@ -121,9 +121,15 @@ export default function TransactionDetailModal({
         const initialGroups = getGroupsByType(initialType || "expense");
         const firstGroup = initialGroups[0];
         const firstCats = firstGroup ? getCategoriesByGroup(firstGroup.id) : [];
-        
+
+        // Default to the current member's own account — the member selector
+        // starts on the current user, so the first family account may belong
+        // to someone else and would be hidden by the from-accounts filter.
+        const ownAccount = availableAccounts.find(a => a.owner === (currentUser?.name || ''));
+        const defaultAccountId = accountId || ownAccount?.id || (availableAccounts.length > 0 ? availableAccounts[0].id : "");
+
         setFormData({
-            accountId: accountId || (availableAccounts.length > 0 ? availableAccounts[0].id : ""),
+            accountId: defaultAccountId,
             toAccountId: "",
             amount: 0,
             fee: 0,

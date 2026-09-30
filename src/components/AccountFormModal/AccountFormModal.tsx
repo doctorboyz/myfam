@@ -108,7 +108,10 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name) return; // Simple validation
-    onSave({ ...formData, status: initialData?.status || 'active' });
+    // Balance never travels with the save payload — only the audited
+    // reconciliation flow may change a balance (the API strips it too).
+    const { balance: _balance, ...account } = formData;
+    onSave({ ...account, status: initialData?.status || 'active' });
     onClose();
   };
 

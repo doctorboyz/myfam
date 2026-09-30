@@ -76,6 +76,9 @@ export default function TransactionsPage() {
 
   if (!currentUser) return <PageGate />;
 
+  // Parents manage the whole family's transactions; members their own.
+  const isParent = currentUser.role === 'parent' || currentUser.isAdmin;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -161,7 +164,7 @@ export default function TransactionsPage() {
         initialType={initialType}
         accountId=""
         availableAccounts={accounts}
-        isOwner={!selectedTransaction || selectedTransaction.createdById === currentUser?.id}
+        isOwner={isParent || !selectedTransaction || selectedTransaction.createdById === currentUser?.id}
         onSave={(txData, createdById) => {
           if (txData.id) {
             updateTransaction(txData.id, txData);

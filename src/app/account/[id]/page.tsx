@@ -118,8 +118,10 @@ export default function AccountDetails({ params }: { params: Promise<{ id: strin
     return <div style={{ padding: 20 }}>ไม่พบบัญชี หรือไม่มีสิทธิ์เข้าถึง</div>;
   }
 
-  const isOwner = currentUser?.name === account.owner;
-  const canEditTransaction = isOwner && (!selectedTransaction || selectedTransaction.createdById === currentUser?.id);
+  // Parents manage the whole family's accounts/transactions; members their own.
+  const isParent = !!currentUser && (currentUser.role === 'parent' || currentUser.isAdmin);
+  const isOwner = isParent || currentUser?.name === account.owner;
+  const canEditTransaction = isOwner && (!selectedTransaction || isParent || selectedTransaction.createdById === currentUser?.id);
 
   const handleReconcile = async (newBalance: number) => {
     if (!currentUser) return;

@@ -227,7 +227,7 @@ export default function AccountsPage() {
         transaction={null}
         initialType={initialType}
         accountId=""
-        availableAccounts={myAccounts}
+        availableAccounts={accounts}
         isOwner={true}
         onSave={(txData, createdById) => {
           if (txData.id) {

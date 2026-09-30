@@ -570,15 +570,19 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
     return transactions.filter(tx => {
        if (!currentUser) return false;
        const account = accounts.find(a => a.id === tx.accountId);
-       if (!account) return false;
+       // Transactions without an account (e.g. planned budget items) stay
+       // visible — attribute them to whoever recorded them.
+       const ownerName = account
+           ? account.owner
+           : users.find(u => u.id === tx.createdById)?.name;
 
        // Default: show only current user's account transactions
        // Parent can see others by explicitly selecting users in filter
        if (filters.users.length > 0) {
-           if (!filters.users.includes(account.owner)) return false;
+           if (!ownerName || !filters.users.includes(ownerName)) return false;
        } else {
            // No user filter = show only own transactions
-           if (account.owner !== currentUser.name) return false;
+           if (!ownerName || ownerName !== currentUser.name) return false;
        }
        
        // 2. Type Filter
@@ -591,16 +595,14 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
            if (!filters.accounts.includes(tx.accountId)) return false;
        }
 
-       // 4. Category Filter
+       // 4. Category Filter — the filter passes category IDs (see
+       // DashboardFilter), so match on categoryId; fall back to the name
+       // for rows that predate categoryId on the client shape.
        if (filters.categories && filters.categories.length > 0) {
-           // We filter by Category ID stored in transaction
-           // Note: Mock data might have Names, but new data has IDs. 
-           // Let's assume strict ID matching. If Mock data uses Names, this might break mock data filtering 
-           // if we filter by ID. 
-           // However, categories passed in filter are likely IDs from the Category objects.
-           // Let's handle both for now? Or just assume ID.
-           // Given we refactored categories, we should trust IDs.
-           if (!filters.categories.includes(tx.category)) return false;
+           if (
+               !filters.categories.includes(tx.categoryId || '') &&
+               !filters.categories.includes(tx.category)
+           ) return false;
        }
 
        // 4. Date Range

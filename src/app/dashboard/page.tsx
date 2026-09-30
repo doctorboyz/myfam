@@ -114,6 +114,9 @@ const router = useRouter();
 
   if (!currentUser) return <PageGate variant="dashboard" />;
 
+  // Parents manage the whole family's transactions; members their own.
+  const isParent = currentUser.role === 'parent' || currentUser.isAdmin;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -227,7 +230,7 @@ const router = useRouter();
         initialType={initialType}
         accountId=""
         availableAccounts={accounts}
-        isOwner={!selectedTransaction || selectedTransaction.createdById === currentUser?.id}
+        isOwner={isParent || !selectedTransaction || selectedTransaction.createdById === currentUser?.id}
         onSave={(txData, createdById) => {
            if (txData.id) {
                updateTransaction(txData.id, txData);
