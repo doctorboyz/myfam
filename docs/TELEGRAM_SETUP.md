@@ -8,20 +8,22 @@
 4. กรอก username: ต้องจบด้วย `bot` เช่น `myfam_finance_bot`
 5. BotFather จะให้ **bot token** มา (รูปแบบ `<bot-id>:<random>`) — ใส่ใน `TELEGRAM_BOT_TOKEN` ใน `.env` เท่านั้น ห้าม commit เข้า repo
 
-### 1.1 ตั้งค่า Bot Commands (แนะนำ)
+### 1.1 ตั้งค่า Bot Commands + ปุ่ม Web App (ทำแล้ว)
 
-ส่ง `/setcommands` ให BotFather แล้วเลือก bot:
+สั่งรันครั้งเดียว ไม่ต้องคุยกับ @BotFather:
 
+```bash
+node scripts/set-telegram-commands.mjs
 ```
-start - เริ่มใช้งาน / เชื่อมต่อบัญชี
-help - ดูวิธีใช้งาน
-ยอด - ดูยอดคงเหลือทุกบัญชี
-รายการ - ดูรายการล่าสุด 5 รายการ
-สรุป - สรุปรายรับรายจ่ายเดือนนี้
-ปรับยอด - ปรับยอดเงินในบัญชีให้ตรงจริง
-ลบล่าสุด - ลบรายการล่าสุดที่บันทึกผ่าน bot
-unlink - ยกเลิกการเชื่อมต่อกับบัญชี MyFam
-```
+
+script นี้เรียก Bot API สองตัว:
+- `setMyCommands` — ลงทะเบียน slash commands: `/start` `/balance` `/summary` `/help` `/link` `/unlink`
+  (ชื่อ command ต้องเป็น `a-z0-9_` เท่านั้น — ภาษาไทยใช้ได้แค่ description)
+- `setChatMenuButton` — ปุ่ม **"เปิด MyFam"** ถัดจากช่องพิมพ์ เปิด web app
+  `https://myfam.doctorboyz.com` ใน in-app browser ของ Telegram
+
+ส่วนคำพิมพ์ภาษาไทย ("ยอด", "รายการ", "สรุป", "ปรับยอด", "ลบล่าสุด") จับผ่าน fuzzy
+match ใน `src/lib/bot/commands.ts` อยู่แล้ว — ไม่ต้องลงทะเบียนเป็น command
 
 ## 2. Environment Variables
 
