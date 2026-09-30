@@ -16,9 +16,14 @@ export function menuKeyboard(): ReplyMarkup {
   return keyboard([['📊 ดูยอด', '📋 รายการล่าสุด'], ['📈 สรุปเดือนนี้', '❓ ช่วยเหลือ']]);
 }
 
-/** Confirm / change category / cancel for the awaiting_confirm step. */
+/** Confirm / edit / cancel for the awaiting_confirm step. */
 export function confirmKeyboard(): ReplyMarkup {
-  return keyboard([['ยืนยัน', 'เปลี่ยนหมวด'], ['ยกเลิก']]);
+  return keyboard([['ยืนยัน', 'เปลี่ยนแปลง', 'ยกเลิก']]);
+}
+
+/** Field picker shown after เปลี่ยนแปลง — which part to edit. */
+export function editKeyboard(): ReplyMarkup {
+  return keyboard([['แก้รายละเอียด', 'แก้ยอด'], ['แก้หมวดหมู่'], ['ยกเลิก']]);
 }
 
 /** Expense vs income confirmation. */

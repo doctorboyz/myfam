@@ -21,6 +21,7 @@ import {
   categoryGroupKeyboard,
   confirmKeyboard,
   directionKeyboard,
+  editKeyboard,
   menuKeyboard,
   subcategoryKeyboard,
 } from '../keyboards';
@@ -58,7 +59,29 @@ function needsCategoryPick(extracted: ExtractedTransaction): boolean {
 }
 
 const MISSING_CATEGORY_MESSAGE =
-  '⚠️ ยังไม่ได้เลือกหมวดหมู่ — กด "เปลี่ยนหมวด" เพื่อเลือกหมวดหมู่ย่อย หรือพิมพ์ "ข้ามหมวด" ถ้าไม่ต้องการหมวดหมู่';
+  '⚠️ ยังไม่ได้เลือกหมวดหมู่ — กด "เปลี่ยนแปลง" แล้วเลือก "แก้หมวดหมู่" หรือพิมพ์ "ข้ามหมวด" ถ้าไม่ต้องการหมวดหมู่';
+
+/**
+ * Steps from which the confirm actions (ยืนยัน / เปลี่ยนแปลง / แก้หมวดหมู่)
+ * make sense — including the edit-value steps, so a user who pressed
+ * แก้ยอด but types ยืนยัน anyway still lands in the confirm flow instead
+ * of being told "ไม่มีรายการรอยืนยัน".
+ */
+const CONFIRM_LIKE_STEPS = ['awaiting_confirm', 'awaiting_edit_description', 'awaiting_edit_amount'];
+
+function isConfirmLike(step: string): boolean {
+  return CONFIRM_LIKE_STEPS.includes(step);
+}
+
+/** Parse a typed amount — Thai-friendly ("120", "99.50 บาท", "1,200"). */
+function parseAmountText(text: string): number | null {
+  const cleaned = text
+    .replace(/[,\s]/g, '')
+    .replace(/บาท$|บ\.?$/u, '');
+  const value = Number(cleaned);
+  if (!Number.isFinite(value) || value <= 0 || value > 1_000_000_000) return null;
+  return Math.round(value * 100) / 100;
+}
 
 /** Create the transaction, reply with confirmation, clear state. */
 async function createAndReply(
@@ -180,10 +203,10 @@ export async function promptAccountSelection(
   await sender(promptText, accountKeyboard(accounts.map(accountDisplay)));
 }
 
-/** "ยืนยัน" — move an awaiting_confirm session into account selection. */
+/** "ยืนยัน" — move an awaiting_confirm (or edit-value) session into account selection. */
 export async function handleConfirmExtraction(user: BotUser, sender: BotSender): Promise<void> {
   const session = await getSession<TxSessionPayload>(user.id, 'transaction');
-  if (!session || session.step !== 'awaiting_confirm') {
+  if (!session || !isConfirmLike(session.step)) {
     await sender('ไม่มีรายการรอยืนยัน', menuKeyboard());
     return;
   }
@@ -316,10 +339,15 @@ export async function handleSelectAccount(
   await createAndReply(user, sender, extracted, { accountId: account.id, slip });
 }
 
-/** "เปลี่ยนหมวด" — show category groups filtered by type. */
+/** "เปลี่ยนหมวด" / "แก้หมวดหมู่" — show category groups filtered by type. */
 export async function handleChangeCategory(user: BotUser, sender: BotSender): Promise<void> {
   const session = await getSession<TxSessionPayload>(user.id, 'transaction');
-  if (!session || (session.step !== 'awaiting_confirm' && session.step !== 'awaiting_category')) {
+  if (
+    !session ||
+    (session.step !== 'awaiting_confirm' &&
+      session.step !== 'awaiting_category' &&
+      !isConfirmLike(session.step))
+  ) {
     await sender('ไม่มีรายการที่รอการแก้ไขหมวดหมู่', menuKeyboard());
     return;
   }
@@ -418,6 +446,89 @@ export async function handleSubcategorySelected(
   };
 
   await showUpdatedConfirmation(user, sender, updated, session.payload);
+}
+
+/** "เปลี่ยนแปลง" — show which field can be edited. */
+export async function handleEditMenu(user: BotUser, sender: BotSender): Promise<void> {
+  const session = await getSession<TxSessionPayload>(user.id, 'transaction');
+  if (!session || !isConfirmLike(session.step)) {
+    await sender('ไม่มีรายการรอยืนยัน', menuKeyboard());
+    return;
+  }
+
+  const extracted = toExtracted(session.payload.extracted);
+  await sender(
+    `จะแก้อะไร?\n📝 รายละเอียด: ${extracted.description || '-'}\n` +
+      `💰 ยอด: ${FMT_AMOUNT.format(extracted.amount)} บาท\n` +
+      `📂 หมวดหมู่: ${extracted.categoryGroupName || 'ไม่มี'}`,
+    editKeyboard(),
+  );
+}
+
+/** "แก้รายละเอียด" / "แก้ยอด" — ask for the new value of one field. */
+export async function handleEditField(
+  user: BotUser,
+  sender: BotSender,
+  field: 'description' | 'amount',
+): Promise<void> {
+  const session = await getSession<TxSessionPayload>(user.id, 'transaction');
+  if (!session || !isConfirmLike(session.step)) {
+    await sender('ไม่มีรายการรอยืนยัน', menuKeyboard());
+    return;
+  }
+
+  const extracted = toExtracted(session.payload.extracted);
+  const step = field === 'description' ? 'awaiting_edit_description' : 'awaiting_edit_amount';
+  // Keep the payload — only the step moves; the next typed text is the value.
+  await setSession(user.id, 'transaction', step, { ...session.payload });
+
+  const prompt =
+    field === 'description'
+      ? `แก้รายละเอียด — พิมพ์รายละเอียดใหม่ (ปัจจุบัน: ${extracted.description || '-'}):`
+      : `แก้ยอด — พิมพ์จำนวนเงินใหม่ เช่น 120 หรือ 99.50 (ปัจจุบัน: ${FMT_AMOUNT.format(extracted.amount)} บาท):`;
+  await sender(prompt, editKeyboard());
+}
+
+/** Typed text while awaiting_edit_description / awaiting_edit_amount. */
+export async function handleEditInput(user: BotUser, sender: BotSender, text: string): Promise<void> {
+  const session = await getSession<TxSessionPayload>(user.id, 'transaction');
+  if (!session) return;
+
+  const extracted = toExtracted(session.payload.extracted);
+
+  if (session.step === 'awaiting_edit_description') {
+    const value = text.trim().slice(0, 120);
+    if (!value) {
+      await sender('รายละเอียดห้ามว่าง ลองพิมพ์ใหม่', editKeyboard());
+      return;
+    }
+    await showUpdatedConfirmation(
+      user,
+      sender,
+      { ...extracted, description: value },
+      session.payload,
+    );
+    await sender('✅ อัปเดตรายละเอียดแล้ว');
+    return;
+  }
+
+  if (session.step === 'awaiting_edit_amount') {
+    const value = parseAmountText(text);
+    if (value === null) {
+      await sender('ไม่เข้าใจยอดที่พิมพ์ ลองพิมพ์ตัวเลข เช่น 120 หรือ 99.50', editKeyboard());
+      return;
+    }
+    // A manual amount means the AI's fee split no longer applies — reset it
+    // so balance math stays consistent with what the user typed.
+    await showUpdatedConfirmation(
+      user,
+      sender,
+      { ...extracted, amount: value, fee: 0 },
+      session.payload,
+    );
+    await sender(`✅ อัปเดตยอดเป็น ${FMT_AMOUNT.format(value)} บาทแล้ว`);
+    return;
+  }
 }
 
 /** Re-show the confirmation prompt with an updated extraction. */

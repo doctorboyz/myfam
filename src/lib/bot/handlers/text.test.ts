@@ -261,6 +261,127 @@ describe('delete-last soft deletes the latest bot transaction', () => {
   });
 });
 
+describe('เปลี่ยนแปลง quick replies — edit fields with validation, then re-confirm', () => {
+  /** Seed one pending expense at awaiting_confirm with a category. */
+  async function seedPending() {
+    aiChat.mockResolvedValue(
+      '{"amount":85,"date":"2026-09-29","description":"ซื้อข้าวผัด","type":"expense","categoryGroupName":"อาหาร","merchantName":null,"accountName":null,"confidence":0.95,"needsConfirmation":false}',
+    );
+    await handleTextMessage(USER, sender, 'ซื้อข้าวผัด 85 บาท');
+  }
+
+  function keyboardRows(reply: Reply): string[][] {
+    const markup = reply.keyboard as { keyboard: string[][] };
+    return markup?.keyboard ?? [];
+  }
+
+  it('confirm prompt carries ยืนยัน / เปลี่ยนแปลง / ยกเลิก quick replies', async () => {
+    await seedPending();
+    expect(replies[0].text).toContain('ตรวจสอบรายการก่อนบันทึก');
+    expect(keyboardRows(replies[0])).toContainEqual(['ยืนยัน', 'เปลี่ยนแปลง', 'ยกเลิก']);
+  });
+
+  it('เปลี่ยนแปลง shows the edit menu (รายละเอียด / ยอด / หมวดหมู่)', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+
+    const last = replies[replies.length - 1];
+    expect(last.text).toContain('จะแก้อะไร');
+    expect(last.text).toContain('ซื้อข้าวผัด');
+    expect(last.text).toContain('85');
+    expect(keyboardRows(last)).toContainEqual(['แก้รายละเอียด', 'แก้ยอด']);
+    expect(keyboardRows(last)).toContainEqual(['แก้หมวดหมู่']);
+    // Still a pending confirm — nothing saved
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_confirm');
+    expect(mockTx.transaction.create).not.toHaveBeenCalled();
+  });
+
+  it('แก้ยอด → typed amount updates the row and returns to the confirm step', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    await handleTextMessage(USER, sender, 'แก้ยอด');
+
+    const ask = replies[replies.length - 1];
+    expect(ask.text).toContain('พิมพ์จำนวนเงินใหม่');
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_edit_amount');
+
+    await handleTextMessage(USER, sender, '99.50 บาท');
+
+    const confirmReply = replies.find((r) => r.text.includes('ตรวจสอบรายการก่อนบันทึก') && r.text.includes('99.5'));
+    expect(confirmReply).toBeTruthy();
+    expect(keyboardRows(replies[replies.length - 2])).toContainEqual(['ยืนยัน', 'เปลี่ยนแปลง', 'ยกเลิก']);
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_confirm');
+
+    // Then saving uses the edited amount
+    mockTx.transaction.create.mockImplementation(async (args: any) => ({ id: 'tx-edit', ...args.data }));
+    await handleTextMessage(USER, sender, 'ยืนยัน');
+    const createData = mockTx.transaction.create.mock.calls[0][0].data;
+    expect(createData.amount).toBe(99.5);
+  });
+
+  it('แก้ยอด rejects non-numeric text and re-prompts (validation)', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    await handleTextMessage(USER, sender, 'แก้ยอด');
+    await handleTextMessage(USER, sender, 'ขอโทษครับ');
+
+    const last = replies[replies.length - 1];
+    expect(last.text).toContain('ไม่เข้าใจยอด');
+    // Still waiting for a valid amount — nothing re-confirmed, nothing saved
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_edit_amount');
+    expect(mockTx.transaction.create).not.toHaveBeenCalled();
+  });
+
+  it('แก้รายละเอียด → typed text becomes the new description', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    await handleTextMessage(USER, sender, 'แก้รายละเอียด');
+    await handleTextMessage(USER, sender, 'ข้าวผัดห่วย');
+
+    const confirmReply = replies.find((r) => r.text.includes('ตรวจสอบรายการก่อนบันทึก') && r.text.includes('ข้าวผัดห่วย'));
+    expect(confirmReply).toBeTruthy();
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_confirm');
+
+    mockTx.transaction.create.mockImplementation(async (args: any) => ({ id: 'tx-edit2', ...args.data }));
+    await handleTextMessage(USER, sender, 'ยืนยัน');
+    expect(mockTx.transaction.create.mock.calls[0][0].data.description).toBe('ข้าวผัดห่วย');
+  });
+
+  it('แก้หมวดหมู่ opens the category-group picker and a picked group re-confirms', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    await handleTextMessage(USER, sender, 'แก้หมวดหมู่');
+
+    const last = replies[replies.length - 1];
+    expect(last.text).toContain('เลือกหมวดหมู่');
+    expect(keyboardRows(last)).toContainEqual(['เลือกหมวด:อาหาร']);
+
+    // Single-leaf group resolves straight back to the confirm prompt
+    await handleTextMessage(USER, sender, 'เลือกหมวด:อาหาร');
+    const confirmReply = replies.find((r) => r.text.includes('ตรวจสอบรายการก่อนบันทึก'));
+    expect(confirmReply).toBeTruthy();
+    expect(sessions.get('user-1|transaction')?.step).toBe('awaiting_confirm');
+  });
+
+  it('ยืนยัน pressed from inside an edit prompt still saves the transaction', async () => {
+    await seedPending();
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    await handleTextMessage(USER, sender, 'แก้ยอด');
+    // User changes their mind and just confirms without typing a new amount
+    mockTx.transaction.create.mockImplementation(async (args: any) => ({ id: 'tx-edit3', ...args.data }));
+    await handleTextMessage(USER, sender, 'ยืนยัน');
+
+    expect(mockTx.transaction.create).toHaveBeenCalledTimes(1);
+    expect(mockTx.transaction.create.mock.calls[0][0].data.amount).toBe(85);
+    expect(sessions.has('user-1|transaction')).toBe(false);
+  });
+
+  it('เปลี่ยนแปลง without a pending transaction says so', async () => {
+    await handleTextMessage(USER, sender, 'เปลี่ยนแปลง');
+    expect(replies[0].text).toContain('ไม่มีรายการรอยืนยัน');
+  });
+});
+
 describe('multiple accounts ask for selection', () => {
   it('asks which account and records after selection', async () => {
     const accounts = [

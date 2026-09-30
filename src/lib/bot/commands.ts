@@ -26,6 +26,10 @@ export type CommandType =
   | 'money_in'
   | 'money_out'
   | 'change_category'
+  | 'edit'
+  | 'edit_description'
+  | 'edit_amount'
+  | 'edit_category'
   | 'reconcile'
   | 'confirm_reconcile'
   | 'cancel_reconcile'
@@ -48,6 +52,12 @@ export function detectCommand(text: string): CommandType {
   if (q === 'ยืนยัน') return 'confirm';
   if (q === 'ยกเลิก') return 'cancel';
   if (q === 'เปลี่ยนหมวด') return 'change_category';
+  if (q === 'เปลี่ยนแปลง') return 'edit';
+  // Edit-field buttons — exact matches sit above the reconcile fuzzy regex,
+  // so bare "แก้ยอด" is the edit button, not a balance-adjustment request.
+  if (q === 'แก้รายละเอียด') return 'edit_description';
+  if (q === 'แก้ยอด') return 'edit_amount';
+  if (q === 'แก้หมวดหมู่') return 'edit_category';
   if (q === 'ยืนยันปรับยอด') return 'confirm_reconcile';
   if (q === 'ยกเลิกปรับยอด') return 'cancel_reconcile';
   if (q.startsWith('เลือกหมวด:')) return 'select_group';

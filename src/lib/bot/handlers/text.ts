@@ -50,6 +50,9 @@ import {
   handleCorrection,
   handleDeleteLast,
   handleDirection,
+  handleEditField,
+  handleEditInput,
+  handleEditMenu,
   handleSelectAccount,
   handleSubcategorySelected,
 } from './confirm';
@@ -109,6 +112,18 @@ async function dispatchCommand(
       await handleDirection(user, sender, 'money_out');
       return true;
     case 'change_category':
+      await handleChangeCategory(user, sender);
+      return true;
+    case 'edit':
+      await handleEditMenu(user, sender);
+      return true;
+    case 'edit_description':
+      await handleEditField(user, sender, 'description');
+      return true;
+    case 'edit_amount':
+      await handleEditField(user, sender, 'amount');
+      return true;
+    case 'edit_category':
       await handleChangeCategory(user, sender);
       return true;
     case 'select_group':
@@ -208,14 +223,20 @@ export async function handleTextMessage(
   // 2. Reconcile flow — pending account input
   if (await tryReconcileAccountInput(user, sender, trimmed)) return;
 
-  // 3. Correction while awaiting confirmation ("เปลี่ยนเป็น...")
+  // 3. เปลี่ยนแปลง flow — the typed text is the new value of one field
   const txSession = await getSession(user.id, 'transaction');
+  if (txSession && (txSession.step === 'awaiting_edit_description' || txSession.step === 'awaiting_edit_amount')) {
+    await handleEditInput(user, sender, trimmed);
+    return;
+  }
+
+  // 4. Correction while awaiting confirmation ("เปลี่ยนเป็น...")
   if (txSession && txSession.step === 'awaiting_confirm' && /^(เปลี่ยน|แก้)/.test(trimmed)) {
     await handleCorrection(user, sender, trimmed);
     return;
   }
 
-  // 4. AI extraction flow
+  // 5. AI extraction flow
   try {
     const categories = getCategoryContext(await getCategoriesForFamily(user.familyId));
     const extracted = await extractFromText(trimmed, categories);

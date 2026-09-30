@@ -20,6 +20,9 @@ export const TX_STEPS = [
   'awaiting_account',
   'awaiting_direction',
   'awaiting_category',
+  // เปลี่ยนแปลง flow — waiting for the typed new value of one field
+  'awaiting_edit_description',
+  'awaiting_edit_amount',
   'select_source',
   'select_dest',
 ] as const;

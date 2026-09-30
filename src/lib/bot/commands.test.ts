@@ -46,6 +46,13 @@ describe('detectCommand', () => {
     expect(detectCommand('ข้ามหมวด')).toBe('skip_group');
     expect(detectCommand('ข้ามประเภท')).toBe('skip_subcategory');
   });
+
+  it('edit quick replies from the เปลี่ยนแปลง menu', () => {
+    expect(detectCommand('เปลี่ยนแปลง')).toBe('edit');
+    expect(detectCommand('แก้รายละเอียด')).toBe('edit_description');
+    expect(detectCommand('แก้ยอด')).toBe('edit_amount');
+    expect(detectCommand('แก้หมวดหมู่')).toBe('edit_category');
+  });
 });
 
 describe('parseStartCode', () => {
