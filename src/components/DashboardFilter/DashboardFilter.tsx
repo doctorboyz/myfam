@@ -3,7 +3,7 @@
 import { User, DashboardFilters as FilterType, TransactionType, UNCATEGORIZED_FILTER } from '@/types';
 import styles from './DashboardFilter.module.css';
 import { useFinance } from "@/context/FinanceContext";
-import { getBangkokDate, getBangkokDateString } from '@/lib/timezone';
+import { getBangkokDateString } from '@/lib/timezone';
 
 interface DashboardFilterProps {
   users: User[];
@@ -78,26 +78,6 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
       onFilterChange({ ...filters, categories: selected });
   };
 
-  // Date Logic
-  const handlePresetDate = (preset: 'this_month' | 'last_month' | 'this_year' | 'all') => {
-      const now = getBangkokDate();
-      let start: Date | null = null;
-      let end: Date | null = null;
-
-      if (preset === 'this_month') {
-          start = new Date(now.getFullYear(), now.getMonth(), 1);
-          end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      } else if (preset === 'last_month') {
-          start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          end = new Date(now.getFullYear(), now.getMonth(), 0);
-      } else if (preset === 'this_year') {
-          start = new Date(now.getFullYear(), 0, 1);
-          end = new Date(now.getFullYear(), 11, 31);
-      }
-
-      onFilterChange({ ...filters, dateRange: { start, end } });
-  };
-
   const handleDateChange = (type: 'start' | 'end', val: string) => {
       const date = val ? new Date(val) : null;
       const newRange = { ...filters.dateRange, [type]: date };
@@ -111,7 +91,29 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
 
   return (
     <div className={styles.container}>
-      {/* 1. User Filter (Parent Only) */}
+      {/* 1. Custom Date Range (advanced) */}
+      <div className={`${styles.filterItem} ${styles.dateFilter}`}>
+          <label className={styles.dateLabel}>ช่วงวันที่กำหนดเอง</label>
+          <div className={styles.dateInputs}>
+              <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={formatDateVal(filters.dateRange.start)}
+                  onChange={(e) => handleDateChange('start', e.target.value)}
+                  placeholder="ตั้งแต่"
+              />
+              <span className={styles.dateSeparator}>-</span>
+              <input
+                  type="date"
+                  className={styles.dateInput}
+                  value={formatDateVal(filters.dateRange.end)}
+                  onChange={(e) => handleDateChange('end', e.target.value)}
+                  placeholder="ถึง"
+              />
+          </div>
+      </div>
+
+      {/* 2. User Filter (Parent Only) */}
       {canFilterUsers && (
           <div className={styles.filterItem}>
               <MultiSelect
@@ -123,7 +125,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
           </div>
       )}
 
-      {/* 2. Account Filter */}
+      {/* 3. Account Filter */}
       <div className={styles.filterItem}>
           <MultiSelect
               label="บัญชี"
@@ -133,7 +135,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
           />
       </div>
 
-      {/* 3. Type Filter */}
+      {/* 4. Type Filter */}
       <div className={styles.filterItem}>
           <MultiSelect
               label="ประเภท"
@@ -143,7 +145,7 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
           />
       </div>
 
-      {/* 4. Category Filter */}
+      {/* 5. Category Filter */}
       <div className={styles.filterItem}>
           <MultiSelect
               label="หมวดหมู่"
@@ -151,31 +153,6 @@ export default function DashboardFilter({ users, currentUser, filters, onFilterC
               selected={filters.categories || []}
               onChange={handleCategoryChange}
           />
-      </div>
-
-      {/* 5. Date Filter */}
-      <div className={`${styles.filterItem} ${styles.dateFilter}`}>
-          <div className={styles.datePresets}>
-              <button onClick={() => handlePresetDate('this_month')} className={styles.presetBtn}>เดือนนี้</button>
-              <button onClick={() => handlePresetDate('last_month')} className={styles.presetBtn}>เดือนที่แล้ว</button>
-              <button onClick={() => handlePresetDate('this_year')} className={styles.presetBtn}>ปีนี้</button>
-              <button onClick={() => handlePresetDate('all')} className={styles.presetBtn}>ทั้งหมด</button>
-          </div>
-          <div className={styles.dateInputs}>
-              <input 
-                  type="date" 
-                  className={styles.dateInput}
-                  value={formatDateVal(filters.dateRange.start)}
-                  onChange={(e) => handleDateChange('start', e.target.value)}
-              />
-              <span className={styles.dateSeparator}>-</span>
-              <input 
-                  type="date" 
-                  className={styles.dateInput}
-                  value={formatDateVal(filters.dateRange.end)}
-                  onChange={(e) => handleDateChange('end', e.target.value)}
-              />
-          </div>
       </div>
     </div>
   );

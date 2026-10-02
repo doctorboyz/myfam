@@ -18,44 +18,24 @@
     padding: var(--space-sm);
     display: flex;
     flex-direction: column;
-    gap: var(--space-sm);
+    gap: var(--space-xs);
     align-items: stretch;
+    min-width: 0;
 }
 
-.datePresets {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.presetBtn {
-    flex: 1;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    padding: var(--space-xs) var(--space-sm);
-    font-size: var(--font-detail);
+.dateLabel {
+    font-size: var(--font-sm);
     color: var(--secondary-text);
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-    min-width: 52px;
-    white-space: nowrap;
-}
-
-.presetBtn:hover {
-    background: var(--bg-secondary);
-    color: var(--foreground);
+    margin: 0;
 }
 
 .dateInputs {
     display: flex;
+    flex-direction: row;
     align-items: center;
     gap: 6px;
-    justify-content: space-between;
     width: 100%;
+    min-width: 0;
 }
 
 .dateInput {
@@ -67,14 +47,18 @@
     color: var(--foreground);
     flex: 1;
     min-width: 0;
+    box-sizing: border-box;
     font-family: inherit;
 }
 
 .dateSeparator {
     color: var(--secondary-text);
+    text-align: center;
+    font-size: var(--font-detail);
+    flex: 0 0 auto;
 }
 
-/* Desktop: horizontal layout */
+/* Desktop: same stacked layout, just preserve the 4-col grid for the other filters. */
 @media (min-width: 768px) {
     .container {
         grid-template-columns: repeat(4, 1fr);
@@ -82,24 +66,5 @@
 
     .dateFilter {
         grid-column: span 4;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-    }
-
-    .datePresets {
-        flex-wrap: nowrap;
-        width: auto;
-        flex: 1;
-    }
-
-    .presetBtn {
-        flex: 0 0 auto;
-        min-width: unset;
-    }
-
-    .dateInputs {
-        width: auto;
-        justify-content: flex-end;
     }
 }
