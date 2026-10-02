@@ -1,39 +1,58 @@
-/* Profile Page — MAKE-inspired */
-
 .page {
-  padding: var(--section-margin);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+  padding: var(--space-4);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + var(--space-6));
+  min-height: 100dvh;
 }
 
 /* Profile Card */
 .profileCard {
-  background: var(--card-bg);
-  padding: 32px 20px;
-  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-xl);
   text-align: center;
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-6);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.profileCard::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .avatarWrap {
+  position: relative;
   display: flex;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--space-4);
+  z-index: 1;
 }
 
 /* Name with edit button */
 .nameRow {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .name {
   font-size: var(--font-2xl);
   font-weight: var(--weight-bold);
   margin: 0;
+  color: var(--text-primary);
 }
 
 .editIcon {
@@ -44,23 +63,26 @@
   height: 32px;
   min-height: 32px;
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  color: var(--secondary-text);
+  border-radius: var(--radius-full);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast) var(--ease-out);
+  transition: all var(--transition-fast) var(--ease-out);
 }
 
 .editIcon:active {
-  background: var(--border);
+  background: var(--primary-dim);
+  color: var(--primary);
 }
 
 /* Edit name inline */
 .editNameRow {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--space-2);
   margin-bottom: 4px;
 }
 
@@ -69,18 +91,18 @@
   font-weight: var(--weight-bold);
   font-family: var(--font-sans);
   text-align: center;
-  padding: 8px 12px;
-  border: 2px solid var(--primary);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--foreground);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
   max-width: 200px;
   outline: none;
 }
 
 .editNameInput:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-dim);
 }
 
 .editBtn {
@@ -91,15 +113,15 @@
   height: 36px;
   min-height: 36px;
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   background: var(--primary);
-  color: white;
+  color: var(--bg);
   cursor: pointer;
-  transition: background var(--transition-fast) var(--ease-out);
+  transition: opacity var(--transition-fast) var(--ease-out);
 }
 
 .editBtn:active {
-  background: var(--primary-dark);
+  opacity: 0.8;
 }
 
 .cancelBtn {
@@ -110,52 +132,54 @@
   height: 36px;
   min-height: 36px;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--secondary-text);
+  border-radius: var(--radius-full);
+  background: var(--surface-elevated);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: background var(--transition-fast) var(--ease-out);
+  transition: all var(--transition-fast) var(--ease-out);
 }
 
 .cancelBtn:active {
-  background: var(--input-bg);
+  background: var(--surface-glass);
+  color: var(--text-primary);
 }
 
 .roleBadge {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--primary-light);
-  padding: 4px 12px;
-  border-radius: 20px;
-  margin-top: 8px;
-  margin-bottom: 0;
+  background: var(--primary-dim);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  margin-top: var(--space-2);
 }
 
 .roleText {
   font-size: var(--font-sm);
   font-weight: var(--weight-medium);
-  color: var(--primary-dark);
+  color: var(--primary);
 }
 
 /* Menu Section */
 .menuSection {
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
 }
 
 .menuLabel {
   font-size: var(--font-xs);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 12px;
-  padding-left: 4px;
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-1);
 }
 
 .menuCard {
-  background: var(--card-bg);
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border);
 }
@@ -163,17 +187,17 @@
 .menuItem {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--space-3);
   width: 100%;
-  padding: 14px 16px;
-  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  min-height: 52px;
   border: none;
   background: none;
   cursor: pointer;
   font-size: var(--font-md);
   font-family: var(--font-sans);
-  color: var(--foreground);
-  transition: background var(--transition-fast) var(--ease-out);
+  color: var(--text-primary);
+  transition: background-color var(--transition-fast) var(--ease-out);
   text-decoration: none;
 }
 
@@ -182,7 +206,7 @@
 }
 
 .menuItem:active {
-  background: var(--input-bg);
+  background: var(--surface-elevated);
 }
 
 .menuItemIcon {
@@ -197,41 +221,42 @@
 }
 
 .menuItemChevron {
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   flex-shrink: 0;
   font-size: 18px;
 }
 
 /* Footer */
 .footer {
-  margin-top: 32px;
+  margin-top: var(--space-6);
   text-align: center;
 }
 
 .version {
   font-size: var(--font-xs);
-  color: var(--secondary-text);
+  color: var(--text-tertiary);
+  margin-top: var(--space-2);
 }
 
 /* Danger Zone */
 .dangerSection {
-  margin-top: 32px;
+  margin-top: var(--space-6);
 }
 
 .dangerLabel {
   font-size: var(--font-xs);
-  color: var(--danger);
+  color: var(--expense);
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 12px;
-  padding-left: 4px;
+  margin-bottom: var(--space-3);
+  padding-left: var(--space-1);
 }
 
 .dangerCard {
-  background: var(--card-bg);
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--expense-glow);
+  border-radius: var(--radius-lg);
   overflow: hidden;
 }
 
@@ -239,8 +264,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
-  min-height: 44px;
+  padding: var(--space-3) var(--space-4);
+  min-height: 52px;
 }
 
 .dangerItem:not(:last-child) {
@@ -255,117 +280,119 @@
 
 .dangerItemName {
   font-size: var(--font-md);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
 }
 
 .dangerItemBalance {
   font-size: var(--font-xs);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
 }
 
 .deleteBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px 16px;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-sm);
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--expense);
+  border-radius: var(--radius-full);
   background: transparent;
-  color: var(--danger);
+  color: var(--expense);
   font-size: var(--font-sm);
   font-weight: var(--weight-medium);
   font-family: var(--font-sans);
   cursor: pointer;
-  min-height: 44px;
-  transition: all 0.15s;
+  min-height: 36px;
+  transition: all var(--transition-fast) var(--ease-out);
 }
 
 .deleteBtn:active {
-  background: var(--danger);
-  color: white;
+  background: var(--expense-dim);
 }
 
 /* Delete confirmation overlay */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: var(--space-lg);
-  backdrop-filter: blur(4px);
+  padding: var(--space-4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .confirmDialog {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   max-width: 340px;
   width: 100%;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
 }
 
 .confirmTitle {
-  font-size: var(--font-lg);
+  font-size: var(--font-xl);
   font-weight: var(--weight-bold);
   margin: 0 0 var(--space-md);
-  color: var(--foreground);
+  color: var(--text-primary);
 }
 
 .confirmText {
   font-size: var(--font-sm);
-  color: var(--foreground);
+  color: var(--text-primary);
   margin: 0 0 var(--space-sm);
   line-height: 1.5;
 }
 
 .confirmWarning {
   font-size: var(--font-xs);
-  color: var(--danger);
+  color: var(--expense);
   margin: 0 0 var(--space-sm);
   line-height: 1.4;
 }
 
 .confirmHint {
   font-size: var(--font-sm);
-  color: var(--foreground);
+  color: var(--text-secondary);
   margin: 0 0 var(--space-sm);
   font-weight: var(--weight-regular);
 }
 
 .confirmInput {
   width: 100%;
-  padding: var(--space-md);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  color: var(--foreground);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
   font-size: var(--font-md);
   font-family: var(--font-sans);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-4);
   outline: none;
   transition: border-color var(--transition-fast) var(--ease-out);
 }
 
 .confirmInput:focus {
-  border-color: var(--danger);
+  border-color: var(--expense);
 }
 
 .confirmActions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .cancelBtnOverlay {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   font-size: var(--font-sm);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -373,11 +400,11 @@
 }
 
 .dangerBtnOverlay {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--danger);
-  color: white;
+  border-radius: var(--radius-md);
+  background: var(--expense);
+  color: var(--bg);
   font-size: var(--font-sm);
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);

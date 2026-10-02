@@ -85,16 +85,19 @@ export default function AccountsPage() {
   // ดูบัญชีลูก: parents see the whole family grouped by person.
   const accountGroups: Array<{ user: User; accounts: Account[] }> = isParent
     ? users
-        .map(u => ({ user: u, accounts: accounts.filter(a => a.ownerId === u.id) }))
-        .filter(g => g.accounts.length > 0)
+      .map(u => ({ user: u, accounts: accounts.filter(a => a.ownerId === u.id) }))
+      .filter(g => g.accounts.length > 0)
     : [];
 
   const renderAccountCard = (account: Account, trashed = false) => {
     const Icon = getIcon(account.icon, account.type);
+    const style = {
+      '--accent-color': account.color,
+    } as React.CSSProperties;
     const card = (
       <>
-        <div className={styles.iconBox} style={{ backgroundColor: account.color }}>
-          <Icon size={24} color="white" />
+        <div className={styles.iconBox}>
+          <Icon size={22} color="white" strokeWidth={2} />
         </div>
         <div className={styles.info}>
           <div className={styles.name}>{account.name}</div>
@@ -107,21 +110,21 @@ export default function AccountsPage() {
     );
     if (trashed) {
       return (
-        <div key={account.id} className={styles.card} style={{ borderLeftColor: account.color, opacity: 0.7 }}>
+        <div key={account.id} className={styles.card} style={{ ...style, opacity: 0.7 }}>
           {card}
           <div className={styles.trashActions}>
             <button className={styles.restoreBtn} onClick={() => restoreAccount(account.id)} aria-label="กู้คืน">
-              <RotateCcw size={16} />
+              <RotateCcw size={18} />
             </button>
             <button className={styles.permDeleteBtn} onClick={() => setConfirmDelete(account.id)} aria-label="ลบถาวร">
-              <Trash2 size={16} />
+              <Trash2 size={18} />
             </button>
           </div>
         </div>
       );
     }
     return (
-      <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={{ borderLeftColor: account.color }}>
+      <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={style}>
         {card}
       </Link>
     );

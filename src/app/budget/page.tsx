@@ -103,8 +103,8 @@ export default function BudgetPage() {
               <div className={styles.progressSection}>
                 <div className={styles.progressBar}>
                   <div
-                    className={styles.progressFill}
-                    style={{ width: `${percent}%`, backgroundColor: isOver ? "var(--danger)" : undefined }}
+                    className={`${styles.progressFill} ${isOver ? styles.progressFillOver : ''}`}
+                    style={{ width: `${percent}%` }}
                   />
                 </div>
                 <div className={styles.stats}>

@@ -1,86 +1,96 @@
 .container {
-  padding-top: var(--space-md);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-xl));
-  padding-left: var(--space-lg);
-  padding-right: var(--space-lg);
   min-height: 100dvh;
-  background-color: var(--background);
+  padding: var(--safe-top) var(--space-4) calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + var(--space-6));
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--space-sm);
+  padding: var(--space-3) 0 var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .title {
-  font-size: var(--font-lg);
+  font-size: var(--font-xl);
   font-weight: var(--weight-bold);
-  color: var(--foreground);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .addBtn {
-  background: var(--primary);
-  color: white;
-  border: none;
-  border-radius: 20px;
-  padding: var(--space-sm) var(--space-lg);
+  background: var(--surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: var(--space-2) var(--space-4);
   font-size: var(--font-sm);
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
   cursor: pointer;
-  min-height: 44px;
-  box-shadow: 0 2px 8px rgba(0, 179, 134, 0.25);
+  min-height: 40px;
   transition: all var(--transition-fast) var(--ease-out);
 }
 
 .addBtn:active {
   transform: scale(0.96);
-  box-shadow: 0 1px 4px rgba(0, 179, 134, 0.2);
+  background: var(--surface-elevated);
+  border-color: var(--primary);
 }
 
 .grid {
   display: flex;
   flex-direction: column;
-  gap: var(--card-gap);
+  gap: var(--space-2);
 }
 
 .card {
-  background: var(--card-bg);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
   display: flex;
   flex-direction: row;
   align-items: center;
   text-decoration: none;
-  color: var(--foreground);
-  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
   border: 1px solid var(--border);
-  transition: transform 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
-  min-height: 72px;
+  transition: transform var(--transition-fast) var(--ease-out),
+              background-color var(--transition-fast) var(--ease-out);
+  min-height: 80px;
   position: relative;
   overflow: hidden;
-  border-left: 6px solid transparent;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--accent-color, var(--primary));
 }
 
 .card:active {
   transform: scale(0.98);
+  background: var(--surface-elevated);
 }
 
 .iconBox {
-  width: var(--icon-size);
-  height: var(--icon-size);
-  min-width: var(--icon-size);
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: var(--space-lg);
-  box-shadow: var(--shadow-md);
+  margin-right: var(--space-4);
+  background: var(--accent-color, var(--surface-elevated));
+  color: white;
+  flex-shrink: 0;
 }
 
 .info {
@@ -88,12 +98,13 @@
   flex-direction: column;
   flex: 1;
   gap: 2px;
+  min-width: 0;
 }
 
 .name {
-  font-size: var(--font-base);
+  font-size: var(--font-md);
   font-weight: var(--weight-semibold);
-  opacity: 0.9;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -101,59 +112,64 @@
 
 .typeLabel {
   font-size: var(--font-xs);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   font-weight: var(--weight-regular);
 }
 
 .balance {
-  font-size: var(--font-md);
+  font-size: var(--font-lg);
   font-weight: var(--weight-bold);
-  color: var(--foreground);
+  color: var(--text-primary);
   font-family: var(--font-number);
+  font-variant-numeric: tabular-nums;
 }
 
 .empty {
   text-align: center;
-  padding: var(--space-2xl);
-  color: var(--secondary-text);
+  padding: var(--space-8) var(--space-4);
+  color: var(--text-secondary);
   font-size: var(--font-sm);
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
 }
 
 /* Tab Bar */
 .tabBar {
   display: flex;
-  background: var(--input-bg);
-  border-radius: var(--radius-md);
-  padding: var(--space-xs);
-  gap: var(--space-xs);
-  margin-bottom: var(--space-lg);
+  background: var(--surface);
+  border-radius: var(--radius-full);
+  padding: var(--space-1);
+  gap: var(--space-1);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--border);
 }
 
 .tab {
   flex: 1;
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-2) var(--space-md);
   border: none;
   background: transparent;
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);
   font-size: var(--font-sm);
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s var(--ease-out);
+  border-radius: var(--radius-full);
+  transition: all var(--transition-fast) var(--ease-out);
   min-height: 40px;
 }
 
 .tabActive {
-  background: var(--card-bg);
-  color: var(--foreground);
+  background: var(--surface-elevated);
+  color: var(--primary);
   box-shadow: var(--shadow-sm);
 }
 
 /* Trash Actions */
 .trashActions {
   display: flex;
-  gap: var(--space-xs);
+  gap: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -161,11 +177,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
   border: 1px solid var(--primary);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-full);
   background: transparent;
   color: var(--primary);
   cursor: pointer;
@@ -173,108 +189,110 @@
 }
 
 .restoreBtn:active {
-  background: var(--primary-bg);
+  background: var(--primary-dim);
 }
 
 .permDeleteBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  min-height: 36px;
-  border: 1px solid var(--danger);
-  border-radius: var(--radius-sm);
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  border: 1px solid var(--expense);
+  border-radius: var(--radius-full);
   background: transparent;
-  color: var(--danger);
+  color: var(--expense);
   cursor: pointer;
   transition: all var(--transition-fast) var(--ease-out);
 }
 
 .permDeleteBtn:active {
-  background: var(--danger-bg);
+  background: var(--expense-dim);
 }
 
 /* Delete confirmation overlay */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-strong);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: var(--space-lg);
-  backdrop-filter: blur(4px);
+  padding: var(--space-4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .confirmDialog {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  padding: var(--space-xl);
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
   max-width: 340px;
   width: 100%;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
 }
 
 .confirmTitle {
-  font-size: var(--font-lg);
+  font-size: var(--font-xl);
   font-weight: var(--weight-bold);
   margin: 0 0 var(--space-md);
-  color: var(--foreground);
+  color: var(--text-primary);
 }
 
 .confirmText {
   font-size: var(--font-sm);
-  color: var(--foreground);
+  color: var(--text-primary);
   margin: 0 0 var(--space-sm);
   line-height: 1.5;
 }
 
 .confirmWarning {
   font-size: var(--font-xs);
-  color: var(--danger);
+  color: var(--expense);
   margin: 0 0 var(--space-sm);
   line-height: 1.4;
 }
 
 .confirmHint {
   font-size: var(--font-sm);
-  color: var(--foreground);
+  color: var(--text-secondary);
   margin: 0 0 var(--space-sm);
   font-weight: var(--weight-regular);
 }
 
 .confirmInput {
   width: 100%;
-  padding: var(--space-md);
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  color: var(--foreground);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
+  color: var(--text-primary);
   font-size: var(--font-md);
   font-family: var(--font-sans);
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-4);
   outline: none;
   transition: border-color var(--transition-fast) var(--ease-out);
 }
 
 .confirmInput:focus {
-  border-color: var(--danger);
+  border-color: var(--expense);
 }
 
 .confirmActions {
   display: flex;
-  gap: var(--space-sm);
+  gap: var(--space-2);
   justify-content: flex-end;
 }
 
 .cancelBtnOverlay {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   font-size: var(--font-sm);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -282,11 +300,11 @@
 }
 
 .dangerBtnOverlay {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-3) var(--space-4);
   border: none;
-  border-radius: var(--radius-sm);
-  background: var(--danger);
-  color: white;
+  border-radius: var(--radius-md);
+  background: var(--expense);
+  color: var(--bg);
   font-size: var(--font-sm);
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);
@@ -299,29 +317,30 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
-/* ดูบัญชีลูก — family accounts grouped by person (parent view) */
+
+/* Family accounts grouped by person */
 .personSection {
-  margin-top: var(--space-md);
+  margin-bottom: var(--space-4);
 }
 
 .personHeader {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-xs);
-  margin-bottom: var(--space-sm);
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
+  margin-bottom: var(--space-3);
 }
 
 .personName {
   font-size: var(--font-md);
-  font-weight: var(--weight-semibold);
-  color: var(--foreground);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
 }
 
 .personMeta {
-  font-size: var(--font-sm);
-  color: var(--foreground);
-  opacity: 0.6;
+  font-size: var(--font-xs);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+  font-weight: var(--weight-medium);
 }
