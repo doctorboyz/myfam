@@ -11,6 +11,7 @@ import CreateCategoryModal from "../CreateCategoryModal/CreateCategoryModal";
 import { compressImage } from "@/lib/compressImage";
 import { parseTransaction } from "@/lib/transaction-parser";
 import { buildNewTransactionForm, validateTransactionForm } from "./formDefaults";
+import { useTmaBackButton } from "@/lib/useTmaBackButton";
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -36,6 +37,9 @@ export default function TransactionDetailModal({
   availableAccounts = []
 }: TransactionDetailModalProps) {
   const { categories, groups, allAccounts, currentUser, transactions, users, tags, getUserLabel } = useFinance();
+
+  // Telegram Mini App: show native back button while this modal is open.
+  useTmaBackButton(isOpen, onClose);
 
   // Member selector: only show when family has >1 member
   const showMemberSelector = users.length > 1;

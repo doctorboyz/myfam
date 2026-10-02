@@ -3,15 +3,16 @@
 import { useFinance } from "@/context/FinanceContext";
 import styles from "./accounts.module.css";
 import Link from "next/link";
-import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign, RotateCcw, Trash2 } from 'lucide-react';
+import { Wallet, CreditCard, Building2, Utensils, PiggyBank, TrendingUp, ShoppingCart, Gamepad2, Gift, Home as HomeIcon, Car, Zap, Droplet, Heart, Music, Book, Map, DollarSign, RotateCcw, Trash2, Plus, Inbox } from 'lucide-react';
 import { useState } from "react";
 import AccountFormModal from "@/components/AccountFormModal/AccountFormModal";
 import ActionFab, { TransactionType } from "@/components/ActionFab/ActionFab";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import Money from "@/components/Money/Money";
 import { PageGate } from "@/components/PageLoadState";
-import { Plus } from "lucide-react";
 import type { Account, User } from "@/types";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
+import { hapticImpact, hapticNotification, hapticSelection } from "@/lib/haptics";
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   bank: 'บัญชีธนาคาร',
@@ -66,11 +67,13 @@ export default function AccountsPage() {
   };
 
   const handleTypeSelect = (type: TransactionType) => {
+    hapticImpact('light');
     setInitialType(type);
     setIsTxModalOpen(true);
   };
 
   const handleTabChange = (newTab: Tab) => {
+    hapticSelection();
     setTab(newTab);
     if (newTab === 'trash') fetchTrashedAccounts();
   };
@@ -89,7 +92,7 @@ export default function AccountsPage() {
       .filter(g => g.accounts.length > 0)
     : [];
 
-  const renderAccountCard = (account: Account, trashed = false) => {
+  const renderAccountCard = (account: Account, trashed = false, pressable = false) => {
     const Icon = getIcon(account.icon, account.type);
     const style = {
       '--accent-color': account.color,
@@ -110,13 +113,13 @@ export default function AccountsPage() {
     );
     if (trashed) {
       return (
-        <div key={account.id} className={styles.card} style={{ ...style, opacity: 0.7 }}>
+        <div key={account.id} className={`${styles.card} ${pressable ? 'animPressScale' : ''}`} style={{ ...style, opacity: 0.7 }}>
           {card}
           <div className={styles.trashActions}>
-            <button className={styles.restoreBtn} onClick={() => restoreAccount(account.id)} aria-label="กู้คืน">
+            <button className={`${styles.restoreBtn} animPressScale`} onClick={() => { hapticImpact('light'); restoreAccount(account.id); }} aria-label="กู้คืน">
               <RotateCcw size={18} />
             </button>
-            <button className={styles.permDeleteBtn} onClick={() => setConfirmDelete(account.id)} aria-label="ลบถาวร">
+            <button className={`${styles.permDeleteBtn} animPressScale`} onClick={() => { hapticImpact('medium'); setConfirmDelete(account.id); }} aria-label="ลบถาวร">
               <Trash2 size={18} />
             </button>
           </div>
@@ -124,7 +127,7 @@ export default function AccountsPage() {
       );
     }
     return (
-      <Link href={`/account/${account.id}`} key={account.id} className={styles.card} style={style}>
+      <Link href={`/account/${account.id}`} key={account.id} className={`${styles.card} ${pressable ? 'animPressScale' : ''}`} style={style}>
         {card}
       </Link>
     );
@@ -135,7 +138,7 @@ export default function AccountsPage() {
       <div className={styles.header}>
         <h1 className={styles.title}>บัญชี</h1>
         {tab === 'accounts' && (
-          <button onClick={() => setIsAddAccountOpen(true)} className={styles.addBtn}>
+          <button onClick={() => { hapticImpact('light'); setIsAddAccountOpen(true); }} className={`${styles.addBtn} animPressScale`}>
             <Plus size={18} />
             สร้างใหม่
           </button>
@@ -145,13 +148,13 @@ export default function AccountsPage() {
       {/* Tab Bar */}
       <div className={styles.tabBar}>
         <button
-          className={`${styles.tab} ${tab === 'accounts' ? styles.tabActive : ''}`}
+          className={`${styles.tab} ${tab === 'accounts' ? styles.tabActive : ''} animPressScale`}
           onClick={() => handleTabChange('accounts')}
         >
           บัญชี
         </button>
         <button
-          className={`${styles.tab} ${tab === 'trash' ? styles.tabActive : ''}`}
+          className={`${styles.tab} ${tab === 'trash' ? styles.tabActive : ''} animPressScale`}
           onClick={() => handleTabChange('trash')}
         >
           ถังขยะ
@@ -163,13 +166,17 @@ export default function AccountsPage() {
           /* ดูบัญชีลูก: family accounts grouped by person */
           accountGroups.length === 0 ? (
             <div className={styles.grid}>
-              <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+              <EmptyState
+                icon={<Inbox size={24} />}
+                title="ยังไม่มีบัญชี"
+                description="กดสร้างใหม่เพื่อเพิ่มบัญชีแรก"
+              />
             </div>
           ) : (
-            accountGroups.map(({ user, accounts: memberAccounts }) => {
+            accountGroups.map(({ user, accounts: memberAccounts }, groupIndex) => {
               const memberTotal = memberAccounts.reduce((sum, a) => sum + a.balance, 0);
               return (
-                <div key={user.id} className={styles.personSection}>
+                <div key={user.id} className={`${styles.personSection} animFadeInUp`} style={{ animationDelay: `${groupIndex * 80}ms` }}>
                   <div className={styles.personHeader}>
                     <span className={styles.personName}>{getUserLabel(user.id, user.name)}</span>
                     <span className={styles.personMeta}>
@@ -177,7 +184,7 @@ export default function AccountsPage() {
                     </span>
                   </div>
                   <div className={styles.grid}>
-                    {memberAccounts.map(a => renderAccountCard(a))}
+                    {memberAccounts.map(a => renderAccountCard(a, false, true))}
                   </div>
                 </div>
               );
@@ -186,18 +193,26 @@ export default function AccountsPage() {
         ) : (
           <div className={styles.grid}>
             {myAccounts.length === 0 ? (
-              <div className={styles.empty}>ยังไม่มีบัญชี กด &quot;สร้างใหม่&quot; เพื่อเพิ่ม</div>
+              <EmptyState
+                icon={<Inbox size={24} />}
+                title="ยังไม่มีบัญชี"
+                description="กดสร้างใหม่เพื่อเพิ่มบัญชีแรก"
+              />
             ) : (
-              myAccounts.map(account => renderAccountCard(account))
+              myAccounts.map(account => renderAccountCard(account, false, true))
             )}
           </div>
         )
       ) : (
         <div className={styles.grid}>
           {myTrashedAccounts.length === 0 ? (
-            <div className={styles.empty}>ถังขยะว่างเปล่า</div>
+            <EmptyState
+              icon={<Inbox size={24} />}
+              title="ถังขยะว่างเปล่า"
+              description="บัญชีที่ถูกลบจะปรากฏที่นี่"
+            />
           ) : (
-            myTrashedAccounts.map(account => renderAccountCard(account, true))
+            myTrashedAccounts.map(account => renderAccountCard(account, true, true))
           )}
         </div>
       )}
@@ -233,7 +248,9 @@ export default function AccountsPage() {
                   className={styles.dangerBtnOverlay}
                   disabled={confirmInput !== 'ไม่ต้องการบริหารเงิน'}
                   onClick={async () => {
+                    hapticNotification('warning');
                     await permanentDeleteAccount(confirmDelete);
+                    hapticNotification('success');
                     setConfirmDelete(null);
                     setConfirmInput('');
                   }}
@@ -253,6 +270,7 @@ export default function AccountsPage() {
         onClose={() => setIsAddAccountOpen(false)}
         onSave={(data) => {
           addAccount(data);
+          hapticNotification('success');
           setIsAddAccountOpen(false);
         }}
       />

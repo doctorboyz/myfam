@@ -3,11 +3,13 @@
 import { useFinance } from "@/context/FinanceContext";
 import styles from "./budget.module.css";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Inbox } from "lucide-react";
 import { useState } from "react";
 import BudgetFormModal from "@/components/BudgetFormModal/BudgetFormModal";
 import { Budget, BudgetPurpose } from "@/types";
 import Money from "@/components/Money/Money";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
+import { hapticImpact, hapticSelection } from "@/lib/haptics";
 
 const TABS: { key: BudgetPurpose; label: string }[] = [
   { key: "spending", label: "รายจ่าย" },
@@ -62,7 +64,7 @@ export default function BudgetPage() {
     <div className={styles.container}>
       <div className={styles.header}>
         <h1 className={styles.title}>งบประมาณ</h1>
-        <button className={styles.addBtn} onClick={() => setIsModalOpen(true)}>
+        <button className={`${styles.addBtn} animPressScale`} onClick={() => { hapticImpact('light'); setIsModalOpen(true); }}>
           <Plus size={18} />
           สร้างใหม่
         </button>
@@ -72,8 +74,8 @@ export default function BudgetPage() {
         {TABS.map((tab) => (
           <button
             key={tab.key}
-            className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""}`}
-            onClick={() => setActiveTab(tab.key)}
+            className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""} animPressScale`}
+            onClick={() => { hapticSelection(); setActiveTab(tab.key); }}
           >
             {tab.label}
           </button>
@@ -81,11 +83,18 @@ export default function BudgetPage() {
       </div>
 
       <div className={styles.grid}>
-        {filtered.map((budget) => {
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={<Inbox size={24} />}
+            title="ยังไม่มีงบประมาณ"
+            description="สร้างงบประมาณเพื่อเริ่มติดตามเป้าหมายการเงิน"
+          />
+        ) : (
+          filtered.map((budget) => {
           const { planned, actual, percent, labelDone, labelPlanned } = calculateProgress(budget);
           const isOver = actual > planned && budget.purpose === "spending";
           return (
-            <Link href={`/budget/${budget.id}`} key={budget.id} className={styles.card}>
+            <Link href={`/budget/${budget.id}`} key={budget.id} className={`${styles.card} animPressScale`}>
               <div className={styles.cardHeader}>
                 <div>
                   <div className={styles.cardTitle}>{budget.title}</div>
@@ -126,7 +135,8 @@ export default function BudgetPage() {
               </div>
             </Link>
           );
-        })}
+        })
+        )}
       </div>
 
       {isModalOpen && (

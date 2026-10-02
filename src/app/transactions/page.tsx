@@ -4,7 +4,7 @@ import { useState, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFinance } from "@/context/FinanceContext";
 import { Transaction, DashboardFilters as FilterType, TransactionType } from "@/types";
-import { ChevronDown, ChevronRight, ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, Tags, Check, X } from "lucide-react";
+import { ChevronDown, ChevronRight, ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, Tags, Check, X, Inbox } from "lucide-react";
 import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import TransactionDetailModal from "@/components/TransactionDetailModal/TransactionDetailModal";
 import CategorySelector from "@/components/CategorySelector/CategorySelector";
@@ -15,6 +15,8 @@ import { getBangkokDate, formatBangkokShortDate, formatBangkokTime } from "@/lib
 import { paramsToFilters } from "@/lib/filters-url";
 import styles from "./page.module.css";
 import { PageGate } from "@/components/PageLoadState";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
+import { hapticImpact, hapticNotification, hapticSelection } from "@/lib/haptics";
 
 function thisMonthDefault(): FilterType {
   const now = getBangkokDate();
@@ -71,6 +73,7 @@ function TransactionsContent() {
   const getTotal = (txs: Transaction[]) => txs.reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
 
   const toggleType = (type: string) => {
+    hapticImpact('light');
     const next = new Set(expandedTypes);
     if (next.has(type)) next.delete(type);
     else next.add(type);
@@ -120,6 +123,7 @@ function TransactionsContent() {
   const applyBulkCategory = async () => {
     const chosenCat = categories.find(c => c.name === bulkCategoryName);
     if (!chosenCat) {
+      hapticNotification('error');
       alert('กรุณาเลือกหมวดหมู่');
       return;
     }
@@ -132,6 +136,9 @@ function TransactionsContent() {
       return;
     }
     const updated = await bulkAssignCategory(eligible.map(tx => tx.id), chosenCat.id);
+    if (updated > 0) {
+      hapticNotification('success');
+    }
     alert(`จัดหมวดหมู่ "${chosenCat.name}" ให้ ${updated} รายการแล้ว`);
     setIsBulkOpen(false);
     setBulkCategoryName('');
@@ -148,8 +155,11 @@ function TransactionsContent() {
       <header className={styles.header}>
         <h1 className={styles.title}>รายการ</h1>
         <button
-          className={`${styles.selectToggle} ${selectMode ? styles.selectToggleActive : ''}`}
-          onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+          className={`${styles.selectToggle} ${selectMode ? styles.selectToggleActive : ''} animPressScale`}
+          onClick={() => {
+            hapticImpact('light');
+            selectMode ? exitSelectMode() : setSelectMode(true);
+          }}
         >
           <Tags size={16} /> {selectMode ? 'ออกจากโหมดเลือก' : 'จัดหมวดทีละหลายรายการ'}
         </button>
@@ -163,15 +173,15 @@ function TransactionsContent() {
       />
 
       <div className={styles.content}>
-        {(['income', 'expense', 'transfer'] as TransactionType[]).map(type => {
+        {(['income', 'expense', 'transfer'] as TransactionType[]).map((type, groupIndex) => {
           const txs = grouped[type];
           const isExpanded = expandedTypes.has(type);
           const config = typeConfig[type];
           const total = getTotal(txs);
 
           return (
-            <div key={type} className={styles.group}>
-              <div className={styles.groupHeader} onClick={() => toggleType(type)}>
+            <div key={type} className={`${styles.group} animFadeInUp`} style={{ animationDelay: `${groupIndex * 80}ms` }}>
+              <div className={`${styles.groupHeader} animPressScale`} onClick={() => toggleType(type)}>
                 <div className={styles.headerLeft}>
                   <div className={`${styles.dot}`} style={{ background: config.color }} />
                   <span className={styles.groupTitle}>{config.label}</span>
@@ -188,7 +198,11 @@ function TransactionsContent() {
               {isExpanded && (
                 <div className={styles.txList}>
                   {txs.length === 0 ? (
-                    <div className={styles.empty}>ไม่มีรายการ{type === 'income' ? 'รายรับ' : type === 'expense' ? 'รายจ่าย' : 'โอน'}</div>
+                    <EmptyState
+                      icon={<Inbox size={22} />}
+                      title={`ไม่มีรายการ${type === 'income' ? 'รายรับ' : type === 'expense' ? 'รายจ่าย' : 'โอน'}`}
+                      description="แตะ + เพื่อเพิ่มรายการใหม่"
+                    />
                   ) : (
                     txs.map(tx => {
                       const Icon = getIcon(tx.categoryGroup);
@@ -196,8 +210,9 @@ function TransactionsContent() {
                       return (
                         <div
                           key={tx.id}
-                          className={`${styles.txItem} ${selectMode ? styles.txItemSelectable : ''}`}
+                          className={`${styles.txItem} ${selectMode ? styles.txItemSelectable : ''} animPressScale`}
                           onClick={() => {
+                            hapticImpact('light');
                             if (selectMode) toggleSelect(tx.id);
                             else { setSelectedTransaction(tx); setIsTxModalOpen(true); }
                           }}
@@ -238,15 +253,15 @@ function TransactionsContent() {
         <div className={styles.bulkBar}>
           <span className={styles.bulkInfo}>เลือกแล้ว {selectedIds.size} รายการ</span>
           <div className={styles.bulkActions}>
-            <button className={styles.bulkBtnGhost} onClick={selectAllDisplayed}>เลือกทั้งหมด</button>
+            <button className={`${styles.bulkBtnGhost} animPressScale`} onClick={() => { hapticImpact('light'); selectAllDisplayed(); }}>เลือกทั้งหมด</button>
             <button
-              className={styles.bulkBtn}
+              className={`${styles.bulkBtn} animPressScale`}
               disabled={selectedIds.size === 0}
-              onClick={() => setIsBulkOpen(true)}
+              onClick={() => { hapticImpact('light'); setIsBulkOpen(true); }}
             >
               จัดหมวดหมู่
             </button>
-            <button className={styles.bulkBtnGhost} onClick={exitSelectMode} aria-label="ปิดโหมดเลือก">
+            <button className={`${styles.bulkBtnGhost} animPressScale`} onClick={() => { hapticImpact('light'); exitSelectMode(); }} aria-label="ปิดโหมดเลือก">
               <X size={16} />
             </button>
           </div>
@@ -261,8 +276,8 @@ function TransactionsContent() {
               {(['expense', 'income', 'transfer'] as TransactionType[]).map(type => (
                 <button
                   key={type}
-                  className={`${styles.bulkTypeBtn} ${bulkType === type ? styles.bulkTypeBtnActive : ''}`}
-                  onClick={() => { setBulkType(type); setBulkCategoryName(''); }}
+                  className={`${styles.bulkTypeBtn} ${bulkType === type ? styles.bulkTypeBtnActive : ''} animPressScale`}
+                  onClick={() => { hapticSelection(); setBulkType(type); setBulkCategoryName(''); }}
                 >
                   {typeConfig[type].label}
                 </button>
@@ -280,8 +295,8 @@ function TransactionsContent() {
               transactionType={bulkType}
             />
             <div className={styles.bulkFormActions}>
-              <button className={styles.bulkBtnGhost} onClick={() => setIsBulkOpen(false)}>ยกเลิก</button>
-              <button className={styles.bulkBtn} onClick={applyBulkCategory}>บันทึก</button>
+              <button className={`${styles.bulkBtnGhost} animPressScale`} onClick={() => { hapticImpact('light'); setIsBulkOpen(false); }}>ยกเลิก</button>
+              <button className={`${styles.bulkBtn} animPressScale`} onClick={() => { hapticImpact('light'); applyBulkCategory(); }}>บันทึก</button>
             </div>
           </div>
         </Modal>

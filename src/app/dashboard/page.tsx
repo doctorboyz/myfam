@@ -11,11 +11,12 @@ import Link from "next/link";
 import { Transaction, DashboardFilters as FilterType, Budget, UNCATEGORIZED_FILTER } from "@/types";
 import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
 import { paramsToFilters, filtersToParams, filtersToQueryString } from "@/lib/filters-url";
-import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, AlertTriangle, ChevronRight } from "lucide-react";
+import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, AlertTriangle, ChevronRight, Inbox } from "lucide-react";
 
 import { AvatarRing } from "@/components/AvatarRing/AvatarRing";
-import { hapticImpact } from "@/lib/haptics";
+import { hapticImpact, hapticSelection } from "@/lib/haptics";
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
 
 import Money from "@/components/Money/Money";
 import { PageGate } from "@/components/PageLoadState";
@@ -84,11 +85,13 @@ function DashboardContent() {
       ? filters.dateRange.start
       : getBangkokDate();
   const shiftMonth = (delta: number) => {
+    hapticImpact('light');
     const start = new Date(monthBase.getFullYear(), monthBase.getMonth() + delta, 1);
     const end = new Date(monthBase.getFullYear(), monthBase.getMonth() + delta + 1, 0);
     setFilters(f => ({ ...f, dateRange: { start, end } }));
   };
   const resetToThisMonth = () => {
+    hapticImpact('light');
     const now = getBangkokDate();
     setFilters(f => ({
       ...f,
@@ -290,10 +293,10 @@ function DashboardContent() {
 
       {/* Month selector */}
       <div className={styles.monthNav}>
-        <button className={styles.monthBtn} onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
+        <button className={`${styles.monthBtn} animPressScale`} onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
         <span className={styles.monthLabel}>{monthLabel}</span>
-        <button className={styles.monthBtn} onClick={() => shiftMonth(1)} aria-label="เดือนถัดไป">›</button>
-        <button className={styles.monthNow} onClick={resetToThisMonth}>เดือนนี้</button>
+        <button className={`${styles.monthBtn} animPressScale`} onClick={() => shiftMonth(1)} aria-label="เดือนถัดไป">›</button>
+        <button className={`${styles.monthNow} animPressScale`} onClick={resetToThisMonth}>เดือนนี้</button>
       </div>
 
       <DashboardFilter
@@ -308,22 +311,22 @@ function DashboardContent() {
         <button
           role="tab"
           aria-selected={view === 'overview'}
-          className={`${styles.tab} ${view === 'overview' ? styles.activeTab : ''}`}
-          onClick={() => setView('overview')}
+          className={`${styles.tab} ${view === 'overview' ? styles.activeTab : ''} animPressScale`}
+          onClick={() => { hapticSelection(); setView('overview'); }}
         >
           ภาพรวม
         </button>
         <button
           role="tab"
           aria-selected={view === 'analysis'}
-          className={`${styles.tab} ${view === 'analysis' ? styles.activeTab : ''}`}
-          onClick={() => setView('analysis')}
+          className={`${styles.tab} ${view === 'analysis' ? styles.activeTab : ''} animPressScale`}
+          onClick={() => { hapticSelection(); setView('analysis'); }}
         >
           วิเคราะห์
         </button>
       </div>
 
-      <Link href="/accounts" className={styles.balanceCard}>
+      <Link href="/accounts" className={`${styles.balanceCard} animPressScale`}>
         <div className={styles.balanceLabel}>ยอดคงเหลือ</div>
         <div className={styles.balanceAmount}>
           <Money amount={dashboardBalance} />
@@ -350,7 +353,7 @@ function DashboardContent() {
       {uncategorizedCount > 0 && (
         <Link
           href={`/transactions${drillDownQuery(UNCATEGORIZED_FILTER)}`}
-          className={styles.alertCard}
+          className={`${styles.alertCard} animPressScale`}
         >
           <span className={styles.alertIcon} aria-hidden="true">
             <AlertTriangle size={16} strokeWidth={2.5} />
@@ -362,13 +365,17 @@ function DashboardContent() {
       {view === 'overview' && (
         <>
           {/* Recent transactions */}
-          <div className={styles.sectionBlock}>
+          <div className={`${styles.sectionBlock} animFadeInUp`}>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>รายการล่าสุด</h2>
               <Link href={`/transactions${filtersToQueryString(filters)}`}>ดูทั้งหมด</Link>
             </div>
             {recentTransactions.length === 0 ? (
-              <div className={styles.emptyHint}>ยังไม่มีรายการในช่วงเวลานี้</div>
+              <EmptyState
+                icon={<Inbox size={24} />}
+                title="ยังไม่มีรายการ"
+                description="ในช่วงเวลานี้ แตะ + เพื่อบันทึกรายการแรก"
+              />
             ) : (
               <div className={styles.recentList}>
                 {recentTransactions.map(tx => {
@@ -384,8 +391,8 @@ function DashboardContent() {
                   return (
                     <div
                       key={tx.id}
-                      className={styles.recentItem}
-                      onClick={() => { setSelectedTransaction(tx); setIsTxModalOpen(true); }}
+                      className={`${styles.recentItem} animPressScale`}
+                      onClick={() => { hapticImpact('light'); setSelectedTransaction(tx); setIsTxModalOpen(true); }}
                     >
                       <div className={`${styles.recentIcon} ${iconClass}`}>
                         <Icon size={18} strokeWidth={2} />
@@ -410,25 +417,28 @@ function DashboardContent() {
 
       {view === 'analysis' && (
         <>
-          <div className={styles.sectionBlock}>
+          <div className={`${styles.sectionBlock} animFadeInUp`}>
             <VisualizationView transactions={displayedTransactions} />
           </div>
 
           {/* Top expense categories — tap a row to see its transactions */}
           {topCategories.length > 0 && (
-            <div className={styles.sectionBlock}>
+            <div className={`${styles.sectionBlock} animFadeInUp`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>หมวดหมู่ที่ใช้มากสุด</h2>
               </div>
               <div className={styles.topCatList}>
                 {topCategories.map((cat, i) => {
+                  const delay = `${i * 40}ms`;
                   const pct = summary.expense > 0 ? (cat.amount / summary.expense) * 100 : 0;
                   return (
                     <Link
                       key={cat.id}
                       href={`/transactions${drillDownQuery(cat.id)}`}
-                      className={styles.topCatItem}
+                      className={`${styles.topCatItem} animPressScale`}
+                      style={{ animationDelay: delay }}
                       aria-label={`ดูรายการหมวด${cat.name}`}
+                      onClick={() => hapticImpact('light')}
                     >
                       <span className={styles.topCatRank}>{i + 1}</span>
                       <span className={styles.topCatName}>{cat.name}</span>
@@ -445,13 +455,13 @@ function DashboardContent() {
 
           {/* Per-person breakdown (parents) */}
           {perPerson.length > 0 && (
-            <div className={styles.sectionBlock}>
+            <div className={`${styles.sectionBlock} animFadeInUp`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>รายได้–จ่ายแยกตามคน</h2>
               </div>
               <div className={styles.personList}>
-                {perPerson.map(p => (
-                  <div key={p.label} className={styles.personRow}>
+                {perPerson.map((p, i) => (
+                  <div key={p.label} className={`${styles.personRow} animPressScale`} style={{ animationDelay: `${i * 40}ms` }}>
                     <span className={styles.personName}>{p.label}</span>
                     <span className={styles.personIn}>+<Money amount={p.income} colored={false} /></span>
                     <span className={styles.personOut}>-<Money amount={p.expense} colored={false} /></span>
@@ -466,14 +476,14 @@ function DashboardContent() {
 
           {/* Active budgets */}
           {activeBudgets.length > 0 && (
-            <div className={styles.sectionBlock}>
+            <div className={`${styles.sectionBlock} animFadeInUp`}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>งบประมาณ</h2>
                 <Link href="/budget">ดูทั้งหมด</Link>
               </div>
               <div className={styles.budgetList}>
                 {activeBudgets.map(({ budget, spent, pct, over }) => (
-                  <div key={budget.id} className={styles.budgetCard}>
+                  <div key={budget.id} className={`${styles.budgetCard} animPressScale`}>
                     <div className={styles.budgetRow}>
                       <span className={styles.budgetTitle}>{budget.title}</span>
                       <span className={styles.budgetAmounts}>

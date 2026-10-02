@@ -6,6 +6,8 @@ import { useFinance } from "@/context/FinanceContext";
 import Modal from "../Modal/Modal";
 import styles from "./BudgetFormModal.module.css";
 import { Budget, BudgetPurpose } from "@/types";
+import { hapticNotification } from "@/lib/haptics";
+import { useTmaBackButton } from "@/lib/useTmaBackButton";
 
 interface BudgetFormModalProps {
   isOpen: boolean;
@@ -17,6 +19,8 @@ interface BudgetFormModalProps {
 export default function BudgetFormModal({ isOpen, onClose, budgetToEdit, defaultPurpose = "spending" }: BudgetFormModalProps) {
   const { addBudget, updateBudget, deleteBudget, accounts, users, currentUser, getUserLabel } = useFinance();
   const router = useRouter();
+
+  useTmaBackButton(isOpen, onClose);
   const [title, setTitle] = useState(budgetToEdit?.title || "");
   const [description, setDescription] = useState(budgetToEdit?.description || "");
   const [purpose, setPurpose] = useState<BudgetPurpose>(budgetToEdit?.purpose ?? defaultPurpose);
@@ -47,6 +51,7 @@ export default function BudgetFormModal({ isOpen, onClose, budgetToEdit, default
     } else {
       addBudget({ ...payload, items: [] });
     }
+    hapticNotification('success');
     onClose();
   };
 

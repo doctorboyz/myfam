@@ -16,6 +16,25 @@ declare global {
           notificationOccurred?: (type: 'error' | 'success' | 'warning') => void;
           selectionChanged?: () => void;
         };
+        BackButton?: {
+          isVisible?: boolean;
+          show?: () => void;
+          hide?: () => void;
+          onClick?: (handler: () => void) => void;
+        };
+        MainButton?: {
+          text?: string;
+          color?: string;
+          textColor?: string;
+          isVisible?: boolean;
+          isActive?: boolean;
+          show?: () => void;
+          hide?: () => void;
+          enable?: () => void;
+          disable?: () => void;
+          onClick?: (handler: () => void) => void;
+          setText?: (text: string) => void;
+        };
       };
     };
   }

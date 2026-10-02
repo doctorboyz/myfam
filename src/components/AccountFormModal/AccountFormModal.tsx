@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Modal from "../Modal/Modal";
 import { Account, AccountType } from "@/types";
 import styles from "./AccountFormModal.module.css";
+import { useTmaBackButton } from "@/lib/useTmaBackButton";
+import { hapticNotification } from "@/lib/haptics";
 import {
   Wallet,
   CreditCard,
@@ -68,6 +70,8 @@ const getDefaultIcon = (type: AccountType): string => {
 };
 
 export default function AccountFormModal({ isOpen, onClose, onSave, initialData }: AccountFormModalProps) {
+  useTmaBackButton(isOpen, onClose);
+
   const [formData, setFormData] = useState({
     name: "",
     type: "bank" as AccountType,
@@ -112,6 +116,7 @@ export default function AccountFormModal({ isOpen, onClose, onSave, initialData 
     // reconciliation flow may change a balance (the API strips it too).
     const { balance: _balance, ...account } = formData;
     onSave({ ...account, status: initialData?.status || 'active' });
+    hapticNotification('success');
     onClose();
   };
 
