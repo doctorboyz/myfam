@@ -1,33 +1,33 @@
 {
-  "name": "My Fam - Finance Tracker",
-  "short_name": "My Fam",
-  "description": "Simple family expense tracker",
-  "start_url": "/",
+  "name": "myfam - ติดตามการเงินครอบครัว",
+  "short_name": "myfam",
+  "description": "Family finance tracker with Telegram bot and Mini App",
+  "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/favicon.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/favicon.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "/favicon.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { Transaction, DashboardFilters as FilterType, Budget, UNCATEGORIZED_FILTER } from "@/types";
 import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
 import { paramsToFilters, filtersToParams, filtersToQueryString } from "@/lib/filters-url";
-import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } from "lucide-react";
+import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, User, AlertTriangle } from "lucide-react";
 
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
 
@@ -24,7 +24,7 @@ function DashboardContent() {
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [initialType, setInitialType] = useState<TransactionType>('expense');
   const searchParams = useSearchParams();
-const router = useRouter();
+  const router = useRouter();
 
   // Handle ?action=add from Rich Menu links — auto-open the add modal,
   // then strip the param so back-nav doesn't re-open the modal.
@@ -38,7 +38,7 @@ const router = useRouter();
     }
   }, [searchParams, router]);
 
-  // Two dashboard views: ภาพรวม (money at a glance) and วิเคราะห์ (charts).
+  // Two dashboard views: ภาพรวม (feed) and วิเคราะห์ (charts).
   // The active view lives in the URL so refresh/back keeps it.
   const [view, setView] = useState<'overview' | 'analysis'>(() =>
     searchParams.get('view') === 'analysis' ? 'analysis' : 'overview'
@@ -48,17 +48,17 @@ const router = useRouter();
   // overridable from URL (?users=&types=&categories=&accounts=&start=&end=
   // or range=all) so a shared/refreshed link restores the same view.
   const defaultFilters = (): FilterType => {
-      const now = getBangkokDate();
-      return {
-        users: [],
-        dateRange: {
-            start: new Date(now.getFullYear(), now.getMonth(), 1),
-            end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-        },
-        types: [],
-        categories: [],
-        accounts: []
-      };
+    const now = getBangkokDate();
+    return {
+      users: [],
+      dateRange: {
+        start: new Date(now.getFullYear(), now.getMonth(), 1),
+        end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      },
+      types: [],
+      categories: [],
+      accounts: []
+    };
   };
   const [filters, setFilters] = useState<FilterType>(() =>
     paramsToFilters(searchParams, defaultFilters())
@@ -72,7 +72,6 @@ const router = useRouter();
     const qs = params.toString();
     router.replace(qs ? `/dashboard?${qs}` : '/dashboard', { scroll: false });
   }, [filters, view, router]);
-
 
   const displayedTransactions = getFilteredTransactions(filters);
 
@@ -166,12 +165,12 @@ const router = useRouter();
 
   // Calculate specific balance for the filtered view
   const dashboardBalance = useMemo(() => {
-     if (filters.users.length > 0) {
-         return accounts
-            .filter(a => filters.users.includes(a.ownerId || ''))
-            .reduce((sum, acc) => sum + acc.balance, 0);
-     }
-     return globalBalance;
+    if (filters.users.length > 0) {
+      return accounts
+        .filter(a => filters.users.includes(a.ownerId || ''))
+        .reduce((sum, acc) => sum + acc.balance, 0);
+    }
+    return globalBalance;
   }, [accounts, filters.users, globalBalance]);
 
   // Recent transactions (latest 6) — newest first by date
@@ -217,9 +216,9 @@ const router = useRouter();
   };
 
   const handleTypeSelect = (type: TransactionType) => {
-      setInitialType(type);
-      setSelectedTransaction(null);
-      setIsTxModalOpen(true);
+    setInitialType(type);
+    setSelectedTransaction(null);
+    setIsTxModalOpen(true);
   };
 
   if (!currentUser) return <PageGate variant="dashboard" />;
@@ -229,17 +228,34 @@ const router = useRouter();
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div className={styles.greeting}>{getGreeting()}</div>
-            <h1 className={styles.title}>{currentUser.displayName ?? currentUser.name} <span style={{fontSize: 'var(--font-header)', opacity: 0.7}}>({currentUser.role})</span></h1>
-            <div className={styles.date}>{formatBangkokDate(new Date())}</div>
-          </div>
+      <header className={styles.topBar}>
+        <div className={styles.greetingWrap}>
+          <div className={styles.greeting}>{getGreeting()}</div>
+          <h1 className={styles.title}>
+            {currentUser.displayName ?? currentUser.name}
+          </h1>
+        </div>
+        <div className={styles.avatar} aria-label={`บทบาท ${currentUser.role}`}>
+          <User size={20} strokeWidth={1.8} />
         </div>
       </header>
 
-      {/* View tabs — overview keeps the page short; charts live in analysis */}
+      {/* Month selector */}
+      <div className={styles.monthNav}>
+        <button className={styles.monthBtn} onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
+        <span className={styles.monthLabel}>{monthLabel}</span>
+        <button className={styles.monthBtn} onClick={() => shiftMonth(1)} aria-label="เดือนถัดไป">›</button>
+        <button className={styles.monthNow} onClick={resetToThisMonth}>เดือนนี้</button>
+      </div>
+
+      <DashboardFilter
+        users={users}
+        currentUser={currentUser}
+        filters={filters}
+        onFilterChange={setFilters}
+      />
+
+      {/* View tabs — overview keeps the feed; charts live in analysis */}
       <div className={styles.tabs} role="tablist" aria-label="มุมมอง">
         <button
           role="tab"
@@ -259,54 +275,39 @@ const router = useRouter();
         </button>
       </div>
 
-      {/* Month selector */}
-      <div className={styles.monthNav}>
-        <button className={styles.monthBtn} onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
-        <span className={styles.monthLabel}>{monthLabel}</span>
-        <button className={styles.monthBtn} onClick={() => shiftMonth(1)} aria-label="เดือนถัดไป">›</button>
-        <button className={styles.monthNow} onClick={resetToThisMonth}>เดือนนี้</button>
-      </div>
-
-      <DashboardFilter
-        users={users}
-        currentUser={currentUser}
-        filters={filters}
-        onFilterChange={setFilters}
-      />
-
-
-
-      <Link href="/accounts" className={styles.balanceCard} style={{ display: 'block' }}>
-        <div className={styles.label}>ยอดคงเหลือ</div>
-        <div className={styles.amount}>
-            <Money amount={dashboardBalance} />
+      <Link href="/accounts" className={styles.balanceCard}>
+        <div className={styles.balanceLabel}>ยอดคงเหลือ</div>
+        <div className={styles.balanceAmount}>
+          <Money amount={dashboardBalance} />
         </div>
+        <div className={styles.balanceDate}>{formatBangkokDate(new Date())}</div>
       </Link>
 
-      {/* Period summary */}
-      <div className={styles.summaryTiles}>
-        <div className={`${styles.tile} ${styles.tileIncome}`}>
-          <div className={styles.tileLabel}>รายรับ</div>
-          <div className={styles.tileAmount}><Money amount={summary.income} colored={false} /></div>
+      {/* Period pulse */}
+      <div className={styles.pulseRow}>
+        <div className={`${styles.pulseChip} ${styles.incomePulse}`}>
+          <div className={styles.pulseLabel}>รายรับ</div>
+          <div className={styles.pulseAmount}><Money amount={summary.income} colored={false} /></div>
         </div>
-        <div className={`${styles.tile} ${styles.tileExpense}`}>
-          <div className={styles.tileLabel}>รายจ่าย</div>
-          <div className={styles.tileAmount}><Money amount={summary.expense} colored={false} /></div>
+        <div className={`${styles.pulseChip} ${styles.expensePulse}`}>
+          <div className={styles.pulseLabel}>รายจ่าย</div>
+          <div className={styles.pulseAmount}><Money amount={summary.expense} colored={false} /></div>
         </div>
-        <div className={styles.tile}>
-          <div className={styles.tileLabel}>สุทธิ</div>
-          <div className={styles.tileAmount}>
-            <Money amount={summary.net} />
-          </div>
+        <div className={`${styles.pulseChip} ${styles.netPulse}`}>
+          <div className={styles.pulseLabel}>สุทธิ</div>
+          <div className={styles.pulseAmount}><Money amount={summary.net} /></div>
         </div>
       </div>
 
       {uncategorizedCount > 0 && (
         <Link
           href={`/transactions${drillDownQuery(UNCATEGORIZED_FILTER)}`}
-          className={styles.uncategorizedChip}
+          className={styles.alertCard}
         >
-          ⚠️ {uncategorizedCount} รายการยังไม่มีหมวดหมู่ — แตะเพื่อจัดการ
+          <span className={styles.alertIcon} aria-hidden="true">
+            <AlertTriangle size={16} strokeWidth={2.5} />
+          </span>
+          <span>{uncategorizedCount} รายการรอจัดหมวดหมู่ — แตะเพื่อจัดการ</span>
         </Link>
       )}
 
@@ -329,9 +330,9 @@ const router = useRouter();
                     tx.type === 'income' ? styles.recentIconIncome :
                     styles.recentIconTransfer;
                   const color =
-                    tx.type === 'expense' ? 'var(--danger)' :
-                    tx.type === 'income' ? 'var(--success)' :
-                    'var(--primary)';
+                    tx.type === 'expense' ? 'var(--expense)' :
+                    tx.type === 'income' ? 'var(--income)' :
+                    'var(--transfer)';
                   return (
                     <div
                       key={tx.id}
@@ -347,7 +348,8 @@ const router = useRouter();
                       </div>
                       <div className={styles.recentAmount} style={{ color }}>
                         {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :
-                         <Money amount={Math.abs(tx.amount)} colored={false} />}
+                         tx.type === 'income' ? <Money amount={Math.abs(tx.amount)} colored={false} /> :
+                         <Money amount={-Math.abs(tx.amount)} colored={false} />}
                       </div>
                     </div>
                   );
@@ -360,7 +362,7 @@ const router = useRouter();
 
       {view === 'analysis' && (
         <>
-          <div className={styles.section}>
+          <div className={styles.sectionBlock}>
             <VisualizationView transactions={displayedTransactions} />
           </div>
 
@@ -403,7 +405,7 @@ const router = useRouter();
                 {perPerson.map(p => (
                   <div key={p.label} className={styles.personRow}>
                     <span className={styles.personName}>{p.label}</span>
-                    <span className={`${styles.personIn} `}>+<Money amount={p.income} colored={false} /></span>
+                    <span className={styles.personIn}>+<Money amount={p.income} colored={false} /></span>
                     <span className={styles.personOut}>-<Money amount={p.expense} colored={false} /></span>
                     <span className={styles.personNet}>
                       สุทธิ <Money amount={p.income - p.expense} colored={false} />
@@ -455,12 +457,12 @@ const router = useRouter();
         availableAccounts={accounts}
         isOwner={isParent || !selectedTransaction || selectedTransaction.createdById === currentUser?.id}
         onSave={(txData, createdById) => {
-           if (txData.id) {
-               updateTransaction(txData.id, txData);
-           } else {
-               addTransaction(txData, createdById);
-           }
-           setIsTxModalOpen(false);
+          if (txData.id) {
+            updateTransaction(txData.id, txData);
+          } else {
+            addTransaction(txData, createdById);
+          }
+          setIsTxModalOpen(false);
         }}
         onDelete={deleteTransaction}
       />

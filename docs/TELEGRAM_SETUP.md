@@ -44,6 +44,19 @@ match ใน `src/lib/bot/commands.ts` อยู่แล้ว — ไม่ต
 - ลายเซ็นผูกกับ bot token — **ถ้าเปลี่ยน `TELEGRAM_BOT_TOKEN` ต้อง deploy ใหม่ทั้ง web + bot**
 - ทดสอบด้วย vitest: `src/lib/telegram/init-data.test.ts`, `src/app/api/auth/telegram/route.test.ts`
 
+### 1.3 Mini App UI integration
+
+หน้าเว็บตรวจจับ Telegram WebView ผ่าน `window.Telegram?.WebApp` แล้ว:
+
+- เพิ่ม class `tma` ที่ `body` เพื่อปรับ safe area / header spacing (`src/components/TmaShell/TmaShell.tsx`)
+- ตั้งค่า header/background color ของ Telegram เป็น `#050505` (dark theme) เพื่อให้กลืนกับ app
+- เรียก `expand()` เพื่อใช้พื้นที่จอเต็มที่
+- หากต้องการ haptic feedback หรือ native `MainButton`/`BackButton` ให้เรียกผ่าน `window.Telegram.WebApp.*` โดยตรง
+
+ไฟล์ที่เกี่ยวข้อง:
+- `src/components/TmaShell/TmaShell.tsx` — theme sync + class injection
+- `src/app/login/page.tsx` — TMA auto-login + header/background sync
+
 ## 2. Environment Variables
 
 ใน `.env`:

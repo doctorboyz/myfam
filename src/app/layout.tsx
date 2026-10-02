@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav/BottomNav";
 import { FinanceProvider } from "@/context/FinanceContext";
+import { TmaShell } from "@/components/TmaShell/TmaShell";
 
 const prompt = Prompt({
   subsets: ["thai", "latin"],
@@ -38,10 +39,9 @@ export default function RootLayout({
     <html lang="th">
       <body className={`${prompt.variable} ${inter.variable}`}>
         <FinanceProvider>
-          <main>
-            {children}
-            <BottomNav />
-          </main>
+          <TmaShell />
+          <main>{children}</main>
+          <BottomNav />
         </FinanceProvider>
       </body>
     </html>

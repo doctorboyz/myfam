@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-strong);
   z-index: 200;
   display: flex;
   align-items: flex-end;
@@ -17,11 +17,14 @@
 .sheet {
   width: 100%;
   max-width: var(--container-max-width);
-  background: var(--card-bg);
+  background: var(--surface-glass-strong);
   border-radius: var(--bottom-sheet-radius) var(--bottom-sheet-radius) 0 0;
   padding: var(--space-sm) var(--space-lg) var(--space-xl);
   padding-bottom: calc(var(--space-xl) + var(--safe-bottom, 0px));
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-top: 1px solid var(--border);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 @keyframes slideUp {
@@ -33,14 +36,14 @@
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: var(--bg-secondary);
+  background: var(--border-strong);
   margin: 0 auto var(--space-md);
 }
 
 .title {
   font-size: var(--font-lg);
   font-weight: 700;
-  color: var(--foreground);
+  color: var(--text-primary);
   margin-bottom: var(--space-md);
   text-align: center;
 }
@@ -57,12 +60,14 @@
   align-items: center;
   gap: var(--space-md);
   padding: var(--space-md) var(--space-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--option-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
   color: var(--option-color);
   cursor: pointer;
-  transition: transform 0.1s, opacity 0.1s;
+  transition: transform var(--transition-fast) var(--ease-out),
+              background-color var(--transition-fast) var(--ease-out),
+              border-color var(--transition-fast) var(--ease-out);
   width: 100%;
   text-align: left;
   font-family: var(--font-thai);
@@ -70,7 +75,7 @@
 
 .option:active {
   transform: scale(0.98);
-  opacity: 0.9;
+  background: var(--surface-elevated);
 }
 
 .optionIcon {
@@ -78,7 +83,7 @@
   height: var(--icon-size);
   border-radius: 50%;
   background: var(--option-color);
-  color: white;
+  color: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -93,12 +98,12 @@
 .optionLabel {
   font-size: var(--font-md);
   font-weight: 600;
-  color: var(--foreground);
+  color: var(--text-primary);
 }
 
 .optionDesc {
   font-size: var(--font-sm);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
 }
 
 .cancelBtn {
@@ -108,17 +113,19 @@
   gap: var(--space-sm);
   width: 100%;
   padding: var(--space-md);
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  color: var(--secondary-text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: var(--font-base);
   font-weight: 600;
   font-family: var(--font-thai);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: background-color var(--transition-fast),
+              color var(--transition-fast);
 }
 
 .cancelBtn:active {
-  opacity: 0.7;
+  background: var(--surface-elevated);
+  color: var(--text-primary);
 }

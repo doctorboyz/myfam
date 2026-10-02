@@ -1,0 +1,13 @@
+<svg width="240" height="64" viewBox="0 0 240 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="4" width="56" height="56" rx="16" fill="#050505"/>
+  <circle cx="26" cy="28" r="14" fill="#C8FF00"/>
+  <circle cx="42" cy="40" r="11" fill="#C8FF00"/>
+  <circle cx="42" cy="40" r="11" fill="url(#logoGlow)" fill-opacity="0.35"/>
+  <text x="72" y="45" font-family="Prompt, sans-serif" font-size="32" font-weight="700" fill="#f5f5f7">myfam</text>
+  <defs>
+    <radialGradient id="logoGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(42 40) rotate(90) scale(11)">
+      <stop stop-color="#C8FF00"/>
+      <stop offset="1" stop-color="#C8FF00" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

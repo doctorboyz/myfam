@@ -1,132 +1,196 @@
-/* Global Styles — MAKE by KBank inspired, mobile-first PWA */
+/* MyFam Design System — Gen Alpha × TikTok, dark-first, mobile-first PWA */
+
 :root {
-  /* Color Palette — Warmer green primary, modern accents */
-  --background: #f5f5f7;
-  --foreground: #1a1a2e;
-  --card-bg: #ffffff;
-  --primary: #00b386;
-  --primary-dark: #009975;
-  --primary-light: #e6f7f2;
-  --success: #00b386;
-  --danger: #ff4757;
-  --warning: #ffa502;
-  --secondary-text: #8c8c9a;
-  --border: #e8e8ed;
+  /* Canvas & surfaces */
+  --bg: #050505;
+  --surface: #121212;
+  --surface-elevated: #1a1a1a;
+  --surface-glass: rgba(26, 26, 26, 0.72);
+  --surface-glass-strong: rgba(26, 26, 26, 0.88);
 
-  /* Background Variants */
-  --bg-secondary: #ebebf0;
-  --input-bg: #f0f0f5;
+  /* Text */
+  --text-primary: #f5f5f7;
+  --text-secondary: #8e8e93;
+  --text-tertiary: #636366;
 
-  /* Semantic Color Backgrounds */
-  --danger-bg: rgba(255, 71, 87, 0.1);
-  --success-bg: rgba(0, 179, 134, 0.1);
-  --primary-bg: rgba(0, 179, 134, 0.1);
+  /* Accents */
+  --primary: #c8ff00;
+  --primary-dim: rgba(200, 255, 0, 0.14);
+  --primary-glow: rgba(200, 255, 0, 0.35);
+  --income: #c8ff00;
+  --income-dim: rgba(200, 255, 0, 0.14);
+  --expense: #ff4d6d;
+  --expense-dim: rgba(255, 77, 109, 0.14);
+  --expense-glow: rgba(255, 77, 109, 0.35);
+  --transfer: #8b5cf6;
+  --transfer-dim: rgba(139, 92, 246, 0.14);
+  --danger: #ff4d6d;
+  --warning: #ff9f0a;
+  --success: #c8ff00;
+  --info: #0a84ff;
 
-  /* Interactive / Links (LDSM) */
-  --interactive: #007aff;
+  /* Utility */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --overlay: rgba(0, 0, 0, 0.6);
+  --overlay-strong: rgba(0, 0, 0, 0.82);
 
-  /* Transaction Type Colors */
-  --income: var(--success);
-  --expense: var(--danger);
-  --transfer: var(--interactive);
-
-  /* Spacing & Radius — larger radius for modern feel */
-  --radius-lg: 24px;
-  --radius-md: 16px;
-  --radius-sm: 10px;
-  --radius-xs: 6px;
-
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
-
-  /* Typography — Prompt (modern Thai font by Cadson Demak) */
+  /* Typography — Prompt (Thai) + Inter (numbers/Latin) */
   --font-thai: 'Prompt', 'Noto Sans Thai', 'Thonburi', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-number: 'Inter', 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --font-sans: var(--font-thai);
 
-  /* Font Weights */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
 
-  /* Typography Scale — standalone mobile webapp (480px shell) */
-  --font-header: 16px;   /* Headers, titles, buttons */
-  --font-normal: 14px;   /* Body text, labels */
-  --font-detail: 12px;   /* Captions, hints, secondary info */
+  /* Type scale — mobile-first */
+  --font-header: 15px;
+  --font-normal: 14px;
+  --font-detail: 12px;
 
-  /* Size scale — consistent progression for mobile */
-  --font-xs: 11px;       /* Timestamps, hints */
-  --font-sm: 13px;       /* Secondary labels, meta */
-  --font-base: 14px;     /* Body text */
-  --font-md: 15px;       /* Default body / list items */
-  --font-lg: 17px;       /* Card titles */
-  --font-xl: 20px;       /* Section headers */
-  --font-2xl: 24px;      /* Page titles */
-  --font-3xl: 30px;      /* Large numbers / emphasis */
-  --font-hero: 36px;     /* Hero amounts */
+  --font-xs: 11px;
+  --font-sm: 13px;
+  --font-base: 14px;
+  --font-md: 15px;
+  --font-lg: 17px;
+  --font-xl: 20px;
+  --font-2xl: 24px;
+  --font-3xl: 30px;
+  --font-hero: 40px;
 
-  /* Spacing Scale — compact for mobile */
+  /* Spacing — 4/8-point grid */
   --space-xs: 4px;
   --space-sm: 6px;
   --space-md: 10px;
   --space-lg: 14px;
   --space-xl: 16px;
   --space-2xl: 20px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
 
-  /* Layout — mobile-first, max-width for desktop */
-  --bottomnav-height: 64px;
-  --fab-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + 25px);
-  --fab-size: 52px;
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 999px;
+  --radius-xs: 6px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.45);
+  --shadow-glow-primary: 0 0 24px var(--primary-glow);
+  --shadow-glow-expense: 0 0 24px var(--expense-glow);
+
+  /* Motion */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 350ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Layout */
+  --bottomnav-height: 72px;
+  --fab-bottom: calc(var(--bottomnav-height) + var(--safe-bottom, 0px) + 16px);
+  --fab-size: 56px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   --card-padding: 16px;
   --card-gap: 12px;
   --card-margin: 12px;
-  --card-radius: 16px;
-  --amount-size: 28px;
-  --icon-size: 36px;
+  --card-radius: 20px;
+  --amount-size: 36px;
+  --icon-size: 40px;
   --section-margin: 16px;
   --container-max-width: 480px;
-  --bottom-sheet-radius: 20px;
+  --bottom-sheet-radius: 24px;
   --chart-bar-height: 160px;
   --chart-pie-height: 220px;
 
-  /* Chart palette — categorical + semantic (theme-aware, see dark override) */
-  --chart-1: #00b386;
-  --chart-2: #007aff;
-  --chart-3: #ffa502;
-  --chart-4: #ff2d55;
-  --chart-5: #5856d6;
+  /* Chart palette — neon on dark */
+  --chart-1: #c8ff00;
+  --chart-2: #8b5cf6;
+  --chart-3: #ff9f0a;
+  --chart-4: #ff4d6d;
+  --chart-5: #0a84ff;
   --chart-6: #af52de;
   --chart-7: #ff3b30;
   --chart-8: #8e8e93;
-  --chart-grid: #e8e8ed;
-  --chart-income: var(--success);
-  --chart-expense: var(--danger);
+  --chart-grid: rgba(255, 255, 255, 0.1);
+  --chart-income: var(--income);
+  --chart-expense: var(--expense);
 
-  /* Transitions & Easing (LDSM micro-interactions) */
-  --transition-fast: 150ms;
-  --transition-normal: 300ms;
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Backward-compatible aliases for existing components during migration */
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card-bg: var(--surface);
+  --primary-dark: var(--primary);
+  --primary-light: var(--primary-dim);
+  --success-bg: var(--income-dim);
+  --danger-bg: var(--expense-dim);
+  --bg-secondary: var(--surface-elevated);
+  --input-bg: var(--surface-elevated);
+  --interactive: var(--transfer);
+  --secondary-text: var(--text-secondary);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --surface: #f5f5f7;
+    --surface-elevated: #ffffff;
+    --surface-glass: rgba(255, 255, 255, 0.78);
+    --surface-glass-strong: rgba(255, 255, 255, 0.92);
+
+    --text-primary: #1a1a2e;
+    --text-secondary: #8c8c9a;
+    --text-tertiary: #b4b4be;
+
+    --primary: #00b386;
+    --primary-dim: rgba(0, 179, 134, 0.1);
+    --primary-glow: rgba(0, 179, 134, 0.25);
+    --income: #00b386;
+    --income-dim: rgba(0, 179, 134, 0.1);
+    --expense: #ff4757;
+    --expense-dim: rgba(255, 71, 87, 0.1);
+    --transfer: #5856d6;
+    --transfer-dim: rgba(88, 86, 214, 0.1);
+    --danger: #ff4757;
+    --warning: #ffa502;
+    --success: #00b386;
+    --info: #007aff;
+
+    --border: rgba(0, 0, 0, 0.08);
+    --border-strong: rgba(0, 0, 0, 0.12);
+    --overlay: rgba(0, 0, 0, 0.45);
+    --overlay-strong: rgba(0, 0, 0, 0.72);
+
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+    --shadow-glow-primary: 0 0 24px var(--primary-glow);
+    --shadow-glow-expense: 0 0 24px var(--expense-glow);
+
+    --chart-grid: rgba(0, 0, 0, 0.08);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
+  /* Same as default root; explicit for clarity */
   :root {
-    --background: #000000;
-    --foreground: #f5f5f7;
-    --card-bg: #1c1c1e;
-    --border: #38383a;
-    --secondary-text: #98989d;
-    --bg-secondary: #2c2c2e;
-    --input-bg: #2c2c2e;
-    --chart-grid: #38383a;
-    --danger-bg: rgba(255, 71, 87, 0.15);
-    --success-bg: rgba(0, 179, 134, 0.15);
-    --primary-bg: rgba(0, 179, 134, 0.15);
-    --primary-light: #1a3a2a;
+    --background: var(--bg);
+    --foreground: var(--text-primary);
+    --card-bg: var(--surface);
   }
 }
 
@@ -136,19 +200,22 @@
   margin: 0;
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-sans);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh; /* Fallback for older WebViews */
-  min-height: 100dvh;
-  font-weight: var(--weight-regular);
-  line-height: 1.5;
+html {
   /* Prevent browser from auto-scaling text in mobile WebViews */
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: var(--text-primary);
+  background: var(--bg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
 }
 
 /* Mobile Container — centered on desktop */
@@ -156,15 +223,26 @@ main {
   width: 100%;
   max-width: var(--container-max-width);
   margin: 0 auto;
-  background: var(--background);
-  min-height: 100vh; /* Fallback for older WebViews */
+  background: var(--bg);
+  min-height: 100vh;
   min-height: 100dvh;
   position: relative;
   padding-top: var(--safe-top);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 8px);
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Reduce motion when requested */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

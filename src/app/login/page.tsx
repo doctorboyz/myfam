@@ -3,20 +3,9 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
-import styles from "./page.module.css";
 import Image from "next/image";
+import styles from "./page.module.css";
 import { useFinance } from "@/context/FinanceContext";
-
-// Minimal shape of what telegram-web-app.js injects.
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: {
-        initData?: string;
-      };
-    };
-  }
-}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,6 +18,7 @@ export default function LoginPage() {
   // the password form stays hidden until the check finishes, so the user
   // never sees a flash of a form they shouldn't need.
   const [tgChecked, setTgChecked] = useState(false);
+  const [isTma, setIsTma] = useState(false);
 
   // If already authenticated, go to dashboard
   useEffect(() => {
@@ -75,6 +65,10 @@ export default function LoginPage() {
       if (cancelled) return;
       const initData = window.Telegram?.WebApp?.initData;
       if (initData) {
+        setIsTma(true);
+        window.Telegram?.WebApp?.setHeaderColor?.("#050505");
+        window.Telegram?.WebApp?.setBackgroundColor?.("#050505");
+        window.Telegram?.WebApp?.expand?.();
         attemptLogin(initData);
         return;
       }
@@ -127,8 +121,8 @@ export default function LoginPage() {
 
       <div className={styles.card}>
         <div className={styles.logo}>
-          <Image src="/favicon.png" alt="My Fam" width={80} height={80} className={styles.logoIcon} />
-          <h1 className={styles.title}>My Fam</h1>
+          <Image src="/logo-mark.svg" alt="My Fam" width={88} height={88} className={styles.logoIcon} unoptimized priority />
+          <h1 className={styles.title}>myfam</h1>
           <p className={styles.subtitle}>จัดการการเงินครอบครัว</p>
         </div>
 
@@ -166,7 +160,13 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {!tgChecked && <p className={styles.hint}>กำลังเข้าสู่ระบบผ่าน Telegram...</p>}
+        {!tgChecked && isTma && (
+          <div className={styles.tmaHint}>กำลังเข้าสู่ระบบผ่าน Telegram...</div>
+        )}
+
+        {!tgChecked && !isTma && (
+          <p className={styles.hint}>กำลังตรวจสอบสภาพแวดล้อม...</p>
+        )}
 
         <p className={styles.hint} hidden={!tgChecked}>สำหรับสมาชิกในครอบครัวเท่านั้น</p>
       </div>

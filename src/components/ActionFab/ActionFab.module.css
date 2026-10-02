@@ -6,14 +6,15 @@
   height: var(--fab-size);
   border-radius: 50%;
   background: var(--primary);
-  color: white;
+  color: var(--bg);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 179, 134, 0.35);
+  box-shadow: var(--shadow-glow-primary);
   cursor: pointer;
-  transition: transform 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+  transition: transform var(--transition-fast) var(--ease-out),
+              box-shadow var(--transition-fast) var(--ease-out);
   z-index: 100;
 }
 
@@ -25,5 +26,5 @@
 
 .fab:active {
   transform: scale(0.93);
-  box-shadow: 0 2px 8px rgba(0, 179, 134, 0.25);
+  box-shadow: 0 0 16px var(--primary-glow);
 }
