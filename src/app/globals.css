@@ -94,6 +94,19 @@
   --chart-bar-height: 160px;
   --chart-pie-height: 220px;
 
+  /* Chart palette — categorical + semantic (theme-aware, see dark override) */
+  --chart-1: #00b386;
+  --chart-2: #007aff;
+  --chart-3: #ffa502;
+  --chart-4: #ff2d55;
+  --chart-5: #5856d6;
+  --chart-6: #af52de;
+  --chart-7: #ff3b30;
+  --chart-8: #8e8e93;
+  --chart-grid: #e8e8ed;
+  --chart-income: var(--success);
+  --chart-expense: var(--danger);
+
   /* Transitions & Easing (LDSM micro-interactions) */
   --transition-fast: 150ms;
   --transition-normal: 300ms;
@@ -109,6 +122,7 @@
     --secondary-text: #98989d;
     --bg-secondary: #2c2c2e;
     --input-bg: #2c2c2e;
+    --chart-grid: #38383a;
     --danger-bg: rgba(255, 71, 87, 0.15);
     --success-bg: rgba(0, 179, 134, 0.15);
     --primary-bg: rgba(0, 179, 134, 0.15);

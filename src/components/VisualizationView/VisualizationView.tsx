@@ -12,12 +12,29 @@ interface VisualizationViewProps {
     transactions: Transaction[];
 }
 
-const COLORS = ['#007AFF', '#34C759', '#FF9500', '#FF2D55', '#5856D6', '#AF52DE', '#FF3B30', '#8E8E93'];
+// Categorical palette lives in globals.css as --chart-N tokens so charts
+// follow the theme (dark mode overrides) instead of hardcoded hex.
+const COLORS = [
+    'var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)',
+    'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)', 'var(--chart-8)',
+];
+
+/** Pie slices below this share of total are folded into "อื่นๆ". */
+const PIE_MIN_PERCENT = 4;
+
+const TOOLTIP_STYLE = {
+    borderRadius: '12px',
+    border: 'none',
+    boxShadow: 'var(--shadow-md)',
+    background: 'var(--card-bg)',
+    color: 'var(--foreground)',
+    fontSize: 13,
+} as const;
 
 const thaiMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
 
 export default function VisualizationView({ transactions }: VisualizationViewProps) {
-    const { categories, groups, budgets, tags } = useFinance();
+    const { categories, groups, tags } = useFinance();
     const [timeScale, setTimeScale] = useState<'daily' | 'weekly' | 'monthly'>('daily');
     const [groupBy, setGroupBy] = useState<'category' | 'group' | 'tag'>('group');
 
@@ -104,31 +121,22 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
             .sort((a, b) => b.value - a.value);
     }, [transactions, categories, groups, tags, groupBy]);
 
-    // 3. Budget Progress
-    const budgetProgress = useMemo(() => {
-        if (!budgets || budgets.length === 0) return [];
+    // Pie display rows — slices under PIE_MIN_PERCENT fold into "อื่นๆ" so
+    // the ring stays readable, with each row carrying its share for the legend.
+    const pieDisplay = useMemo(() => {
+        const total = pieData.reduce((sum, d) => sum + d.value, 0);
+        if (total === 0) return [] as { name: string; value: number; pct: number }[];
+        const isBig = (d: { value: number }) => (d.value / total) * 100 >= PIE_MIN_PERCENT;
+        const rows = pieData.filter(isBig).map(d => ({ ...d, pct: (d.value / total) * 100 }));
+        const rest = pieData.filter(d => !isBig(d));
+        if (rest.length > 0) {
+            const restValue = rest.reduce((sum, d) => sum + d.value, 0);
+            rows.push({ name: `อื่นๆ (${rest.length})`, value: restValue, pct: (restValue / total) * 100 });
+        }
+        return rows;
+    }, [pieData]);
 
-        return budgets.map(budget => {
-            const totalPlanned = budget.items
-                .filter(i => i.status !== 'cancelled')
-                .reduce((sum, i) => sum + i.plannedAmount, 0);
-            const totalActual = budget.items
-                .filter(i => i.status === 'done')
-                .reduce((sum, i) => sum + (i.actualAmount || i.plannedAmount), 0);
-            const pct = budget.limit > 0 ? Math.min((totalActual / budget.limit) * 100, 100) : 0;
-
-            return {
-                id: budget.id,
-                title: budget.title,
-                used: totalActual,
-                limit: budget.limit,
-                planned: totalPlanned,
-                pct,
-            };
-        });
-    }, [budgets]);
-
-    // 4. Monthly Trend (last 6 months)
+    // 3. Monthly Trend (last 6 months)
     const trendData = useMemo(() => {
         const map = new Map<string, { month: string, income: number, expense: number, label: string }>();
         const now = new Date();
@@ -194,23 +202,23 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                         <BarChart data={timelineData}>
                              <defs>
                                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#34C759" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#34C759" stopOpacity={0.3}/>
+                                    <stop offset="5%" stopColor="var(--chart-income)" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="var(--chart-income)" stopOpacity={0.3}/>
                                 </linearGradient>
                                 <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#FF3B30" stopOpacity={0.8}/>
-                                    <stop offset="95%" stopColor="#FF3B30" stopOpacity={0.3}/>
+                                    <stop offset="5%" stopColor="var(--chart-expense)" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="var(--chart-expense)" stopOpacity={0.3}/>
                                 </linearGradient>
                             </defs>
-                            <XAxis dataKey="label" fontSize={11} tickMargin={5} minTickGap={30} />
+                            <XAxis dataKey="label" fontSize={11} tickMargin={5} minTickGap={30} tick={{ fill: 'var(--secondary-text)' }} />
                             <YAxis hide={true} />
                             <Tooltip
-                                labelStyle={{ fontSize: 13, fontWeight: 600, color: '#666', marginBottom: 4 }}
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                                itemStyle={{ fontSize: 13 }}
+                                labelStyle={{ fontSize: 13, fontWeight: 600, color: 'var(--secondary-text)', marginBottom: 4 }}
+                                contentStyle={TOOLTIP_STYLE}
+                                itemStyle={{ fontSize: 13, color: 'var(--foreground)' }}
                                 formatter={(value: number | undefined) => [`฿${formatMoney(value)}`]}
                             />
-                            <CartesianGrid vertical={false} stroke="#eee" strokeDasharray="5 5" />
+                            <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="5 5" />
                             <Bar dataKey="income" fill="url(#colorIncome)" radius={[4, 4, 0, 0]} name="รายรับ" />
                             <Bar dataKey="expense" fill="url(#colorExpense)" radius={[4, 4, 0, 0]} name="รายจ่าย" />
                         </BarChart>
@@ -224,15 +232,17 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                 <div className={styles.trendWrapper}>
                     <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={trendData}>
-                            <XAxis dataKey="label" fontSize={11} tickMargin={5} />
+                            <XAxis dataKey="label" fontSize={11} tickMargin={5} tick={{ fill: 'var(--secondary-text)' }} />
                             <YAxis hide={true} />
                             <Tooltip
-                                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                contentStyle={TOOLTIP_STYLE}
+                                itemStyle={{ fontSize: 13, color: 'var(--foreground)' }}
+                                labelStyle={{ fontWeight: 600, color: 'var(--secondary-text)' }}
                                 formatter={(value: number | undefined) => [`฿${formatMoney(value)}`]}
                             />
-                            <CartesianGrid vertical={false} stroke="#eee" strokeDasharray="5 5" />
-                            <Line type="monotone" dataKey="income" stroke="#34C759" strokeWidth={2} dot={{ r: 3 }} name="รายรับ" />
-                            <Line type="monotone" dataKey="expense" stroke="#FF3B30" strokeWidth={2} dot={{ r: 3 }} name="รายจ่าย" />
+                            <CartesianGrid vertical={false} stroke="var(--chart-grid)" strokeDasharray="5 5" />
+                            <Line type="monotone" dataKey="income" stroke="var(--chart-income)" strokeWidth={2} dot={{ r: 3 }} name="รายรับ" />
+                            <Line type="monotone" dataKey="expense" stroke="var(--chart-expense)" strokeWidth={2} dot={{ r: 3 }} name="รายจ่าย" />
                             <Legend fontSize={12} />
                         </LineChart>
                     </ResponsiveContainer>
@@ -268,7 +278,7 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                  <Pie
-                                    data={pieData}
+                                    data={pieDisplay}
                                     cx="50%"
                                     cy="50%"
                                     innerRadius={40}
@@ -277,60 +287,31 @@ export default function VisualizationView({ transactions }: VisualizationViewPro
                                     paddingAngle={3}
                                     dataKey="value"
                                 >
-                                    {pieData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    {pieDisplay.map((entry, index) => (
+                                        <Cell key={`cell-${entry.name}`} fill={COLORS[index % COLORS.length]} />
                                     ))}
                                 </Pie>
                                 <Tooltip
-                                    formatter={(value: number | undefined) => `฿${formatMoney(value)}`}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    formatter={(value: number | undefined, name?: string) => [`฿${formatMoney(value)}`, name ?? '']}
+                                    contentStyle={TOOLTIP_STYLE}
+                                    itemStyle={{ fontSize: 13, color: 'var(--foreground)' }}
+                                    labelStyle={{ display: 'none' }}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
                     <div className={styles.legend}>
-                        {pieData.map((entry, index) => (
+                        {pieDisplay.map((entry, index) => (
                             <div key={entry.name} className={styles.legendItem}>
                                 <span className={styles.legendDot} style={{ backgroundColor: COLORS[index % COLORS.length] }} />
                                 <span className={styles.legendLabel}>{entry.name}</span>
+                                <span className={styles.legendValue}>
+                                    ฿{formatMoney(entry.value)} · {entry.pct.toFixed(0)}%
+                                </span>
                             </div>
                         ))}
                     </div>
             </div>
-
-            {/* Budget Progress */}
-            {budgetProgress.length > 0 && (
-                <div className={styles.chartCard}>
-                    <h3 className={styles.chartTitle}>ความคืบหน้างบประมาณ</h3>
-                    <div className={styles.budgetList}>
-                        {budgetProgress.map(b => {
-                            const overBudget = b.pct >= 100;
-                            const barColor = overBudget
-                                ? 'var(--danger)'
-                                : 'var(--primary)';
-                            return (
-                                <div key={b.id} className={styles.budgetItem}>
-                                    <div className={styles.budgetItemHeader}>
-                                        <span className={styles.budgetItemTitle}>{b.title}</span>
-                                        <span className={styles.budgetItemAmount}>
-                                            ฿{formatMoney(b.used)} / ฿{formatMoney(b.limit)}
-                                        </span>
-                                    </div>
-                                    <div className={styles.budgetBar}>
-                                        <div
-                                            className={styles.budgetBarFill}
-                                            style={{
-                                                width: `${b.pct}%`,
-                                                background: barColor,
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

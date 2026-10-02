@@ -94,47 +94,11 @@
     max-width: 100px;
 }
 
-/* Budget Progress */
-.budgetList {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-md);
-}
-
-.budgetItem {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-xs);
-}
-
-.budgetItemHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.budgetItemTitle {
-    font-size: var(--font-sm);
-    font-weight: 500;
-    color: var(--foreground);
-}
-
-.budgetItemAmount {
+.legendValue {
     font-size: var(--font-xs);
     color: var(--secondary-text);
-}
-
-.budgetBar {
-    height: 8px;
-    background: var(--bg-secondary);
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.budgetBarFill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width var(--transition-normal) var(--ease-out);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 /* Monthly Trend */

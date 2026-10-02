@@ -8,8 +8,9 @@ import DashboardFilter from "@/components/DashboardFilter/DashboardFilter";
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Transaction, DashboardFilters as FilterType, Budget } from "@/types";
+import { Transaction, DashboardFilters as FilterType, Budget, UNCATEGORIZED_FILTER } from "@/types";
 import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
+import { paramsToFilters, filtersToParams, filtersToQueryString } from "@/lib/filters-url";
 import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils } from "lucide-react";
 
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
@@ -37,23 +38,40 @@ const router = useRouter();
     }
   }, [searchParams, router]);
 
-  // Initial filters with Default Date Range (This Month) in Bangkok timezone
-  const [filters, setFilters] = useState<FilterType>(() => {
-      const now = getBangkokDate();
-      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  // Two dashboard views: ภาพรวม (money at a glance) and วิเคราะห์ (charts).
+  // The active view lives in the URL so refresh/back keeps it.
+  const [view, setView] = useState<'overview' | 'analysis'>(() =>
+    searchParams.get('view') === 'analysis' ? 'analysis' : 'overview'
+  );
 
+  // Initial filters with Default Date Range (This Month) in Bangkok timezone,
+  // overridable from URL (?users=&types=&categories=&accounts=&start=&end=
+  // or range=all) so a shared/refreshed link restores the same view.
+  const defaultFilters = (): FilterType => {
+      const now = getBangkokDate();
       return {
         users: [],
         dateRange: {
-            start: startOfMonth,
-            end: endOfMonth
+            start: new Date(now.getFullYear(), now.getMonth(), 1),
+            end: new Date(now.getFullYear(), now.getMonth() + 1, 0)
         },
         types: [],
         categories: [],
         accounts: []
       };
-  });
+  };
+  const [filters, setFilters] = useState<FilterType>(() =>
+    paramsToFilters(searchParams, defaultFilters())
+  );
+
+  // Keep the URL in sync with the current view/filters — refresh and
+  // back-nav land on the same state.
+  useEffect(() => {
+    const params = filtersToParams(filters);
+    if (view === 'analysis') params.set('view', 'analysis');
+    const qs = params.toString();
+    router.replace(qs ? `/dashboard?${qs}` : '/dashboard', { scroll: false });
+  }, [filters, view, router]);
 
 
   const displayedTransactions = getFilteredTransactions(filters);
@@ -92,19 +110,34 @@ const router = useRouter();
     return { income, expense, net: income - expense };
   }, [displayedTransactions]);
 
-  // Top expense categories in the filtered range
+  // Top expense categories in the filtered range, keyed by category ID so
+  // each row can drill down into the matching transactions list.
   const topCategories = useMemo(() => {
-    const byCat = new Map<string, number>();
+    const byCat = new Map<string, { name: string; amount: number }>();
     for (const tx of displayedTransactions) {
       if (tx.type !== 'expense') continue;
-      const name = tx.category || 'ไม่มีหมวดหมู่';
-      byCat.set(name, (byCat.get(name) || 0) + Math.abs(tx.amount));
+      const id = tx.categoryId || UNCATEGORIZED_FILTER;
+      const amount = Math.abs(tx.amount);
+      const entry = byCat.get(id);
+      if (entry) entry.amount += amount;
+      else byCat.set(id, { name: tx.category || 'ไม่มีหมวดหมู่', amount });
     }
     return [...byCat.entries()]
-      .map(([name, amount]) => ({ name, amount }))
+      .map(([id, e]) => ({ id, name: e.name, amount: e.amount }))
       .sort((a, b) => b.amount - a.amount)
       .slice(0, 5);
   }, [displayedTransactions]);
+
+  // Drill-down link: same period, single category — everything else reset
+  // so the transactions page shows exactly the rows behind the number.
+  const drillDownQuery = (categoryId: string) =>
+    filtersToQueryString({
+      users: [],
+      dateRange: filters.dateRange,
+      types: [],
+      categories: [categoryId],
+      accounts: []
+    });
 
   // Per-person breakdown (parents) — same attribution as the transaction filter:
   // the owning account, or whoever recorded an accountless planned item.
@@ -206,6 +239,26 @@ const router = useRouter();
         </div>
       </header>
 
+      {/* View tabs — overview keeps the page short; charts live in analysis */}
+      <div className={styles.tabs} role="tablist" aria-label="มุมมอง">
+        <button
+          role="tab"
+          aria-selected={view === 'overview'}
+          className={`${styles.tab} ${view === 'overview' ? styles.activeTab : ''}`}
+          onClick={() => setView('overview')}
+        >
+          ภาพรวม
+        </button>
+        <button
+          role="tab"
+          aria-selected={view === 'analysis'}
+          className={`${styles.tab} ${view === 'analysis' ? styles.activeTab : ''}`}
+          onClick={() => setView('analysis')}
+        >
+          วิเคราะห์
+        </button>
+      </div>
+
       {/* Month selector */}
       <div className={styles.monthNav}>
         <button className={styles.monthBtn} onClick={() => shiftMonth(-1)} aria-label="เดือนก่อนหน้า">‹</button>
@@ -249,131 +302,147 @@ const router = useRouter();
       </div>
 
       {uncategorizedCount > 0 && (
-        <Link href="/transactions" className={styles.uncategorizedChip}>
+        <Link
+          href={`/transactions${drillDownQuery(UNCATEGORIZED_FILTER)}`}
+          className={styles.uncategorizedChip}
+        >
           ⚠️ {uncategorizedCount} รายการยังไม่มีหมวดหมู่ — แตะเพื่อจัดการ
         </Link>
       )}
 
-      <div className={styles.section}>
-        <VisualizationView transactions={displayedTransactions} />
-      </div>
-
-      {/* Top expense categories */}
-      {topCategories.length > 0 && (
-        <div className={styles.sectionBlock}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>หมวดหมู่ที่ใช้มากสุด</h2>
-          </div>
-          <div className={styles.topCatList}>
-            {topCategories.map((cat, i) => {
-              const pct = summary.expense > 0 ? (cat.amount / summary.expense) * 100 : 0;
-              return (
-                <div key={cat.name} className={styles.topCatItem}>
-                  <span className={styles.topCatRank}>{i + 1}</span>
-                  <span className={styles.topCatName}>{cat.name}</span>
-                  <div className={styles.topCatBar}>
-                    <div className={styles.topCatFill} style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className={styles.topCatAmount}><Money amount={cat.amount} colored={false} /></span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Per-person breakdown (parents) */}
-      {perPerson.length > 0 && (
-        <div className={styles.sectionBlock}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>รายได้–จ่ายแยกตามคน</h2>
-          </div>
-          <div className={styles.personList}>
-            {perPerson.map(p => (
-              <div key={p.label} className={styles.personRow}>
-                <span className={styles.personName}>{p.label}</span>
-                <span className={`${styles.personIn} `}>+<Money amount={p.income} colored={false} /></span>
-                <span className={styles.personOut}>-<Money amount={p.expense} colored={false} /></span>
-                <span className={styles.personNet}>
-                  สุทธิ <Money amount={p.income - p.expense} colored={false} />
-                </span>
+      {view === 'overview' && (
+        <>
+          {/* Recent transactions */}
+          <div className={styles.sectionBlock}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>รายการล่าสุด</h2>
+              <Link href={`/transactions${filtersToQueryString(filters)}`}>ดูทั้งหมด</Link>
+            </div>
+            {recentTransactions.length === 0 ? (
+              <div className={styles.emptyHint}>ยังไม่มีรายการในช่วงเวลานี้</div>
+            ) : (
+              <div className={styles.recentList}>
+                {recentTransactions.map(tx => {
+                  const Icon = getIcon(tx.categoryGroup);
+                  const iconClass =
+                    tx.type === 'expense' ? styles.recentIconExpense :
+                    tx.type === 'income' ? styles.recentIconIncome :
+                    styles.recentIconTransfer;
+                  const color =
+                    tx.type === 'expense' ? 'var(--danger)' :
+                    tx.type === 'income' ? 'var(--success)' :
+                    'var(--primary)';
+                  return (
+                    <div
+                      key={tx.id}
+                      className={styles.recentItem}
+                      onClick={() => { setSelectedTransaction(tx); setIsTxModalOpen(true); }}
+                    >
+                      <div className={`${styles.recentIcon} ${iconClass}`}>
+                        <Icon size={18} strokeWidth={2} />
+                      </div>
+                      <div className={styles.recentInfo}>
+                        <div className={styles.recentCategory}>{tx.description || tx.category}</div>
+                        <div className={styles.recentDate}>{formatBangkokShortDate(tx.date)}</div>
+                      </div>
+                      <div className={styles.recentAmount} style={{ color }}>
+                        {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :
+                         <Money amount={Math.abs(tx.amount)} colored={false} />}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            )}
           </div>
-        </div>
+        </>
       )}
 
-      {/* Active budgets */}
-      {activeBudgets.length > 0 && (
-        <div className={styles.sectionBlock}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>งบประมาณ</h2>
-            <Link href="/budget">ดูทั้งหมด</Link>
+      {view === 'analysis' && (
+        <>
+          <div className={styles.section}>
+            <VisualizationView transactions={displayedTransactions} />
           </div>
-          <div className={styles.budgetList}>
-            {activeBudgets.map(({ budget, spent, pct, over }) => (
-              <div key={budget.id} className={styles.budgetCard}>
-                <div className={styles.budgetRow}>
-                  <span className={styles.budgetTitle}>{budget.title}</span>
-                  <span className={styles.budgetAmounts}>
-                    <Money amount={spent} colored={false} /> / <Money amount={budget.limit} colored={false} />
-                  </span>
-                </div>
-                <div className={styles.budgetBar}>
-                  <div
-                    className={`${styles.budgetFill} ${over ? styles.budgetFillOver : ''}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                </div>
+
+          {/* Top expense categories — tap a row to see its transactions */}
+          {topCategories.length > 0 && (
+            <div className={styles.sectionBlock}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>หมวดหมู่ที่ใช้มากสุด</h2>
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+              <div className={styles.topCatList}>
+                {topCategories.map((cat, i) => {
+                  const pct = summary.expense > 0 ? (cat.amount / summary.expense) * 100 : 0;
+                  return (
+                    <Link
+                      key={cat.id}
+                      href={`/transactions${drillDownQuery(cat.id)}`}
+                      className={styles.topCatItem}
+                      aria-label={`ดูรายการหมวด${cat.name}`}
+                    >
+                      <span className={styles.topCatRank}>{i + 1}</span>
+                      <span className={styles.topCatName}>{cat.name}</span>
+                      <div className={styles.topCatBar}>
+                        <div className={styles.topCatFill} style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className={styles.topCatAmount}><Money amount={cat.amount} colored={false} /></span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {/* Recent transactions */}
-      <div className={styles.sectionBlock}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>รายการล่าสุด</h2>
-          <Link href="/transactions">ดูทั้งหมด</Link>
-        </div>
-        {recentTransactions.length === 0 ? (
-          <div className={styles.emptyHint}>ยังไม่มีรายการในช่วงเวลานี้</div>
-        ) : (
-          <div className={styles.recentList}>
-            {recentTransactions.map(tx => {
-              const Icon = getIcon(tx.categoryGroup);
-              const iconClass =
-                tx.type === 'expense' ? styles.recentIconExpense :
-                tx.type === 'income' ? styles.recentIconIncome :
-                styles.recentIconTransfer;
-              const color =
-                tx.type === 'expense' ? 'var(--danger)' :
-                tx.type === 'income' ? 'var(--success)' :
-                'var(--primary)';
-              return (
-                <div
-                  key={tx.id}
-                  className={styles.recentItem}
-                  onClick={() => { setSelectedTransaction(tx); setIsTxModalOpen(true); }}
-                >
-                  <div className={`${styles.recentIcon} ${iconClass}`}>
-                    <Icon size={18} strokeWidth={2} />
+          {/* Per-person breakdown (parents) */}
+          {perPerson.length > 0 && (
+            <div className={styles.sectionBlock}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>รายได้–จ่ายแยกตามคน</h2>
+              </div>
+              <div className={styles.personList}>
+                {perPerson.map(p => (
+                  <div key={p.label} className={styles.personRow}>
+                    <span className={styles.personName}>{p.label}</span>
+                    <span className={`${styles.personIn} `}>+<Money amount={p.income} colored={false} /></span>
+                    <span className={styles.personOut}>-<Money amount={p.expense} colored={false} /></span>
+                    <span className={styles.personNet}>
+                      สุทธิ <Money amount={p.income - p.expense} colored={false} />
+                    </span>
                   </div>
-                  <div className={styles.recentInfo}>
-                    <div className={styles.recentCategory}>{tx.description || tx.category}</div>
-                    <div className={styles.recentDate}>{formatBangkokShortDate(tx.date)}</div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active budgets */}
+          {activeBudgets.length > 0 && (
+            <div className={styles.sectionBlock}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>งบประมาณ</h2>
+                <Link href="/budget">ดูทั้งหมด</Link>
+              </div>
+              <div className={styles.budgetList}>
+                {activeBudgets.map(({ budget, spent, pct, over }) => (
+                  <div key={budget.id} className={styles.budgetCard}>
+                    <div className={styles.budgetRow}>
+                      <span className={styles.budgetTitle}>{budget.title}</span>
+                      <span className={styles.budgetAmounts}>
+                        <Money amount={spent} colored={false} /> / <Money amount={budget.limit} colored={false} />
+                      </span>
+                    </div>
+                    <div className={styles.budgetBar}>
+                      <div
+                        className={`${styles.budgetFill} ${over ? styles.budgetFillOver : ''}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className={styles.recentAmount} style={{ color }}>
-                    {tx.type === 'expense' ? <Money amount={-Math.abs(tx.amount)} /> :
-                     <Money amount={Math.abs(tx.amount)} colored={false} />}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <ActionFab onTypeSelect={handleTypeSelect} />
 

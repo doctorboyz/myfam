@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useFinance } from "@/context/FinanceContext";
 import { Transaction, DashboardFilters as FilterType, TransactionType } from "@/types";
 import { ChevronDown, ChevronRight, ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, Tags, Check, X } from "lucide-react";
@@ -11,10 +12,26 @@ import Modal from "@/components/Modal/Modal";
 import ActionFab, { TransactionType as FabType } from "@/components/ActionFab/ActionFab";
 import Money from "@/components/Money/Money";
 import { getBangkokDate, formatBangkokShortDate, formatBangkokTime } from "@/lib/timezone";
+import { paramsToFilters } from "@/lib/filters-url";
 import styles from "./page.module.css";
 import { PageGate } from "@/components/PageLoadState";
 
-export default function TransactionsPage() {
+function thisMonthDefault(): FilterType {
+  const now = getBangkokDate();
+  return {
+    users: [],
+    dateRange: {
+      start: new Date(now.getFullYear(), now.getMonth(), 1),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 0),
+    },
+    types: [],
+    categories: [],
+    accounts: []
+  };
+}
+
+function TransactionsContent() {
+  const searchParams = useSearchParams();
   const { currentUser, users, accounts, categories, groups, addTransaction, updateTransaction, deleteTransaction, getFilteredTransactions, bulkAssignCategory } = useFinance();
   const [expandedTypes, setExpandedTypes] = useState<Set<string>>(new Set(['expense', 'income', 'transfer']));
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -29,18 +46,11 @@ export default function TransactionsPage() {
   const [bulkType, setBulkType] = useState<TransactionType>('expense');
   const [bulkCategoryName, setBulkCategoryName] = useState("");
 
-  const [filters, setFilters] = useState<FilterType>(() => {
-    const now = getBangkokDate();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    return {
-      users: [],
-      dateRange: { start: startOfMonth, end: endOfMonth },
-      types: [],
-      categories: [],
-      accounts: []
-    };
-  });
+  // Initial filters — read from URL so dashboard links (uncategorized chip,
+  // category drill-down, "ดูทั้งหมด") land here pre-filtered.
+  const [filters, setFilters] = useState<FilterType>(() =>
+    paramsToFilters(searchParams, thisMonthDefault())
+  );
 
   const displayedTransactions = getFilteredTransactions(filters);
 
@@ -302,5 +312,13 @@ export default function TransactionsPage() {
         onDelete={deleteTransaction}
       />
     </div>
+  );
+}
+
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={<div className={styles.empty}>กำลังโหลด...</div>}>
+      <TransactionsContent />
+    </Suspense>
   );
 }

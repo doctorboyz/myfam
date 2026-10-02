@@ -354,6 +354,16 @@
   grid-template-columns: 20px minmax(70px, 110px) 1fr auto;
   align-items: center;
   gap: var(--space-sm);
+  text-decoration: none;
+  padding: var(--space-xs) var(--space-sm);
+  margin: calc(-1 * var(--space-xs)) calc(-1 * var(--space-sm));
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: opacity var(--transition-fast) var(--ease-out);
+}
+
+.topCatItem:active {
+  opacity: 0.6;
 }
 
 .topCatRank {
