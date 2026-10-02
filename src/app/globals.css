@@ -235,6 +235,56 @@ a {
   text-decoration: none;
 }
 
+/* Shared motion classes — keep compositor-only */
+.animFadeInUp {
+  animation: fadeInUp var(--duration-normal) var(--ease-out) both;
+}
+
+.animSlideUp {
+  animation: slideUp var(--duration-slow) var(--ease-out) both;
+}
+
+.animPressScale {
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.animPressScale:active {
+  transform: scale(0.97);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.3;
+  }
+}
+
 /* Reduce motion when requested */
 @media (prefers-reduced-motion: reduce) {
   *,

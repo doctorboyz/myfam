@@ -5,6 +5,8 @@ import { useFinance } from "@/context/FinanceContext";
 import { Tag } from "@/types";
 import { Trash2, Pencil, Check, X, Plus, Tag as TagIcon } from "lucide-react";
 import s from "./tags.module.css";
+import { hapticImpact, hapticNotification } from "@/lib/haptics";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
 
 export default function SettingsTagsPage() {
   const { tags, addTag, updateTag, deleteTag } = useFinance();
@@ -16,6 +18,7 @@ export default function SettingsTagsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Tag | null>(null);
 
   const startEdit = (tag: Tag) => {
+    hapticImpact('light');
     setEditingId(tag.id);
     setEditName(tag.name);
     setEditColor(tag.color || "");
@@ -30,16 +33,19 @@ export default function SettingsTagsPage() {
   const saveEdit = async () => {
     if (!editingId || !editName.trim()) return;
     await updateTag(editingId, { name: editName.trim(), color: editColor.trim() || null });
+    hapticNotification('success');
     cancelEdit();
   };
 
   const handleDelete = (tag: Tag) => {
+    hapticImpact('medium');
     setDeleteTarget(tag);
   };
 
   const confirmDelete = () => {
     if (deleteTarget) {
       deleteTag(deleteTarget.id);
+      hapticNotification('success');
       setDeleteTarget(null);
     }
   };
@@ -48,6 +54,7 @@ export default function SettingsTagsPage() {
     const name = newTagName.trim();
     if (!name) return;
     await addTag(name, newTagColor.trim() || undefined);
+    hapticNotification('success');
     setNewTagName("");
     setNewTagColor("");
   };
@@ -88,7 +95,11 @@ export default function SettingsTagsPage() {
       {/* Tag list */}
       <div className={s.tagList}>
         {tags.length === 0 ? (
-          <div className={s.empty}>ยังไม่มีแท็ก สร้างแท็กใหม่ด้านบน</div>
+          <EmptyState
+            icon={<TagIcon size={24} />}
+            title="ยังไม่มีแท็ก"
+            description="สร้างแท็กใหม่ด้านบนเพื่อจัดกลุ่มรายการ"
+          />
         ) : (
           tags.map((tag) => (
             <div key={tag.id} className={s.tagItem}>

@@ -1,17 +1,17 @@
 .container {
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + var(--space-6));
 }
 
 .content {
-  padding: var(--section-margin);
+  padding: var(--space-4);
 }
 
 .tabs {
   display: flex;
-  background: var(--input-bg);
+  background: var(--surface-elevated);
   padding: var(--space-xs);
   border-radius: var(--radius-md);
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-5);
 }
 
 .tab {
@@ -23,22 +23,22 @@
   font-size: var(--font-sm);
   font-weight: var(--weight-medium);
   font-family: var(--font-sans);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s var(--ease-out);
+  transition: all var(--transition-fast) var(--ease-out);
   min-height: 40px;
 }
 
 .activeTab {
-  background: var(--card-bg);
-  color: var(--foreground);
+  background: var(--surface);
+  color: var(--text-primary);
   box-shadow: var(--shadow-sm);
   font-weight: var(--weight-semibold);
 }
 
-.activeTab.income { color: var(--success); }
-.activeTab.expense { color: var(--danger); }
-.activeTab.transfer { color: var(--primary); }
+.activeTab.income { color: var(--income); }
+.activeTab.expense { color: var(--expense); }
+.activeTab.transfer { color: var(--transfer); }
 
 .list {
   display: flex;
@@ -47,11 +47,15 @@
 }
 
 .groupItem {
-  background: var(--card-bg);
+  background: var(--surface);
   border-radius: var(--card-radius);
   border: 1px solid var(--border);
   overflow: hidden;
-  transition: all 0.2s var(--ease-out);
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.groupItem:active {
+  transform: scale(0.995);
 }
 
 .groupHeader {
@@ -60,29 +64,30 @@
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  background: var(--input-bg);
+  background: var(--surface-elevated);
   min-height: 48px;
 }
 
 .groupHeader:active {
-  background: var(--bg-secondary);
+  background: var(--surface-glass);
 }
 
 .groupName {
   font-weight: var(--weight-semibold);
   font-size: var(--font-md);
+  color: var(--text-primary);
 }
 
 .groupMeta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--secondary-text);
+  gap: var(--space-2);
+  color: var(--text-secondary);
 }
 
 .count {
   font-size: var(--font-xs);
-  background: var(--card-bg);
+  background: var(--surface);
   padding: 2px 8px;
   border-radius: var(--radius-xs);
   font-weight: var(--weight-medium);
@@ -108,33 +113,29 @@
 .categoryName {
   font-size: var(--font-md);
   font-weight: var(--weight-regular);
+  color: var(--text-primary);
 }
 
 .editBtn {
-  padding: 4px;
+  padding: var(--space-1);
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   opacity: 0.6;
-  transition: opacity 0.2s var(--ease-out);
+  transition: opacity var(--transition-fast) var(--ease-out);
   min-width: 44px;
   min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-sm);
 }
 
 .editBtn:active {
   opacity: 1;
   color: var(--primary);
-}
-
-.emptyState {
-  padding: var(--space-2xl) var(--card-padding);
-  text-align: center;
-  color: var(--secondary-text);
-  font-size: var(--font-sm);
+  background: var(--surface-elevated);
 }
 
 /* FABs */
@@ -144,7 +145,7 @@
   right: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
   z-index: 100;
 }
@@ -155,13 +156,13 @@
   border-radius: 28px;
   background: var(--primary);
   border: none;
-  box-shadow: 0 4px 16px rgba(0, 179, 134, 0.3);
+  box-shadow: var(--shadow-glow-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s var(--ease-out);
-  color: white;
+  transition: transform var(--transition-fast) var(--ease-out);
+  color: var(--bg);
 }
 
 .fab:active {
@@ -172,14 +173,14 @@
   width: 48px;
   height: 48px;
   border-radius: 24px;
-  background: var(--card-bg);
+  background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s var(--ease-out);
+  transition: transform var(--transition-fast) var(--ease-out);
   color: var(--primary);
 }
 

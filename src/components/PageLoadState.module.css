@@ -1,18 +1,18 @@
 .skeletonWrap {
-  padding: 16px 0;
+  padding: var(--space-4) 0;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .skeletonRow {
   height: 72px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: linear-gradient(
     90deg,
-    rgba(0, 0, 0, 0.06) 25%,
-    rgba(0, 0, 0, 0.1) 50%,
-    rgba(0, 0, 0, 0.06) 75%
+    var(--surface) 25%,
+    var(--surface-elevated) 50%,
+    var(--surface) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite linear;
@@ -36,42 +36,43 @@
 }
 
 .errorWrap {
-  padding: 32px 16px;
+  padding: var(--space-8) var(--space-4);
   text-align: center;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
 }
 
 .errorText {
-  color: #b3261e;
-  font-size: 15px;
+  color: var(--expense);
+  font-size: var(--font-base);
   margin: 0;
 }
 
 .retryButton {
-  border: 1px solid #b3261e;
+  border: 1px solid var(--expense);
   background: transparent;
-  color: #b3261e;
-  border-radius: 8px;
-  padding: 10px 24px;
-  font-size: 15px;
+  color: var(--expense);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-base);
   min-height: 44px;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color var(--transition-fast) var(--ease-out);
 }
 
 .retryButton:hover {
-  background: rgba(179, 38, 30, 0.08);
+  background: var(--expense-dim);
 }
 
 .retryButton:active {
-  background: rgba(179, 38, 30, 0.16);
+  background: var(--expense);
+  color: var(--bg);
 }
 
 .retryButton:focus-visible {
-  outline: 2px solid #b3261e;
+  outline: 2px solid var(--expense);
   outline-offset: 2px;
 }
 

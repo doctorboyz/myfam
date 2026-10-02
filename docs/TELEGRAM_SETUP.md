@@ -51,11 +51,17 @@ match ใน `src/lib/bot/commands.ts` อยู่แล้ว — ไม่ต
 - เพิ่ม class `tma` ที่ `body` เพื่อปรับ safe area / header spacing (`src/components/TmaShell/TmaShell.tsx`)
 - ตั้งค่า header/background color ของ Telegram เป็น `#050505` (dark theme) เพื่อให้กลืนกับ app
 - เรียก `expand()` เพื่อใช้พื้นที่จอเต็มที่
-- หากต้องการ haptic feedback หรือ native `MainButton`/`BackButton` ให้เรียกผ่าน `window.Telegram.WebApp.*` โดยตรง
+- ส่ง haptic feedback ผ่าน `src/lib/haptics.ts` (wrapper ที่ปลอดภัย — ไม่ crash นอก Telegram)
+  - `hapticImpact(style)` สำหรับ button presses / taps
+  - `hapticNotification('success' | 'error' | 'warning')` สำหรับผลลัพธ์
+  - `hapticSelection()` สำหรับ toggle / chip selection
+- หากต้องการ native `MainButton`/`BackButton` ให้เรียกผ่าน `window.Telegram.WebApp.*` โดยตรง
 
 ไฟล์ที่เกี่ยวข้อง:
 - `src/components/TmaShell/TmaShell.tsx` — theme sync + class injection
-- `src/app/login/page.tsx` — TMA auto-login + header/background sync
+- `src/app/login/page.tsx` — TMA auto-login + header/background sync + haptics
+- `src/lib/haptics.ts` — safe haptic wrapper
+- `src/types/telegram.d.ts` — shared WebApp ambient types
 
 ## 2. Environment Variables
 

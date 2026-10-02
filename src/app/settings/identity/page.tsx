@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, Save, Sparkles, RotateCcw } from 'lucide-react';
 import s from './identity.module.css';
+import { hapticImpact, hapticNotification, hapticSelection } from '@/lib/haptics';
 
 interface IdentityFields {
   roleContext: string;
@@ -77,15 +78,17 @@ export default function IdentitySettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identity: fields }),
       });
+      hapticNotification('success');
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // silent
+      hapticNotification('error');
     }
     setSaving(false);
   };
 
   const handleReset = () => {
+    hapticImpact('light');
     if (!currentUser) return;
     const preset = PRESET_PLACEHOLDERS[currentUser.role] || PRESET_PLACEHOLDERS.child;
     setFields(preset);
@@ -139,7 +142,7 @@ export default function IdentitySettings() {
               <button
                 key={opt.value}
                 className={`${s.styleBtn} ${fields.style === opt.value ? s.styleBtnActive : ''}`}
-                onClick={() => setFields({ ...fields, style: opt.value })}
+                onClick={() => { hapticSelection(); setFields({ ...fields, style: opt.value }); }}
               >
                 {opt.label}
               </button>

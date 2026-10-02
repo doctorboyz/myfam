@@ -3,14 +3,14 @@
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--primary);
   background: var(--primary);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
+  color: var(--bg);
+  font-size: var(--font-base);
+  font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-fast) var(--ease-out);
 }
 
 .installBtn:active {
@@ -20,70 +20,80 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--overlay-strong);
   display: flex;
   align-items: flex-end;
   justify-content: center;
   z-index: 1000;
-  padding: 20px;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--safe-bottom, 0px) + var(--space-4));
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .guide {
-  background: #fff;
-  border-radius: 16px;
-  padding: 24px 20px;
+  background: var(--surface-glass-strong);
+  border-radius: var(--bottom-sheet-radius);
+  padding: var(--space-5);
   max-width: 360px;
   width: 100%;
-  margin-bottom: 10px;
   position: relative;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
 .closeBtn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: var(--space-3);
+  right: var(--space-3);
   background: none;
   border: none;
-  color: #999;
+  color: var(--text-secondary);
   cursor: pointer;
-  padding: 4px;
+  padding: var(--space-1);
   border-radius: 50%;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.closeBtn:hover {
-  background: #f0f0f0;
+.closeBtn:active {
+  background: var(--surface-elevated);
 }
 
 .guideTitle {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0 0 16px;
+  font-size: var(--font-lg);
+  font-weight: var(--weight-semibold);
+  margin: 0 0 var(--space-4);
   padding-right: 30px;
 }
 
 .steps {
   margin: 0;
-  padding: 0 0 0 20px;
+  padding: 0 0 0 var(--space-5);
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  font-size: 14px;
+  gap: var(--space-3);
+  font-size: var(--font-base);
   line-height: 1.5;
+  color: var(--text-primary);
 }
 
 .iconHint {
   display: inline-block;
-  font-size: 16px;
+  font-size: var(--font-lg);
   vertical-align: middle;
 }
 
 .arrowHint {
   text-align: center;
-  font-size: 13px;
-  color: #999;
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #eee;
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
 }
 
 .browserLink {
@@ -91,26 +101,26 @@
   align-items: center;
   gap: 6px;
   padding: 10px 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--primary);
-  background: #fff;
+  background: transparent;
   color: var(--primary);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--font-base);
+  font-weight: var(--weight-medium);
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s;
-  margin-top: 12px;
+  transition: background var(--transition-fast) var(--ease-out);
+  margin-top: var(--space-3);
 }
 
 .browserLink:active {
-  background: var(--primary-light);
+  background: var(--primary-dim);
 }
 
 .browserHint {
   text-align: center;
   font-size: var(--font-md);
-  color: var(--secondary-text);
-  margin-top: 8px;
+  color: var(--text-secondary);
+  margin-top: var(--space-2);
   line-height: 1.4;
 }

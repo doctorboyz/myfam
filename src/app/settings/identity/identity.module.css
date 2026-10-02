@@ -1,17 +1,16 @@
-/* Identity Settings — MAKE-inspired */
-
 .page {
-  padding: var(--section-margin);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + 24px);
-  max-width: 480px;
+  padding: var(--space-4);
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + var(--space-8));
+  max-width: var(--container-max-width);
   margin: 0 auto;
+  min-height: 100dvh;
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
 }
 
 .backBtn {
@@ -23,28 +22,34 @@
   min-height: 36px;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--foreground);
+  background: var(--surface);
+  color: var(--text-primary);
   cursor: pointer;
+  transition: background var(--transition-fast) var(--ease-out);
+}
+
+.backBtn:active {
+  background: var(--surface-elevated);
 }
 
 .title {
   font-size: var(--font-xl);
   font-weight: var(--weight-bold);
   margin: 0;
+  color: var(--text-primary);
 }
 
 .desc {
   font-size: var(--font-sm);
-  color: var(--secondary-text);
+  color: var(--text-secondary);
   line-height: 1.6;
-  margin: 0 0 24px;
+  margin: 0 0 var(--space-5);
 }
 
 .form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--space-5);
 }
 
 .field {
@@ -56,46 +61,46 @@
 .fieldLabel {
   font-size: var(--font-sm);
   font-weight: var(--weight-semibold);
-  color: var(--foreground);
+  color: var(--text-primary);
 }
 
 .textarea {
   width: 100%;
-  padding: 12px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--foreground);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: var(--font-md);
   font-family: var(--font-sans);
   line-height: 1.5;
   resize: vertical;
   outline: none;
-  transition: border-color var(--transition-fast) var(--ease-out);
+  transition: border-color var(--transition-fast) var(--ease-out),
+              box-shadow var(--transition-fast) var(--ease-out);
 }
 
 .textarea:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 2px var(--primary-light);
+  box-shadow: 0 0 0 2px var(--primary-dim);
 }
 
 .textarea::placeholder {
-  color: var(--secondary-text);
-  opacity: 0.6;
+  color: var(--text-tertiary);
 }
 
 .styleOptions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .styleBtn {
-  padding: 10px 12px;
+  padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--foreground);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-primary);
   font-size: var(--font-sm);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -109,27 +114,27 @@
 
 .styleBtnActive {
   border-color: var(--primary);
-  background: var(--primary-light);
-  color: var(--primary-dark);
+  background: var(--primary-dim);
+  color: var(--primary);
   font-weight: var(--weight-semibold);
 }
 
 .actions {
   display: flex;
-  gap: 12px;
+  gap: var(--space-3);
   justify-content: flex-end;
-  margin-top: 24px;
+  margin-top: var(--space-5);
 }
 
 .resetBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 16px;
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--secondary-text);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text-secondary);
   font-size: var(--font-sm);
   font-family: var(--font-sans);
   cursor: pointer;
@@ -137,15 +142,20 @@
   transition: all var(--transition-fast) var(--ease-out);
 }
 
+.resetBtn:active {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+}
+
 .saveBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
+  padding: var(--space-3) var(--space-5);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   background: var(--primary);
-  color: white;
+  color: var(--bg);
   font-size: var(--font-sm);
   font-weight: var(--weight-semibold);
   font-family: var(--font-sans);
@@ -157,4 +167,8 @@
 .saveBtn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.saveBtn:not(:disabled):active {
+  opacity: 0.85;
 }

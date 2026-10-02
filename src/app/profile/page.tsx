@@ -8,6 +8,7 @@ import { Shield, User, Users, Layers, Tags, Pencil, Check, X, Trash2, AlertTrian
 import Link from 'next/link';
 import s from './profile.module.css';
 import { PageGate } from '@/components/PageLoadState';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 
 export default function Profile() {
   const { currentUser, updateUser, users, removeUser, getUserLabel } = useFinance();
@@ -26,6 +27,7 @@ export default function Profile() {
   };
 
   const startEditName = () => {
+    hapticImpact('light');
     setEditName(currentUser.name);
     setIsEditingName(true);
   };
@@ -34,6 +36,7 @@ export default function Profile() {
     const trimmed = editName.trim();
     if (trimmed && trimmed !== currentUser.name) {
       updateUser(currentUser.id, { name: trimmed });
+      hapticNotification('success');
     }
     setIsEditingName(false);
   };
@@ -152,7 +155,7 @@ export default function Profile() {
                     {member.role === 'parent' ? 'ผู้ปกครอง' : 'สมาชิก'}
                   </span>
                 </div>
-                <button className={s.deleteBtn} onClick={() => setShowDeleteUser(member.id)}>
+                <button className={s.deleteBtn} onClick={() => { hapticImpact('medium'); setShowDeleteUser(member.id); }}>
                   <Trash2 size={16} /> ลบ
                 </button>
               </div>
@@ -193,7 +196,9 @@ export default function Profile() {
                   className={s.dangerBtnOverlay}
                   disabled={deleteConfirmInput !== 'ไม่ต้องการบริหารเงิน'}
                   onClick={async () => {
+                    hapticNotification('warning');
                     await removeUser(showDeleteUser);
+                    hapticNotification('success');
                     setShowDeleteUser(null);
                     setDeleteConfirmInput('');
                   }}

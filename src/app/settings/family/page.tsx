@@ -7,6 +7,7 @@ import { ChevronLeft, Plus, Check, Trash2, X } from 'lucide-react';
 import AvatarUploader from '@/components/ImageUploader/AvatarUploader';
 import { User, UserRole } from '@/types';
 import s from './family.module.css';
+import { hapticImpact, hapticNotification } from '@/lib/haptics';
 
 type FormMode = 'idle' | 'add' | 'edit';
 
@@ -68,11 +69,13 @@ export default function FamilyManagement() {
   };
 
   const startAdd = () => {
+    hapticImpact('light');
     resetForm();
     setMode('add');
   };
 
   const startEdit = (user: User) => {
+    hapticImpact('light');
     resetForm();
     setMode('edit');
     setEditingId(user.id);
@@ -153,17 +156,21 @@ export default function FamilyManagement() {
       }
 
       await refreshUsers();
+      hapticNotification('success');
       resetForm();
     } catch {
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่');
+      hapticNotification('error');
     }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
+    hapticImpact('medium');
     if (!confirm('คุณแน่ใจหรือไม่ที่จะลบสมาชิกคนนี้?')) return;
     removeUser(id);
     await refreshUsers();
+    hapticNotification('success');
   };
 
   const handleTelegramCode = async (userId: string) => {
@@ -177,8 +184,10 @@ export default function FamilyManagement() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || 'สร้างรหัส Telegram ไม่สำเร็จ');
+        hapticNotification('error');
         return;
       }
+      hapticNotification('success');
       setTelegramCode({ code: data.code, displayName: data.displayName });
     } catch {
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่');

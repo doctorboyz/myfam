@@ -1,6 +1,6 @@
 .page {
   padding: var(--space-4);
-  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + var(--space-6));
+  padding-bottom: calc(var(--bottomnav-height) + var(--safe-bottom) + var(--space-8));
   min-height: 100dvh;
 }
 
@@ -397,6 +397,12 @@
   font-family: var(--font-sans);
   cursor: pointer;
   min-height: 44px;
+  transition: all var(--transition-fast) var(--ease-out);
+}
+
+.cancelBtnOverlay:active {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
 }
 
 .dangerBtnOverlay {

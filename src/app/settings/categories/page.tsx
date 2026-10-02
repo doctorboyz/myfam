@@ -6,7 +6,8 @@ import CategoryGroupFormModal from "@/components/CategoryGroupFormModal/Category
 import styles from "../../categories/categories.module.css";
 import { useFinance } from "@/context/FinanceContext";
 import { Category, CategoryGroup, TransactionType } from "@/types";
-import { ChevronDown, ChevronRight, Plus, Edit2, FolderPlus, ShieldAlert } from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Edit2, FolderPlus, ShieldAlert, FolderOpen } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState/EmptyState";
 
 export default function SettingsCategoriesPage() {
   const { getGroupsByType, getCategoriesByGroup, currentUser } = useFinance();
@@ -120,7 +121,11 @@ export default function SettingsCategoriesPage() {
                                     </div>
                                 ))}
                                 {groupCats.length === 0 && (
-                                    <div className={styles.emptyState}>ไม่มีหมวดหมู่</div>
+                                    <EmptyState
+                                        icon={<FolderOpen size={24} />}
+                                        title="ไม่มีหมวดหมู่"
+                                        description="เพิ่มหมวดหมู่ใหม่ในกลุ่มนี้"
+                                    />
                                 )}
                             </div>
                         )}
