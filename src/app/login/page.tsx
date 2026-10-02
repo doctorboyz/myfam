@@ -6,6 +6,7 @@ import Script from "next/script";
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useFinance } from "@/context/FinanceContext";
+import { hapticNotification } from "@/lib/haptics";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -100,6 +101,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) {
         setError(typeof data.error === "string" ? data.error : "เข้าสู่ระบบไม่สำเร็จ");
+        hapticNotification('error');
         setLoading(false);
         return;
       }
@@ -107,8 +109,10 @@ export default function LoginPage() {
       // mount effect — pull fresh data *before* navigating so /dashboard
       // doesn't render with a stale (null) user.
       await refreshData();
+      hapticNotification('success');
       router.replace("/dashboard");
     } catch {
+      hapticNotification('error');
       setError("เกิดข้อผิดพลาด กรุณาลองใหม่");
       setLoading(false);
     }

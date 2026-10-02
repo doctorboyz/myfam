@@ -11,8 +11,10 @@ import Link from "next/link";
 import { Transaction, DashboardFilters as FilterType, Budget, UNCATEGORIZED_FILTER } from "@/types";
 import { getBangkokHour, formatBangkokDate, formatBangkokShortDate, getBangkokDate } from "@/lib/timezone";
 import { paramsToFilters, filtersToParams, filtersToQueryString } from "@/lib/filters-url";
-import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, User, AlertTriangle } from "lucide-react";
+import { ShoppingCart, Briefcase, ArrowRightLeft, CreditCard, Home, Utensils, AlertTriangle, ChevronRight } from "lucide-react";
 
+import { AvatarRing } from "@/components/AvatarRing/AvatarRing";
+import { hapticImpact } from "@/lib/haptics";
 import VisualizationView from "@/components/VisualizationView/VisualizationView";
 
 import Money from "@/components/Money/Money";
@@ -226,6 +228,9 @@ function DashboardContent() {
   // Parents manage the whole family's transactions; members their own.
   const isParent = currentUser.role === 'parent' || currentUser.isAdmin;
 
+  const familyMembers = isParent ? users : [];
+  const hasFamily = familyMembers.length > 1;
+
   return (
     <div className={styles.container}>
       <header className={styles.topBar}>
@@ -235,10 +240,53 @@ function DashboardContent() {
             {currentUser.displayName ?? currentUser.name}
           </h1>
         </div>
-        <div className={styles.avatar} aria-label={`บทบาท ${currentUser.role}`}>
-          <User size={20} strokeWidth={1.8} />
-        </div>
+        <Link href="/profile" className={styles.avatar} aria-label="ไปที่โปรไฟล์">
+          <AvatarRing
+            name={currentUser.displayName ?? currentUser.name}
+            color={currentUser.color || undefined}
+            avatar={currentUser.avatar}
+            size={40}
+          />
+        </Link>
       </header>
+
+      {/* Family avatars row */}
+      {hasFamily && (
+        <div className={styles.familyRow}>
+          <div className={styles.familyList}>
+            {familyMembers.map((member) => (
+              <button
+                key={member.id}
+                className={styles.familyItem}
+                onClick={() => {
+                  hapticImpact('light');
+                  setFilters((f) => ({
+                    ...f,
+                    users: f.users.includes(member.id) ? [] : [member.id],
+                  }));
+                }}
+                aria-pressed={filters.users.includes(member.id)}
+                aria-label={`กรองรายการของ ${member.name}`}
+              >
+                <AvatarRing
+                  name={member.name}
+                  color={member.color || undefined}
+                  avatar={member.avatar}
+                  size={56}
+                  active={filters.users.includes(member.id)}
+                />
+                <span className={styles.familyName}>{member.name}</span>
+              </button>
+            ))}
+            <Link href="/settings/family" className={styles.familyItem} aria-label="จัดการสมาชิก">
+              <div className={styles.familyAdd}>
+                <ChevronRight size={24} strokeWidth={2} />
+              </div>
+              <span className={styles.familyName}>เพิ่ม</span>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Month selector */}
       <div className={styles.monthNav}>
