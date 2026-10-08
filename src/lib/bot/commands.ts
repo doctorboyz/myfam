@@ -67,6 +67,11 @@ export function detectCommand(text: string): CommandType {
   if (q === 'ข้ามประเภท') return 'skip_subcategory';
   if (q === 'เงินเข้า') return 'money_in';
   if (q === 'เงินออก') return 'money_out';
+  // Bare keywords documented in TELEGRAM_SETUP §5 — exact match, NOT part of the
+  // fuzzy regexes, so compound commands that contain them keep their own meaning
+  // ("ปรับยอด…" → reconcile, "แก้ยอด" → edit_amount, "ลบรายการล่าสุด" → delete_last).
+  if (q === 'ยอด') return 'balance';
+  if (q === 'รายการ') return 'recent';
 
   // Fuzzy match for user-typed commands
   if (/ดูยอด|ยอดคงเหลือ|ยอดเงิน|เงินเหลือ|เหลือเท่าไหร่|ยอดปัจจุบัน|balance/i.test(q)) return 'balance';

@@ -37,6 +37,18 @@ describe('detectCommand', () => {
     expect(detectCommand('ช่วยเหลือ')).toBe('help');
   });
 
+  it('matches the bare keywords documented in TELEGRAM_SETUP §5 (ISSUE-029)', () => {
+    // docs say typing "ยอด" or "รายการ" alone works — the fuzzy regexes only
+    // matched compound phrases, so these fell through to AI extraction.
+    expect(detectCommand('ยอด')).toBe('balance');
+    expect(detectCommand('รายการ')).toBe('recent');
+    // exact match must not leak into compound commands:
+    expect(detectCommand('ปรับยอด')).toBe('reconcile');
+    expect(detectCommand('แก้ยอด')).toBe('edit_amount');
+    expect(detectCommand('ลบรายการล่าสุด')).toBe('delete_last');
+    expect(detectCommand('ยอดคงเหลือ')).toBe('balance');
+  });
+
   it('returns none for transaction text', () => {
     expect(detectCommand('ซื้อข้าวผัด 85 บาท')).toBe('none');
     expect(detectCommand('รับเงินเดือน 45000')).toBe('none');
