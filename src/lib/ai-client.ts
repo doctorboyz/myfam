@@ -7,6 +7,8 @@
  * Model format: "ollama:<model>" or bare "<model>" (both resolve to Ollama).
  */
 
+import { fetchWithRetry } from '@/lib/fetch-retry';
+
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL || 'https://api.ollama.com';
 const OLLAMA_API_KEY = process.env.OLLAMA_API_KEY || '';
 
@@ -67,15 +69,18 @@ async function callOllama(options: AiChatOptions & { model: string }): Promise<s
     },
   };
 
-  const response = await fetch(`${OLLAMA_BASE_URL}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${OLLAMA_API_KEY}`,
+  const response = await fetchWithRetry(
+    `${OLLAMA_BASE_URL}/api/chat`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OLLAMA_API_KEY}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(300_000),
-  });
+    { timeoutMs: 300_000 },
+  );
 
   if (!response.ok) {
     const errorText = await response.text();

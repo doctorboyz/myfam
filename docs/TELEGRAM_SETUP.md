@@ -170,6 +170,7 @@ Telegram User → Telegram Platform → /api/telegram/webhook
 
 ข้อกำหนดสำคัญ:
 - **ack-then-process**: webhook ตอบ 200 เสมอเมื่อ secret ถูก งานหนัก (vision 30–90s) รันใน `after()` — Cloudflare ตัด request ที่ ~100s
+- **fetch retry (2026-10-08)**: ทุก outbound fetch (Telegram API, ดาวน์โหลดรูป, Ollama) ผ่าน `fetchWithRetry` (`src/lib/fetch-retry.ts`) — retry 3 ครั้ง backoff 2s→8s→30s เมื่อเจอ transient network error (ETIMEDOUT, ECONNRESET ฯลฯ) เพราะ webhook ack 200 ไปก่อนแล้ว update ที่พังจะหายถาวรถ้าไม่ retry เอง (เคยเกิด 8 ครั้งใน 4 วัน ต.ค. 2569) — HTTP error (4xx/5xx) ไม่ retry, caller จัดการเอง
 - **session เก็บใน DB** (BotSession TTL 10 นาที) — restart กลางคันเมื่อไหร่ flow ไม่หลุด
 - **soft-delete เท่านั้น** และ `ลบรายการล่าสุด` ลบได้เฉพาะรายการที่ bot tag `telegram-bot` บันทึก
 - **ตอบไม่ได้ 3 ครั้งใน 5 นาที** → bot แนะนำใช้เว็บ app

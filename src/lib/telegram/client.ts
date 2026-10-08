@@ -3,6 +3,7 @@
  * ~150 lines like the old line.ts. Never logs the token.
  */
 
+import { fetchWithRetry } from '@/lib/fetch-retry';
 import type { ReplyMarkup } from './types';
 
 const API_BASE = 'https://api.telegram.org';
@@ -14,12 +15,15 @@ function token(): string {
 }
 
 async function callApi<T>(method: string, body?: Record<string, unknown>): Promise<T> {
-  const response = await fetch(`${API_BASE}/bot${token()}/${method}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(30_000),
-  });
+  const response = await fetchWithRetry(
+    `${API_BASE}/bot${token()}/${method}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    },
+    { timeoutMs: 30_000 },
+  );
 
   const data = (await response.json()) as { ok: boolean; result?: T; description?: string };
   if (!data.ok) {
@@ -57,9 +61,11 @@ export async function getFile(fileId: string): Promise<{ file_id: string; file_p
 
 /** Download file bytes via the file path returned by getFile. */
 export async function downloadFile(filePath: string): Promise<Buffer> {
-  const response = await fetch(`${API_BASE}/file/bot${token()}/${filePath}`, {
-    signal: AbortSignal.timeout(60_000),
-  });
+  const response = await fetchWithRetry(
+    `${API_BASE}/file/bot${token()}/${filePath}`,
+    {},
+    { timeoutMs: 60_000 },
+  );
   if (!response.ok) {
     throw new Error(`Telegram file download failed: ${response.status}`);
   }
