@@ -48,3 +48,6 @@ next-env.d.ts
 /src/generated/prisma
 .env*.local
 ψ/learn/**/origin
+graphify-out/
+backups/
+tha.traineddata
